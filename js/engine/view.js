@@ -84,14 +84,14 @@ function masterStep(s) {
     case PHASE.ROLES:
       return { seenCount: s.order.filter((id) => pd.seen[id]).length, total: s.order.length };
     case PHASE.BREAKFAST:
-      return { victimId: pd.victimId, firstDay: pd.firstDay };
+      return { victimId: pd.victimId, firstDay: pd.firstDay, suspects: [...pd.suspects] };
     case PHASE.ROUNDTABLE:
       return masterVote(s);
     case PHASE.REVEAL:
       return { playerId: pd.playerId, faction: pd.faction };
     case PHASE.NIGHT:
       // Conta chi ha toccato almeno una volta: non dipende dai ruoli
-      return { touchedCount: live.filter((id) => pd.picks[id] !== undefined || pd.decoys[id] !== undefined).length, total: live.length };
+      return { touchedCount: live.filter((id) => pd.picks[id] !== undefined || pd.suspicions[id] !== undefined).length, total: live.length };
     case PHASE.FINAL:
       switch (pd.stage) {
         case 'choice':
@@ -158,10 +158,13 @@ function playerNight(s, p) {
   const alive = isAlive(p);
   const killer = alive && pd.mode === 'murder' && p.role === ROLE.TRAITOR;
   const live = aliveIdList(s);
+  // Stessa griglia per tutti (tutti gli altri vivi): ai Traditori i complici compaiono disattivati.
+  // Così il numero di caselle non rivela nulla.
   const step = {
     canAct: alive,
-    options: !alive ? [] : killer ? live.filter((id) => s.players[id].role !== ROLE.TRAITOR) : live.filter((id) => id !== p.id),
-    myChoice: (killer ? pd.picks[p.id] : pd.decoys[p.id]) ?? null,
+    options: alive ? live.filter((id) => id !== p.id) : [],
+    disabled: killer ? live.filter((id) => id !== p.id && s.players[id].role === ROLE.TRAITOR) : [],
+    myChoice: (killer ? pd.picks[p.id] : pd.suspicions[p.id]) ?? null,
     killer,
     chat: null,
     allyPicks: null,
@@ -185,7 +188,7 @@ function playerStep(s, p) {
     case PHASE.ROLES:
       return { seen: Boolean(pd.seen[p.id]) };
     case PHASE.BREAKFAST:
-      return { victimId: pd.victimId, firstDay: pd.firstDay };
+      return { victimId: pd.victimId, firstDay: pd.firstDay, suspects: [...pd.suspects] };
     case PHASE.ROUNDTABLE:
       return playerVote(s, p);
     case PHASE.REVEAL:

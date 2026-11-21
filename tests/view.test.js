@@ -111,7 +111,8 @@ test('i Traditori vedono i complici; di notte chat e scelte dei complici', () =>
   assert.deepEqual(v.allies.map((a) => a.id), ['p2']);
   assert.equal(v.step.chat[0].text, 'messaggio segreto');
   assert.deepEqual(v.step.allyPicks, [{ id: 'p1', targetId: null }, { id: 'p2', targetId: 'p5' }]);
-  assert.ok(!v.step.options.includes('p2'), 'un complice non è un bersaglio');
+  assert.ok(v.step.options.includes('p2'), 'il complice è nella griglia…');
+  assert.deepEqual(v.step.disabled, ['p2'], '…ma disattivato');
   const leale = viewFor(s, 'p5');
   assert.equal(leale.step.chat, null);
   assert.equal(leale.step.allyPicks, null);
@@ -122,6 +123,23 @@ test('di notte un Leale vede la stessa forma di schermata di un Traditore', () =
   s = advance(advance(s));
   const keysOf = (v) => Object.keys(v.step).sort();
   assert.deepEqual(keysOf(viewFor(s, 'p5')), keysOf(viewFor(s, 'p1')));
+});
+
+test('di notte la griglia ha lo stesso numero di caselle per Leali e Traditori', () => {
+  for (let seed = 1; seed <= 60; seed++) {
+    playRandomGame({
+      players: 5 + (seed % 12),
+      seed,
+      onState: (s) => {
+        if (s.phase !== PHASE.NIGHT) return;
+        const sizes = new Set(s.order.filter((id) => s.players[id].status === 'alive').map((id) => viewFor(s, id).step.options.length));
+        assert.equal(sizes.size, 1, `seed ${seed}: griglie di dimensioni diverse`);
+        for (const id of s.order) {
+          if (s.players[id].role === ROLE.FAITHFUL) assert.deepEqual(viewFor(s, id).step.disabled, []);
+        }
+      },
+    });
+  }
 });
 
 test('vista di un giocatore sconosciuto: null', () => {

@@ -10,10 +10,11 @@ export const aliveIds = (s) => alivePlayers(s).map((p) => p.id);
 
 // ---- Ruoli e Colazione ----
 
-export function enterBreakfast(s, victimId) {
+// suspects: i più sospettati della notte (vivi), annunciati senza dire chi li ha indicati
+export function enterBreakfast(s, victimId, suspects = []) {
   s.day += 1;
   s.phase = PHASE.BREAKFAST;
-  s.phaseData = { victimId, firstDay: s.day === 1 };
+  s.phaseData = { victimId, firstDay: s.day === 1, suspects };
 }
 
 // Dopo la Colazione: finale se restano pochi giocatori, altrimenti Tavola Rotonda
@@ -78,7 +79,7 @@ export function afterDay(s, rng) {
 
 export function enterNight(s, rng) {
   s.phase = PHASE.NIGHT;
-  const data = { mode: 'murder', newTraitorId: null, picks: {}, decoys: {}, chat: [] };
+  const data = { mode: 'murder', newTraitorId: null, picks: {}, suspicions: {}, chat: [] };
   // Tutti i Traditori banditi: il castello ne sceglie uno nuovo, e stanotte niente omicidio
   if (aliveTraitors(s).length === 0) {
     const chosen = rng.pick(aliveFaithfuls(s));
@@ -104,7 +105,7 @@ const isKiller = (s, p) => s.phaseData.mode === 'murder' && p.role === ROLE.TRAI
 
 export function nightDone(s, p) {
   if (isKiller(s, p)) return nightConsensus(s) !== null;
-  return s.phaseData.decoys[p.id] !== undefined;
+  return s.phaseData.suspicions[p.id] !== undefined;
 }
 
 export const allNightDone = (s) => alivePlayers(s).every((p) => nightDone(s, p));
@@ -128,7 +129,17 @@ export function resolveNight(s, rng) {
   } else {
     s.history.push({ day: s.day, type: 'no-murder' });
   }
-  enterBreakfast(s, victimId);
+  enterBreakfast(s, victimId, nightSuspects(s));
+}
+
+// Il più sospettato tra i vivi (dopo l'omicidio); in parità tutti i pari merito
+export function nightSuspects(s) {
+  const alive = new Set(aliveIds(s));
+  const valid = {};
+  for (const [from, target] of Object.entries(s.phaseData.suspicions)) {
+    if (alive.has(target)) valid[from] = target;
+  }
+  return tally(valid, s.order).leaders;
 }
 
 // ---- Finale: Cerimonia delle Polveri ----

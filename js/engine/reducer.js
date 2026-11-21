@@ -101,8 +101,9 @@ const HANDLERS = {
       check(target.role !== ROLE.TRAITOR, REJECT.INVALID_TARGET);
       s.phaseData.picks[p.id] = targetId;
     } else {
-      // Scelta finta: stessa interfaccia per tutti, nessun effetto
-      s.phaseData.decoys[p.id] = targetId;
+      // Sospetto notturno (Leali e Traditore appena scelto dal castello): alla Colazione
+      // il castello annuncia il più sospettato, senza dire chi lo ha indicato
+      s.phaseData.suspicions[p.id] = targetId;
     }
     if (P.allNightDone(s)) P.resolveNight(s, rng);
   },

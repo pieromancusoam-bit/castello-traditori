@@ -126,6 +126,39 @@ test('Notte: i Traditori d\'accordo e i Leali che hanno scelto -> Colazione con 
   assert.deepEqual(s.history.at(-1), { day: 1, type: 'murdered', playerId: 'p3' }); // niente fazione
 });
 
+test('Notte: alla Colazione il castello annuncia il più sospettato (vivo)', () => {
+  let s = atNight7();
+  s = choose(s, 'p3', 'p1');
+  s = choose(s, 'p4', 'p1');
+  s = choose(s, 'p5', 'p6');
+  s = choose(s, 'p6', 'p5');
+  s = choose(s, 'p7', 'p6');
+  s = choose(s, 'p1', 'p6');
+  s = choose(s, 'p2', 'p6'); // i Traditori uccidono p6, il più sospettato dopo di lui è p1
+  assert.equal(s.phase, PHASE.BREAKFAST);
+  assert.equal(s.phaseData.victimId, 'p6');
+  assert.deepEqual(s.phaseData.suspects, ['p1']);
+});
+
+test('Notte: sospetti in parità -> annunciati tutti; nessun sospetto -> nessuno', () => {
+  let s = atNight7();
+  s = choose(s, 'p3', 'p1');
+  s = choose(s, 'p4', 'p2');
+  s = advance(s);
+  assert.deepEqual(s.phaseData.suspects, ['p1', 'p2']);
+  s = advance(s); // tavola rotonda
+  s = advance(advance(s)); // nessun voto -> notte
+  s = advance(s);
+  assert.deepEqual(s.phaseData.suspects, []);
+});
+
+test('Notte: i Traditori che uccidono non contribuiscono ai sospetti', () => {
+  let s = atNight7();
+  s = choose(s, 'p1', 'p5');
+  s = advance(s);
+  assert.deepEqual(s.phaseData.suspects, []);
+});
+
 test('Notte: un Traditore non può scegliere un complice; la scelta di un Leale non uccide', () => {
   let s = atNight7();
   assert.equal(rejected(s, { type: A.NIGHT_CHOOSE, playerId: 'p1', payload: { targetId: 'p2' } }), REJECT.INVALID_TARGET);
