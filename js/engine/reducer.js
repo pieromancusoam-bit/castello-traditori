@@ -23,6 +23,8 @@ export const REJECT = Object.freeze({
   ALREADY_DONE: 'ALREADY_DONE',
 });
 
+const utf8 = new TextEncoder();
+
 class Rejection extends Error {
   constructor(reason) {
     super(reason);
@@ -115,7 +117,9 @@ const HANDLERS = {
     const text = cleanChatText(payload(action).text);
     check(text.length > 0, REJECT.INVALID_PAYLOAD);
     s.phaseData.chat.push({ from: p.id, text });
-    if (s.phaseData.chat.length > GAME.chatMaxMessages) s.phaseData.chat.shift();
+    // Si tengono solo gli ultimi messaggi: la vista deve stare in un solo messaggio di rete
+    const bytes = () => s.phaseData.chat.reduce((n, m) => n + utf8.encode(m.text).byteLength, 0);
+    while (s.phaseData.chat.length > GAME.chatMaxMessages || bytes() > GAME.chatMaxBytes) s.phaseData.chat.shift();
   },
 
   [A.FINAL_CHOICE](s, action) {

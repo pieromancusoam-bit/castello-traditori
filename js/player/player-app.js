@@ -9,6 +9,8 @@ import { keepAwake, wakeLockStatus, onWakeLockChange } from '../platform/wake-lo
 import { errorText } from '../ui/messages.js';
 import { esc, on } from '../ui/dom.js';
 import { fileToPortrait } from './photo.js';
+import { NET } from '../config/net-config.js';
+import { isValidPhoto } from '../net/protocol.js';
 import { createGameScreen } from './game.js';
 
 const NAME_ERRORS = new Set(['NAME_REQUIRED', 'NAME_TAKEN']);
@@ -25,8 +27,13 @@ export function startPlayer(root, { roomCode, peerServer, newIdentity }) {
 
   let client = null;
   let gameRender = null;
+  // Un ritratto salvato con la versione vecchia (troppo grande) si scarta
   let myPhoto = store.get(KEYS.myPhoto);
-  let photoState = { sending: false, rejected: false, msg: '' };
+  if (myPhoto && !isValidPhoto(myPhoto)) {
+    myPhoto = null;
+    store.remove(KEYS.myPhoto);
+  }
+  let photoState = { sending: false, rejected: false, msg: '', autoTries: 0 };
 
   const saveIdentity = (id) => store.set(KEYS.player, { roomCode, token: id.token, name: id.name });
 
@@ -83,6 +90,7 @@ export function startPlayer(root, { roomCode, peerServer, newIdentity }) {
       myPhoto = await fileToPortrait(file);
       store.set(KEYS.myPhoto, myPhoto);
       photoState.rejected = false;
+      photoState.autoTries = 0;
       await sendPhoto();
     } catch {
       photoState.msg = 'Non riesco a usare questa foto. Riprova.';
@@ -103,9 +111,13 @@ export function startPlayer(root, { roomCode, peerServer, newIdentity }) {
     render();
   }
 
-  // Dopo un rientro il master potrebbe non avere il ritratto: lo rimanda da solo
+  // Dopo un rientro il master potrebbe non avere il ritratto: lo rimanda da solo,
+  // ma solo poche volte (mai un ciclo infinito di invii)
   function autoSendPhoto() {
-    if (myPhoto && !client.view.hasPhoto && !photoState.sending && !photoState.rejected) sendPhoto();
+    if (!myPhoto || client.view.hasPhoto || photoState.sending || photoState.rejected) return;
+    if (photoState.autoTries >= NET.photoAutoRetries) return;
+    photoState.autoTries++;
+    sendPhoto();
   }
 
   onWakeLockChange(() => client && client.phase === 'joined' && render());

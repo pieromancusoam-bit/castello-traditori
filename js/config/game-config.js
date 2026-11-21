@@ -18,5 +18,8 @@ export const GAME = Object.freeze({
 
   // Chat notturna dei Traditori
   chatMaxLength: 200,
-  chatMaxMessages: 80,
+  // Pochi messaggi: la vista di un Traditore deve restare sotto NET.messageMaxBytes
+  chatMaxMessages: 30,
+  // Tetto ai byte (UTF-8) di tutti i testi della chat insieme: si tolgono i messaggi più vecchi
+  chatMaxBytes: 4000,
 });

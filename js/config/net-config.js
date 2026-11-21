@@ -28,8 +28,15 @@ export const NET = Object.freeze({
   maxPlayers: 16,
   nameMaxLength: 16,
 
-  // Ritratto del giocatore: lato in pixel, qualità JPEG, lunghezza massima del testo base64
-  photoSize: 192,
+  // PeerJS (serializzazione JSON) rifiuta i messaggi da 16300 byte in su e chiude il canale:
+  // nessun messaggio deve superare questo tetto, con un margine di sicurezza
+  messageMaxBytes: 15000,
+
+  // Ritratto del giocatore: lati in pixel da provare, qualità JPEG da/fino a, testo base64 massimo
+  photoSizes: [176, 144, 112],
   photoQuality: 0.72,
-  photoMaxChars: 60000,
+  photoMinQuality: 0.35,
+  photoMaxChars: 12000,
+  // Tentativi automatici di reinvio del ritratto dopo un rientro (per caricamento di pagina)
+  photoAutoRetries: 2,
 });
