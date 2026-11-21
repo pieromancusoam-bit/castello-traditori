@@ -93,6 +93,24 @@ export class Host {
     return this.photos.get(playerId) || null;
   }
 
+  // Sala d'attesa: toglie un giocatore disconnesso (es. chi se n'è andato prima dell'inizio).
+  // Se poi rientra, ricompare come giocatore nuovo.
+  removePlayer(playerId) {
+    const p = this.roster.players[playerId];
+    if (this.game || !p || p.connected) return false;
+    const conn = this.conns.get(playerId);
+    if (conn) {
+      this.conns.delete(playerId);
+      this.connToPlayer.delete(conn);
+      try { conn.close(); } catch { /* già chiuso */ }
+    }
+    this.roster = R.remove(this.roster, playerId);
+    this.waves.delete(playerId);
+    if (this.photos.delete(playerId)) this._savePhotos();
+    this._changed();
+    return true;
+  }
+
   // ---- Partita ----
 
   get canStart() {

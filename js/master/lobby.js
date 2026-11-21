@@ -42,6 +42,10 @@ export function mountLobby(root, host, { debug, onClose }) {
   let shownUrl = null;
 
   on(root, '[data-act="retry"]', 'click', () => host.retryNow());
+  on(root, '[data-act="remove"]', 'click', (e, btn) => {
+    const p = host.publicPlayers().find((x) => x.id === btn.dataset.id);
+    if (p && confirm(`Togliere ${p.name} dalla stanza?`)) host.removePlayer(p.id);
+  });
   on(root, '[data-act="start"]', 'click', () => {
     const off = host.publicPlayers().filter((p) => !p.connected).length;
     if (off && !confirm(`${off} giocatori risultano disconnessi. Iniziare lo stesso?`)) return;
@@ -77,6 +81,7 @@ export function mountLobby(root, host, { debug, onClose }) {
         <span class="thumb">${host.photoOf(p.id) ? `<img src="${esc(host.photoOf(p.id))}" alt="">` : ''}</span>
         <span class="name">${esc(p.name)}</span>
         <span class="state">${p.wavedRecently ? 'saluta!' : p.connected ? 'collegato' : 'disconnesso'}</span>
+        ${p.connected ? '' : `<button class="btn btn-small btn-ghost btn-remove" data-act="remove" data-id="${esc(p.id)}">Rimuovi</button>`}
       </li>`).join('');
 
     const start = el('[data-act="start"]');
