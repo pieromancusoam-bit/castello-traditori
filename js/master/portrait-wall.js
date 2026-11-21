@@ -68,3 +68,11 @@ export function portraitWallHtml(players, { photoOf, breakingId = null, suspects
   });
   return `<div class="portrait-wall" style="--count:${players.length}">${frames.join('')}</div>`;
 }
+
+// Un solo quadro, senza segni (per la Cerimonia delle Polveri)
+export function portraitFrameHtml(p, photo) {
+  const canvas = photo
+    ? `<img src="${esc(photo)}" alt="">`
+    : `<span class="initials">${esc(initials(p.name))}</span>`;
+  return `<div class="frame"><div class="canvas">${canvas}</div></div>`;
+}

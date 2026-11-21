@@ -3,7 +3,8 @@
 
 import { A } from '../engine/actions.js';
 import { esc, on } from '../ui/dom.js';
-import { portraitWallHtml } from './portrait-wall.js';
+import { portraitWallHtml, portraitFrameHtml } from './portrait-wall.js';
+import { GAME } from '../config/game-config.js';
 
 const FACTION_A = { faithfuls: 'un Leale', traitors: 'un Traditore' };
 const FACTION = { faithfuls: 'Leale', traitors: 'Traditore' };
@@ -24,6 +25,8 @@ export function mountGame(root, host, { debug, onClose }) {
 
   const el = (s) => root.querySelector(s);
   let shownStage = '';
+  let busy = false; // animazione in corso: "Avanti" nascosto
+  const timers = [];
 
   on(root, '[data-act="advance"]', 'click', () => host.dispatch({ type: A.ADVANCE }));
   on(root, '[data-act="lobby"]', 'click', () => host.backToLobby());
@@ -48,10 +51,19 @@ export function mountGame(root, host, { debug, onClose }) {
     if (stageKey !== shownStage) {
       shownStage = stageKey;
       el('.stage').innerHTML = stageHtml(v, nameOf, host);
+      timers.splice(0).forEach(clearTimeout);
+      busy = false;
+      if (v.phase === 'final' && v.step.stage === 'choice-reveal') {
+        busy = true;
+        playCeremony(el('.stage'), v, nameOf, host, timers, () => {
+          busy = false;
+          update();
+        });
+      }
     }
 
     const label = advanceLabel(v);
-    el('[data-act="advance"]').hidden = !label;
+    el('[data-act="advance"]').hidden = !label || busy;
     el('[data-act="advance"]').textContent = label || '';
     el('[data-act="lobby"]').hidden = v.phase !== 'ended';
 
@@ -80,6 +92,7 @@ function advanceLabel(v) {
     case 'final':
       switch (st.stage) {
         case 'choice': return 'Chiudi la scelta';
+        case 'choice-reveal': return st.reveal.some((r) => r.choice === 'banish') ? 'Al voto' : 'Le ultime maschere';
         case 'voting': return 'Chiudi la votazione';
         case 'results': return st.outcome.kind === 'runoff' ? 'Al ballottaggio' : st.outcome.kind === 'banish' ? 'Rivela la fazione' : 'Prosegui';
         case 'reveal': return 'Prosegui';
@@ -162,6 +175,16 @@ function stageHtml(v, nameOf, host) {
           return `<h1>Cerimonia delle Polveri</h1>
             <p class="lead">Ognuno sceglie in segreto: chiudere la partita o bandire ancora.</p>
             ${progress(st.chosenCount, st.total, 'hanno scelto')}`;
+        case 'choice-reveal':
+          // Riempito da playCeremony, passo dopo passo
+          return `<div class="ceremony">
+              <div class="cer-intro">
+                <h1>Le polveri si accendono…</h1>
+                <p class="lead">Il castello rivela le scelte, una alla volta.</p>
+              </div>
+              <div class="cer-spot" hidden></div>
+              <div class="cer-summary" hidden></div>
+            </div>`;
         case 'voting':
         case 'results':
           return voteStageHtml(st, nameOf, 'Cerimonia delle Polveri');
@@ -188,4 +211,67 @@ function stageHtml(v, nameOf, host) {
     default:
       return '';
   }
+}
+
+// ---------------- Cerimonia: rivelazione delle scelte ----------------
+
+const CHOICE_LABEL = { end: 'Chiudere la partita', banish: 'Bandire ancora' };
+
+function flamesHtml(choice) {
+  // Fiamme in CSS: verdi per "Chiudere", rosse per "Bandire"
+  const tongues = Array.from({ length: 7 }, (_, i) => `<span class="tongue t${i}"></span>`).join('');
+  return `<div class="flames flames-${choice}" aria-hidden="true">${tongues}</div>`;
+}
+
+// Attesa, poi per ogni giocatore: ritratto e nome, poi le fiamme. Infine il riepilogo.
+function playCeremony(stage, v, nameOf, host, timers, onDone) {
+  const T = GAME.ceremonyReveal;
+  const intro = stage.querySelector('.cer-intro');
+  const spot = stage.querySelector('.cer-spot');
+  const summary = stage.querySelector('.cer-summary');
+  const list = v.step.reveal;
+  const playerOf = (id) => v.players.find((p) => p.id === id);
+  const later = (ms, fn) => timers.push(setTimeout(fn, ms));
+
+  let t = T.introMs;
+  later(t, () => {
+    intro.hidden = true;
+    spot.hidden = false;
+  });
+
+  list.forEach((r) => {
+    later(t, () => {
+      spot.className = 'cer-spot';
+      spot.innerHTML = `
+        <div class="cer-portrait">
+          ${portraitFrameHtml(playerOf(r.playerId), host.photoOf(r.playerId))}
+          <div class="cer-flame-slot"></div>
+        </div>
+        <p class="cer-name">${esc(nameOf(r.playerId))}</p>
+        <p class="cer-choice"></p>`;
+    });
+    t += T.portraitMs;
+    later(t, () => {
+      spot.classList.add(`is-${r.choice}`);
+      spot.querySelector('.cer-flame-slot').innerHTML = flamesHtml(r.choice);
+      spot.querySelector('.cer-choice').textContent = CHOICE_LABEL[r.choice];
+    });
+    t += T.flameMs;
+  });
+
+  later(t, () => {
+    spot.hidden = true;
+    const banish = list.filter((r) => r.choice === 'banish').length;
+    summary.hidden = false;
+    summary.innerHTML = `
+      <h1>${banish ? 'Si bandisce ancora' : 'Tutti chiudono la partita'}</h1>
+      <div class="cer-row">${list.map((r) => `
+        <figure class="cer-mini is-${r.choice}">
+          ${portraitFrameHtml(playerOf(r.playerId), host.photoOf(r.playerId))}
+          ${flamesHtml(r.choice)}
+          <figcaption>${esc(nameOf(r.playerId))}</figcaption>
+        </figure>`).join('')}</div>
+      <p class="lead">${banish ? 'Almeno uno vuole bandire ancora: si vota.' : 'È il momento delle ultime maschere.'}</p>`;
+    onDone();
+  });
 }

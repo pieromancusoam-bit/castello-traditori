@@ -271,6 +271,8 @@ function finalHtml(v, ui, nameOf) {
         </div>
         ${ui.pending ? confirmHtml(ui, `<strong>${label}</strong>?`) : ''}`;
     }
+    case 'choice-reveal':
+      return `<h1>${title}</h1><p class="big">Il castello rivela le scelte.</p><p class="muted">Guarda lo schermo principale.</p>`;
     case 'voting':
     case 'results':
       return voteHtml(v, ui, nameOf, title);

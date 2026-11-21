@@ -16,6 +16,13 @@ export const GAME = Object.freeze({
   // Nella Cerimonia non si scende sotto questo numero: poi solo rivelazioni
   finalMinPlayers: 2,
 
+  // Cerimonia delle Polveri: tempi della rivelazione delle scelte sullo schermo del master
+  ceremonyReveal: Object.freeze({
+    introMs: 3500,    // schermata d'attesa prima dei nomi
+    portraitMs: 1600, // ritratto e nome, prima delle fiamme
+    flameMs: 2600,    // fiamme verdi (chiudere) o rosse (bandire)
+  }),
+
   // Chat notturna dei Traditori
   chatMaxLength: 200,
   // Pochi messaggi: la vista di un Traditore deve restare sotto NET.messageMaxBytes
