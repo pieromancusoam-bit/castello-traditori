@@ -94,8 +94,12 @@ Indicativo; i campi esatti si definiscono in Fase 1.
 ## Motore: contratto
 
 ```js
-applyAction(state, action, rng) → { state, effects }
+applyAction(state, action) → { state, effects }
 ```
+
+- Il generatore casuale con seed non viene passato da fuori: il suo stato (`rngState`) vive
+  dentro la partita, così dopo "Riprendi" le estrazioni continuano da dove erano
+  (decisione della Fase 1). Il motore resta puro e riproducibile.
 
 - `action` = `{ type, playerId?, payload }`. Le azioni arrivano dai telefoni (voti, scelte)
   o dal master stesso (es. `TIMER_EXPIRED`, `ADVANCE_PHASE`).
@@ -125,16 +129,19 @@ lo stato è piccolo e così la riconnessione è banale.
 | telefono → master | `hello` | `{ token?, name?, avatar? }` — primo messaggio; con token = riconnessione |
 | master → telefono | `welcome` | `{ playerId, token }` |
 | master → telefono | `view` | `{ view }` — la vista filtrata, a ogni cambio di stato |
-| telefono → master | `action` | `{ type, payload, nonce }` |
+| telefono → master | `action` | `{ type, payload, nonce }` — azioni di gioco, `SET_PHOTO` (ritratto JPEG), `WAVE` |
 | master → telefono | `ack` | `{ nonce, ok, error? }` |
 | entrambi | `ping` / `pong` | battito ogni 5 s; 3 mancati = disconnesso |
 | master → telefono | `error` | `{ code, message }` — es. stanza piena, partita già iniziata |
 
 ## Salvataggio e riconnessione
 
-- Il master salva lo stato in `localStorage` a ogni cambio di fase (effetto `save`)
-  con chiave `castello:partita:<CODICE>`. "Riprendi partita" lo ricarica e ricrea il peer
+- Il master salva stanza e partita in `localStorage` dopo **ogni azione accettata**
+  (non solo a ogni cambio di fase: così una ricarica a metà votazione non perde i voti),
+  con chiave `castello:stanza:<CODICE>`. "Riprendi" lo ricarica e ricrea il peer
   con lo stesso ID, così i telefoni si ricollegano da soli.
+- I ritratti dei giocatori stanno a parte (`castello:ritratti:<CODICE>`), solo sul master,
+  e si cancellano quando si chiude la stanza. Non vanno mai agli altri telefoni.
 - Il telefono salva `{ roomCode, token }` in `localStorage`. Al rientro invia `hello` con token
   e il master lo riassocia allo stesso giocatore.
 - Un giocatore disconnesso durante un'azione richiesta: il master aspetta (60 s, configurabile),
