@@ -38,7 +38,15 @@ export function startMaster(root, { debug }) {
   function openRoom(saved) {
     keepAwake(); // dentro il tocco dell'utente
     if (saved) {
-      host = new Host({ roomCode: saved.roomCode, peerServer: saved.peerServer, roster: saved.roster, resuming: true, onChange: () => update() });
+      host = new Host({
+        roomCode: saved.roomCode,
+        peerServer: saved.peerServer,
+        roster: saved.roster,
+        game: saved.game,
+        photos: saved.photos,
+        resuming: true,
+        onChange: () => update(),
+      });
     } else {
       const prev = loadSavedRoom();
       if (prev) local.remove(KEYS.room(prev.roomCode));

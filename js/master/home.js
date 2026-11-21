@@ -7,13 +7,13 @@ export function renderHome(root, opts) {
   const { saved } = opts;
   const resume = saved
     ? `<button class="btn btn-secondary" data-act="resume">Riprendi stanza ${esc(saved.roomCode)}
-         <small>${saved.roster.order.length} giocatori · ${esc(timeAgo(saved.savedAt))}</small></button>`
+         <small>${saved.roster.order.length} giocatori · ${saved.game ? `partita in corso, giorno ${saved.game.day} · ` : ''}${esc(timeAgo(saved.savedAt))}</small></button>`
     : '';
 
   root.innerHTML = `
     <section class="master-home">
       <h1 class="title">Il Castello dei Traditori</h1>
-      <p class="subtitle">Prototipo di connessione</p>
+      <p class="subtitle">Scheletro del gioco</p>
       <div class="home-actions">
         <button class="btn btn-primary" data-act="new">Nuova stanza</button>
         ${resume}

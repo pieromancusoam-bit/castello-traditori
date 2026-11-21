@@ -1,8 +1,12 @@
 // Lato master: apre la stanza su PeerJS, accetta i telefoni, tiene il battito,
-// salva la stanza e la riapre con "Riprendi".
+// tiene la partita (unica fonte di verità), salva tutto e lo riapre con "Riprendi".
 
 import { NET } from '../config/net-config.js';
-import { MSG, ERR, ACTIONS, validateMessage, makeMessage } from './protocol.js';
+import { GAME } from '../config/game-config.js';
+import { MSG, ERR, ACTIONS, isGameAction, isValidPhoto, validateMessage, makeMessage } from './protocol.js';
+import { createGame } from '../engine/state.js';
+import { applyAction } from '../engine/reducer.js';
+import { viewFor, viewForMaster } from '../engine/view.js';
 import * as R from './roster.js';
 import { generateRoomCode, peerIdFor } from './room-code.js';
 import { createPeer, safeSend } from './peer-common.js';
@@ -11,12 +15,14 @@ import { randomHex, cryptoRandom } from '../ui/dom.js';
 
 // status: 'opening' | 'open' | 'reopening' | 'signal-lost' | 'error'
 export class Host {
-  constructor({ roomCode = null, peerServer = null, roster = null, resuming = false, onChange = () => {} }) {
+  constructor({ roomCode = null, peerServer = null, roster = null, game = null, photos = null, resuming = false, onChange = () => {} }) {
     this.roomCode = roomCode || generateRoomCode(cryptoRandom);
     this.peerServer = peerServer;
     this.roster = roster ? R.markAllDisconnected(roster) : R.createRoster();
     this.resuming = resuming;
     this.onChange = onChange;
+    this.game = game; // stato completo della partita: non esce mai da qui
+    this.photos = new Map(Object.entries(photos || {})); // playerId -> ritratto (data URL)
 
     this.status = 'opening';
     this.errorCode = null;
@@ -51,6 +57,7 @@ export class Host {
     if (this.peer) this.peer.destroy();
     if (forget) {
       local.remove(KEYS.room(this.roomCode));
+      local.remove(KEYS.photos(this.roomCode));
       if (local.get(KEYS.lastRoom) === this.roomCode) local.remove(KEYS.lastRoom);
     }
   }
@@ -75,7 +82,57 @@ export class Host {
 
   publicPlayers() {
     const now = Date.now();
-    return R.publicList(this.roster).map((p) => ({ ...p, wavedRecently: now - (this.waves.get(p.id) || 0) < 4000 }));
+    return R.publicList(this.roster).map((p) => ({
+      ...p,
+      hasPhoto: this.photos.has(p.id),
+      wavedRecently: now - (this.waves.get(p.id) || 0) < 4000,
+    }));
+  }
+
+  photoOf(playerId) {
+    return this.photos.get(playerId) || null;
+  }
+
+  // ---- Partita ----
+
+  get canStart() {
+    return !this.game && this.roster.order.length >= GAME.minPlayers;
+  }
+
+  startGame() {
+    if (!this.canStart) return false;
+    this.roster = { ...this.roster, locked: true };
+    const players = this.roster.order.map((id) => ({ id, name: this.roster.players[id].name }));
+    this.game = createGame({ players, seed: Math.floor(cryptoRandom() * 2 ** 32) });
+    this._changed();
+    return true;
+  }
+
+  // Azione del master (es. "Avanti"): { ok, error? }
+  dispatch(action) {
+    if (!this.game) return { ok: false, error: ERR.NO_GAME };
+    return this._apply(action);
+  }
+
+  // Fine partita: si torna alla sala d'attesa con gli stessi giocatori
+  backToLobby() {
+    this.game = null;
+    this.roster = { ...this.roster, locked: false };
+    this._changed();
+  }
+
+  // Ciò che va sullo schermo condiviso (niente ruoli nascosti)
+  masterView() {
+    return this.game ? viewForMaster(this.game) : null;
+  }
+
+  _apply(action) {
+    const res = applyAction(this.game, action);
+    const rej = res.effects.find((e) => e.type === 'rejected');
+    if (rej) return { ok: false, error: rej.reason };
+    this.game = res.state;
+    this._changed(); // effetto 'save' compreso: _changed salva sempre
+    return { ok: true };
   }
 
   // ---- Peer e server di aggancio ----
@@ -228,6 +285,21 @@ export class Host {
   }
 
   _onAction(conn, pid, msg) {
+    const ack = (res) => safeSend(conn, makeMessage(MSG.ACK, { nonce: msg.nonce, ok: res.ok, ...(res.error ? { error: res.error } : {}) }));
+
+    if (isGameAction(msg.type)) {
+      if (!this.game) return ack({ ok: false, error: ERR.NO_GAME });
+      // playerId viene dal canale, mai dal messaggio
+      return ack(this._apply({ type: msg.type, playerId: pid, payload: msg.payload || {} }));
+    }
+    if (msg.type === ACTIONS.SET_PHOTO) {
+      const data = msg.payload && msg.payload.data;
+      if (!isValidPhoto(data)) return ack({ ok: false, error: ERR.INVALID_PHOTO });
+      this.photos.set(pid, data);
+      this._savePhotos();
+      ack({ ok: true });
+      return this._changed();
+    }
     if (msg.type === ACTIONS.WAVE) {
       this.waves.set(pid, Date.now());
       safeSend(conn, makeMessage(MSG.ACK, { nonce: msg.nonce, ok: true }));
@@ -259,21 +331,35 @@ export class Host {
 
   // Lo stato è cambiato: viste nuove a tutti, salvataggio, schermo del master
   _changed() {
-    for (const [pid, conn] of this.conns) {
-      safeSend(conn, makeMessage(MSG.VIEW, { view: R.viewForPlayer(this.roster, this.roomCode, pid) }));
-    }
+    for (const [pid, conn] of this.conns) safeSend(conn, makeMessage(MSG.VIEW, { view: this._viewFor(pid) }));
     this._save();
     this.onChange(this);
   }
 
+  // Vista per un telefono: stanza (Fase 0) + partita filtrata dal motore
+  _viewFor(pid) {
+    return {
+      ...R.viewForPlayer(this.roster, this.roomCode, pid),
+      hasPhoto: this.photos.has(pid),
+      game: this.game ? viewFor(this.game, pid) : null,
+    };
+  }
+
+  // Salvataggio automatico: stanza e partita a ogni cambiamento (lo stato è piccolo)
   _save() {
     local.set(KEYS.room(this.roomCode), {
       roomCode: this.roomCode,
       peerServer: this.peerServer,
       roster: this.roster,
+      game: this.game,
       savedAt: Date.now(),
     });
     local.set(KEYS.lastRoom, this.roomCode);
+  }
+
+  // I ritratti a parte: pesano di più e cambiano di rado
+  _savePhotos() {
+    local.set(KEYS.photos(this.roomCode), Object.fromEntries(this.photos));
   }
 }
 
@@ -281,5 +367,6 @@ export function loadSavedRoom() {
   const code = local.get(KEYS.lastRoom);
   if (!code) return null;
   const saved = local.get(KEYS.room(code));
-  return saved && saved.roomCode === code ? saved : null;
+  if (!saved || saved.roomCode !== code) return null;
+  return { ...saved, game: saved.game || null, photos: local.get(KEYS.photos(code), {}) };
 }

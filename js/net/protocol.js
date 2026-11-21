@@ -2,6 +2,7 @@
 // Ogni messaggio è un oggetto JSON con il campo `t`.
 
 import { NET } from '../config/net-config.js';
+import { PLAYER_ACTIONS } from '../engine/actions.js';
 
 export const MSG = Object.freeze({
   HELLO: 'hello',     // telefono -> master
@@ -23,12 +24,23 @@ export const ERR = Object.freeze({
   ROOM_FULL: 'ROOM_FULL',
   GAME_STARTED: 'GAME_STARTED',
   UNKNOWN_ACTION: 'UNKNOWN_ACTION',
+  NO_GAME: 'NO_GAME',
+  INVALID_PHOTO: 'INVALID_PHOTO',
 });
 
-// Azioni accettate in Fase 0
+// Azioni gestite dal master fuori dal motore di gioco
 export const ACTIONS = Object.freeze({
-  WAVE: 'WAVE', // "Saluta il master": prova del canale telefono -> master
+  WAVE: 'WAVE',           // "Saluta il master": prova del canale telefono -> master
+  SET_PHOTO: 'SET_PHOTO', // { data: 'data:image/jpeg;base64,...' } ritratto del giocatore
 });
+
+// Azioni di gioco: passano al motore, che le valida
+export const isGameAction = (type) => PLAYER_ACTIONS.has(type);
+
+// Ritratto: solo JPEG in base64, entro la dimensione massima
+const PHOTO_RE = /^data:image\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/;
+export const isValidPhoto = (data) =>
+  typeof data === 'string' && data.length <= NET.photoMaxChars && PHOTO_RE.test(data);
 
 const FROM_PLAYER = new Set([MSG.HELLO, MSG.ACTION, MSG.PING, MSG.PONG]);
 const FROM_MASTER = new Set([MSG.WELCOME, MSG.VIEW, MSG.ACK, MSG.PING, MSG.PONG, MSG.ERROR]);

@@ -34,4 +34,6 @@ export const KEYS = {
   lastRoom: 'castello:ultima-stanza',
   peerServer: 'castello:server-aggancio',
   player: 'castello:giocatore',
+  photos: (code) => `castello:ritratti:${code}`, // master: ritratti dei giocatori della stanza
+  myPhoto: 'castello:mio-ritratto',               // telefono: il proprio ritratto
 };

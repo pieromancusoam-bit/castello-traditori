@@ -27,4 +27,9 @@ export const NET = Object.freeze({
   // Stanza
   maxPlayers: 16,
   nameMaxLength: 16,
+
+  // Ritratto del giocatore: lato in pixel, qualità JPEG, lunghezza massima del testo base64
+  photoSize: 192,
+  photoQuality: 0.72,
+  photoMaxChars: 60000,
 });

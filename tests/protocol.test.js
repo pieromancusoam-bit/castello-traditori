@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { MSG, validateMessage, cleanName } from '../js/net/protocol.js';
+import { isValidPhoto, isGameAction } from '../js/net/protocol.js';
 import { generateRoomCode, normalizeRoomCode, parsePeerServer, formatPeerServer, peerIdFor } from '../js/net/room-code.js';
 import { NET } from '../js/config/net-config.js';
 
@@ -52,4 +53,20 @@ test('server di aggancio: lettura e scrittura del formato host:porta/percorso', 
   assert.equal(parsePeerServer('http://x'), null);
   assert.equal(parsePeerServer(''), null);
   assert.equal(formatPeerServer(parsePeerServer('a.b:9000/p')), 'a.b:9000/p');
+});
+
+test('ritratto: solo JPEG base64 entro la dimensione massima', () => {
+  const jpeg = 'data:image/jpeg;base64,' + 'A'.repeat(1000) + '==';
+  assert.equal(isValidPhoto(jpeg), true);
+  assert.equal(isValidPhoto('data:image/png;base64,AAAA'), false);
+  assert.equal(isValidPhoto('data:image/jpeg;base64,AA"><script>'), false);
+  assert.equal(isValidPhoto('javascript:alert(1)'), false);
+  assert.equal(isValidPhoto('data:image/jpeg;base64,' + 'A'.repeat(NET.photoMaxChars)), false);
+  assert.equal(isValidPhoto(null), false);
+});
+
+test('le azioni di gioco sono riconosciute, le altre no', () => {
+  assert.equal(isGameAction('VOTE'), true);
+  assert.equal(isGameAction('ADVANCE'), false, 'un telefono non può mandare "Avanti"');
+  assert.equal(isGameAction('WAVE'), false);
 });
