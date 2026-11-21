@@ -92,3 +92,135 @@
   .master-lobby { grid-template-columns: 1fr; }
   .qr { width: min(80vw, 50vh); }
 }
+
+/* ---------- Parete dei ritratti (Colazione) ---------- */
+
+.portrait-wall {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.5em, 1fr));
+  gap: 2.2em 1.6em;
+  padding: 2.2em 2em 1.6em;
+  border-radius: 10px;
+  /* pietra: blocchi sfalsati con fughe scure */
+  background:
+    linear-gradient(rgba(0, 0, 0, 0.35) 2px, transparent 2px) 0 0 / 100% 3.2em,
+    linear-gradient(90deg, rgba(0, 0, 0, 0.35) 2px, transparent 2px) 0 0 / 6.4em 6.4em,
+    linear-gradient(90deg, rgba(0, 0, 0, 0.35) 2px, transparent 2px) 3.2em 3.2em / 6.4em 6.4em,
+    radial-gradient(ellipse at 50% 0%, rgba(212, 174, 74, 0.12), transparent 70%),
+    #2b2730;
+  box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.75);
+}
+
+.portrait { margin: 0; text-align: center; }
+
+.frame {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  padding: 0.45em;
+  border-radius: 3px;
+  background: linear-gradient(135deg, #f3d77e, #a8822e 35%, #f0cf6c 55%, #7c5d1c 80%, #d4ae4a);
+  box-shadow:
+    inset 0 0 0 2px rgba(60, 40, 5, 0.7),
+    inset 0 0 0 5px rgba(255, 230, 150, 0.35),
+    0 10px 18px rgba(0, 0, 0, 0.65);
+  transform-origin: 50% 4%;
+}
+.frame::before { /* chiodo */
+  content: ''; position: absolute; top: -0.7em; left: 50%; width: 0.45em; height: 0.45em;
+  margin-left: -0.22em; border-radius: 50%; background: #777; box-shadow: 0 1px 2px #000;
+}
+.canvas {
+  position: absolute; inset: 0.45em;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 35%, #4a3f52, #1b1820);
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.8);
+  display: flex; align-items: center; justify-content: center;
+}
+.canvas img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.initials { font-family: var(--font-title); font-size: 2.4em; color: var(--gold); opacity: 0.85; }
+
+.portrait figcaption { margin-top: 0.5em; font-size: 0.95em; line-height: 1.2; }
+.pname { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tag { display: inline-block; margin-top: 0.25em; padding: 0.05em 0.6em; border-radius: 99px; font-size: 0.7em; font-weight: 700; }
+.tag-traitors { background: var(--velvet); color: #fff; }
+.tag-faithfuls { background: #2d5a43; color: #fff; }
+
+/* Bandito: X rossa */
+.mark-x { position: absolute; inset: 0.2em; width: calc(100% - 0.4em); height: calc(100% - 0.4em); overflow: visible; }
+.mark-x path { fill: none; stroke: #d11a2a; stroke-width: 9; stroke-linecap: round; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.6)); }
+.is-banished .canvas { filter: grayscale(0.7) brightness(0.7); }
+
+/* Assassinato: vetro incrinato, cornice storta */
+.mark-crack { position: absolute; inset: 0.45em; width: calc(100% - 0.9em); height: calc(100% - 0.9em); }
+.mark-crack .lines path { fill: none; stroke: rgba(255, 255, 255, 0.9); stroke-width: 0.9; stroke-linejoin: round; }
+.mark-crack .lines circle { fill: rgba(255, 255, 255, 0.85); }
+.mark-crack .shards path { fill: rgba(0, 0, 0, 0.55); }
+.is-murdered .frame { transform: rotate(-7deg) translateY(0.2em); }
+.is-murdered .canvas { filter: grayscale(1) brightness(0.55); }
+.is-murdered figcaption { color: var(--muted); text-decoration: line-through; text-decoration-color: rgba(255,255,255,0.4); }
+
+/* Il quadro della vittima si rompe davanti a tutti */
+.is-breaking .frame { animation: frame-hit 0.9s 1.6s both; }
+.is-breaking .canvas { animation: canvas-fade 0.9s 1.6s both; }
+.is-breaking .mark-crack { animation: crack-in 0.35s 1.6s both; }
+@keyframes frame-hit {
+  0% { transform: none; }
+  15% { transform: translateX(-0.3em) rotate(2deg); }
+  30% { transform: translateX(0.3em) rotate(-3deg); }
+  100% { transform: rotate(-7deg) translateY(0.2em); }
+}
+@keyframes canvas-fade { from { filter: none; } to { filter: grayscale(1) brightness(0.55); } }
+@keyframes crack-in {
+  0% { opacity: 0; transform: scale(0.6); filter: drop-shadow(0 0 12px #fff); }
+  100% { opacity: 1; transform: none; filter: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .is-breaking .frame, .is-breaking .canvas, .is-breaking .mark-crack { animation-duration: 0.01s; }
+}
+
+/* ---------- Sala d'attesa: avvio e miniature ---------- */
+.btn-start { margin-top: 1.4em; width: 100%; font-size: 1.2em; padding: 0.9em; }
+.player .thumb { width: 1.8em; height: 1.8em; border-radius: 4px; overflow: hidden; flex: none; background: var(--stone-700); }
+.player .thumb:empty { visibility: hidden; }
+.player .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* ---------- Partita ---------- */
+.master-game { min-height: 100dvh; display: flex; flex-direction: column; padding: 2.5vh 4vw; gap: 2vh; }
+.game-bar { display: flex; justify-content: space-between; color: var(--muted); font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.12em; }
+.stage { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 0.6em; }
+.stage h1 { font-size: 3.2em; margin: 0; }
+.stage .lead { font-size: 1.6em; max-width: 34em; margin: 0; }
+.progress { font-size: 1.4em; color: var(--muted); }
+.progress strong { color: var(--gold); font-size: 1.5em; }
+.game-footer { display: flex; align-items: center; gap: 1em; }
+.game-footer .conn { flex: 1; color: var(--muted); font-size: 0.8em; }
+.game-footer .conn.has-off { color: var(--bad); }
+.btn-advance { font-size: 1.2em; padding: 0.8em 2em; }
+
+.phase-breakfast .stage { justify-content: flex-start; }
+.phase-breakfast .portrait-wall { width: 100%; max-width: 96em; margin-top: 0.6em; }
+.after-break { animation: fade-in 0.8s 2.6s both; }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+.votes-layout { display: grid; grid-template-columns: 1.4fr 1fr; gap: 3em; width: 100%; max-width: 60em; text-align: left; }
+.vote-list, .tally { list-style: none; margin: 0; padding: 0; font-size: 1.3em; }
+.vote-list li { display: grid; grid-template-columns: 1fr auto 1fr; gap: 0.6em; padding: 0.2em 0; border-bottom: 1px solid var(--stone-700); }
+.vote-list .arrow { color: var(--velvet-hi); }
+.tally li { padding: 0.3em 0; }
+.outcome { font-size: 2em; margin-top: 0.6em; }
+
+.reveal .lead { font-size: 2.4em; }
+.reveal-faction { font-size: 4em !important; animation: fade-in 1s 1.5s both; }
+.faction-traitors { color: var(--bad); }
+.faction-faithfuls { color: var(--ok); }
+.winner { font-size: 4em !important; }
+
+.unveil { list-style: none; margin: 0; padding: 0; width: 100%; max-width: 36em; font-size: 1.5em; }
+.unveil li { display: flex; justify-content: space-between; padding: 0.35em 0.6em; border-bottom: 1px solid var(--stone-700); }
+.unveil .is-hidden strong { color: var(--muted); }
+.unveil .is-out { opacity: 0.6; }
+
+/* Notte: schermo scuro */
+.phase-night { background: #040306; }
+.phase-night h1 { color: #8a7a55; }
+.phase-night .btn-advance { background: #2a0a10; }
