@@ -43,7 +43,7 @@ Le linee tratteggiate si usano una volta sola, all'avvio. Durante il gioco i dat
 
 **Come si entra in partita**
 
-1. Il master apre l'app e crea una stanza con un codice breve (es. `CASTELLO-7K3Q`), poi mostra il QR code a schermo.
+1. Il master apre l'app e crea una stanza con un codice breve di 4 caratteri (es. `7K3Q`), poi mostra il QR code a schermo.
 2. Il giocatore inquadra il QR, sceglie nome e avatar e si unisce alla sala d'attesa.
 3. PeerJS Cloud fa solo da "centralino" per agganciare i due dispositivi. Da quel momento i dati viaggiano direttamente sul Wi-Fi e il servizio esterno non vede nulla del gioco.
 
@@ -87,7 +87,8 @@ Ci sono due fazioni: **Leali** e **Traditori**. I Leali vincono se arrivano al f
 
 - Chi viene **bandito** alla Tavola Rotonda rivela la propria fazione. Chi viene **assassinato** di notte invece no, per mantenere il mistero.
 - I giocatori eliminati restano collegati come **spettatori**: vedono le fasi ma non i ruoli segreti, e non possono votare.
-- Il **finale** scatta quando restano 4 giocatori (valore modificabile).
+- Il **finale** scatta quando restano 4 giocatori (valore modificabile). Il controllo si fa sia dopo la Tavola Rotonda sia alla Colazione, dopo l'omicidio notturno.
+- La partita **non finisce in anticipo**: anche se tutti i Traditori vengono banditi o se i Traditori raggiungono i Leali, si prosegue fino al finale. *(Da definire: come continuare se tutti i Traditori sono banditi con più di 4 giocatori in gioco.)*
 - In caso di **parità nel voto** si fa un ballottaggio tra i più votati. Se c'è ancora parità, nessuno viene bandito quel giorno.
 
 ## Ciclo di gioco
@@ -100,10 +101,12 @@ flowchart LR
     B --> C[Colazione<br/>rivelata la vittima]
     C --> D[Missione<br/>monete al montepremi]
     D --> E[Tavola Rotonda<br/>discussione e voto]
-    E --> F{Più di 4 in gioco?}
+    E --> R[Rivelazione<br/>fazione del bandito]
+    R --> F{Più di 4 in gioco?}
     F -- sì --> G[Notte<br/>omicidio, poteri]
     G -- giorno successivo --> C
     F -- no --> H[Finale<br/>Cerimonia delle Polveri]
+    C -. restano 4 dopo l'omicidio .-> H
 ```
 
 Una partita da 10 giocatori dura di solito 5–6 giorni, cioè circa 60–75 minuti.
@@ -162,7 +165,7 @@ Gli oggetti si vincono nelle missioni, all'Asta o al Ponte, e restano segreti fi
 
 **Eventi**
 
-- **Ultimatum di reclutamento**: quando un Traditore viene bandito, la notte dopo i Traditori rimasti possono offrire a un Leale di unirsi a loro. Il Leale sceglie in segreto. Se rifiuta, quella notte è lui la vittima.
+- **Ultimatum di reclutamento**: quando viene bandito il primo Traditore (una sola volta per partita), la notte dopo i Traditori rimasti possono offrire a un Leale di unirsi a loro. Il Leale sceglie in segreto. Se rifiuta, quella notte è lui la vittima.
 - **Omicidio a vista**: invece di agire di notte, un Traditore deve "uccidere" di giorno, toccando un bottone segreto mentre il master mostra una scena. Sul master compare il nome della vittima a fine giornata.
 - **Banchetto**: nessun omicidio questa notte, ma il giorno dopo si bandiscono due giocatori.
 - **Nebbia**: alla prossima Tavola Rotonda i voti vengono rivelati solo come conteggio, senza nomi.
@@ -173,6 +176,7 @@ Gli oggetti si vincono nelle missioni, all'Asta o al Ponte, e restano segreti fi
 1. Con 4 giocatori rimasti, ognuno vota in segreto: "Chiudere la partita" o "Bandire ancora".
 2. Se tutti scelgono "Chiudere", si rivelano i ruoli dei sopravvissuti.
 3. Se c'è almeno un "Bandire", si fa un'altra votazione e un altro giocatore esce, rivelando il suo ruolo. Poi si torna al punto 1.
+   Si può scendere al massimo fino a 2 giocatori: a quel punto non si vota più e i due rivelano uno alla volta il proprio schieramento.
 4. Se tra i sopravvissuti c'è anche un solo Traditore, il montepremi va interamente ai Traditori sopravvissuti. Altrimenti i Leali se lo dividono.
 
 Tutti i numeri (soglia del finale, valori delle missioni, frequenza degli eventi) stanno in un file di configurazione, così il gioco si bilancia dopo le prime partite senza riscrivere il codice.
@@ -267,4 +271,4 @@ Il rischio principale è tecnico: la connessione tra telefoni e master. Per ques
 - [ ] Nome definitivo del gioco
 - [ ] Ruoli speciali da tenere per la prima versione
 - [ ] Montepremi "per la gloria" o con premio reale
-- [ ] Account GitHub da usare per la pubblicazione
+- [x] Account GitHub da usare per la pubblicazione (repository pubblico `castello-traditori`)
