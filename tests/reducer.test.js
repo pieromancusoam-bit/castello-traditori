@@ -254,6 +254,8 @@ const pick = (s, id, choice) => ok(s, { type: A.FINAL_CHOICE, playerId: id, payl
 test('Cerimonia: tutti "Chiudere" -> rivelazioni una alla volta -> fine', () => {
   let s = atCeremony();
   for (const id of alive(s)) s = pick(s, id, FINAL_CHOICES.END);
+  assert.equal(s.phaseData.stage, 'choice-reveal');
+  s = advance(s);
   assert.equal(s.phaseData.stage, 'unveil');
   assert.deepEqual(s.phaseData.revealed, []);
   for (let i = 1; i <= 4; i++) {
@@ -269,13 +271,29 @@ test('Cerimonia: chi non sceglie vale "Chiudere"', () => {
   let s = atCeremony();
   s = pick(s, 'p1', FINAL_CHOICES.END);
   s = advance(s);
+  assert.equal(s.phaseData.stage, 'choice-reveal');
+  assert.deepEqual(Object.values(s.phaseData.choices), ['end', 'end', 'end', 'end']);
+  s = advance(s);
   assert.equal(s.phaseData.stage, 'unveil');
+});
+
+test("Cerimonia: a scelte chiuse si rivelano tutte, nell'ordine dei giocatori", () => {
+  let s = atCeremony();
+  s = pick(s, 'p3', FINAL_CHOICES.BANISH);
+  for (const id of ['p1', 'p2', 'p4']) s = pick(s, id, FINAL_CHOICES.END);
+  assert.equal(s.phaseData.stage, 'choice-reveal');
+  assert.deepEqual(s.phaseData.order, ['p1', 'p2', 'p3', 'p4']);
+  assert.equal(s.phaseData.choices.p3, 'banish');
+  assert.equal(rejected(s, { type: A.FINAL_CHOICE, playerId: 'p1', payload: { choice: 'banish' } }), REJECT.WRONG_PHASE);
+  s = advance(s);
+  assert.equal(s.phaseData.stage, 'voting');
 });
 
 test('Cerimonia: un "Bandire" -> voto -> bando con rivelazione -> si sceglie di nuovo', () => {
   let s = atCeremony();
   s = pick(s, 'p2', FINAL_CHOICES.BANISH);
   for (const id of ['p1', 'p3', 'p4']) s = pick(s, id, FINAL_CHOICES.END);
+  s = advance(s); // rivelazione delle scelte -> voto
   assert.equal(s.phaseData.stage, 'voting');
   assert.equal(s.phaseData.banishCount, 1);
   s = voteAll(s, (id) => (id === 'p1' ? 'p2' : 'p1'));
@@ -293,7 +311,7 @@ test('Cerimonia: un "Bandire" -> voto -> bando con rivelazione -> si sceglie di 
 test('Cerimonia: parità e ballottaggio pari -> nessuno esce, si torna a scegliere', () => {
   let s = atCeremony();
   s = pick(s, 'p2', FINAL_CHOICES.BANISH);
-  s = advance(s);
+  s = advance(advance(s)); // chiude la scelta, poi dalla rivelazione al voto
   const tie = { p1: 'p2', p2: 'p1', p3: 'p2', p4: 'p1' };
   s = voteAll(s, (id) => tie[id]);
   assert.equal(s.phaseData.outcome.kind, 'runoff');
@@ -309,7 +327,7 @@ test('Cerimonia: si scende al massimo fino a 2, poi solo rivelazioni', () => {
   let s = atCeremony();
   for (let round = 0; round < 2; round++) {
     s = pick(s, alive(s)[0], FINAL_CHOICES.BANISH);
-    s = advance(s);
+    s = advance(advance(s));
     const target = alive(s).at(-1);
     s = voteAll(s, (id) => (id === target ? alive(s)[0] : target));
     s = advance(s); // risultati -> reveal

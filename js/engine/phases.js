@@ -156,7 +156,15 @@ export function enterFinalChoice(s) {
 
 export const allChose = (s) => aliveIds(s).every((id) => s.phaseData.choices[id] !== undefined);
 
-// Chi non sceglie vale "Chiudere"
+// Scelte chiuse: si rivelano sullo schermo una per una (chi non ha scelto vale "Chiudere")
+export function closeChoice(s) {
+  const order = aliveIds(s);
+  const choices = {};
+  for (const id of order) choices[id] = s.phaseData.choices[id] ?? FINAL_CHOICES.END;
+  s.phaseData = { stage: 'choice-reveal', order, choices };
+}
+
+// Dopo la rivelazione delle scelte: tutti "Chiudere" -> rivelazioni finali, altrimenti si vota
 export function resolveChoice(s) {
   const banishCount = Object.values(s.phaseData.choices).filter((c) => c === FINAL_CHOICES.BANISH).length;
   if (banishCount === 0) return enterUnveil(s);

@@ -96,6 +96,9 @@ function masterStep(s) {
       switch (pd.stage) {
         case 'choice':
           return { stage: 'choice', chosenCount: live.filter((id) => pd.choices[id] !== undefined).length, total: live.length };
+        case 'choice-reveal':
+          // Le scelte diventano pubbliche: lo schermo le rivela una per una
+          return { stage: 'choice-reveal', reveal: pd.order.map((id) => ({ playerId: id, choice: pd.choices[id] })) };
         case 'voting':
         case 'results':
           return masterVote(s);
@@ -199,6 +202,8 @@ function playerStep(s, p) {
       switch (pd.stage) {
         case 'choice':
           return { stage: 'choice', canChoose: alive && pd.choices[p.id] === undefined, myChoice: pd.choices[p.id] ?? null };
+        case 'choice-reveal':
+          return { stage: 'choice-reveal', myChoice: pd.choices[p.id] ?? null };
         case 'voting':
         case 'results':
           return { ...playerVote(s, p), banishCount: pd.banishCount ?? null };

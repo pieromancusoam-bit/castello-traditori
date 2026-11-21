@@ -129,7 +129,7 @@ const HANDLERS = {
     check(choice === FINAL_CHOICES.END || choice === FINAL_CHOICES.BANISH, REJECT.INVALID_PAYLOAD);
     check(s.phaseData.choices[action.playerId] === undefined, REJECT.ALREADY_DONE);
     s.phaseData.choices[action.playerId] = choice;
-    if (P.allChose(s)) P.resolveChoice(s);
+    if (P.allChose(s)) P.closeChoice(s);
   },
 
   // "Avanti" del master: chiude ciò che è aperto (chi manca è astenuto) o passa oltre
@@ -147,7 +147,8 @@ const HANDLERS = {
         return P.resolveNight(s, rng);
       case PHASE.FINAL:
         switch (s.phaseData.stage) {
-          case 'choice': return P.resolveChoice(s);
+          case 'choice': return P.closeChoice(s);
+          case 'choice-reveal': return P.resolveChoice(s);
           case 'voting': return P.closeVoting(s);
           case 'results': return P.leaveResults(s, rng);
           case 'reveal': return P.leaveFinalReveal(s);
