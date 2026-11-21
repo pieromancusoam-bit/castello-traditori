@@ -4,7 +4,9 @@ Aggiornato da Claude Code alla fine di ogni sessione di lavoro.
 
 ## Fase corrente
 
-**Fase 0 — Prototipo di connessione** (codice completo, manca la prova con 3 telefoni veri)
+**Fase 1 — Scheletro del gioco** (non iniziata)
+
+Fase 0 — Prototipo di connessione: **completata il 2026-11-21** (prova con 3 telefoni veri superata).
 
 ## Fatto
 
@@ -19,7 +21,7 @@ Aggiornato da Claude Code alla fine di ogni sessione di lavoro.
   automatico dei telefoni (circa 20 s), telefono chiuso segnato "disconnesso" (circa 20 s),
   codice stanza non valido.
 
-## Da fare nella fase corrente
+## Fase 0 — attività (completate)
 
 - [x] Struttura cartelle e `index.html` con instradamento master/giocatore
 - [x] Librerie in `/vendor/` (PeerJS, QR) con versione fissata
@@ -29,7 +31,7 @@ Aggiornato da Claude Code alla fine di ogni sessione di lavoro.
 - [x] Riconnessione con token dopo ricarica (telefono) e "Riprendi" (master)
 - [x] Wake Lock su master e telefoni
 - [x] Messaggio d'errore chiaro se la connessione non parte
-- [ ] Push su GitHub Pages e prova con 3 telefoni veri per 15 minuti (vedi checklist sotto)
+- [x] Push su GitHub Pages e prova con 3 telefoni veri per 15 minuti: tutto ok (Piero, 2026-11-21)
 
 ## Decisioni prese
 
@@ -54,8 +56,6 @@ Aggiornato da Claude Code alla fine di ogni sessione di lavoro.
 
 ## Problemi noti
 
-- Wake Lock: nel browser integrato di prova risulta "non attivo"; va verificato sui telefoni veri
-  (richiede https, quindi solo dalla versione su GitHub Pages).
 - Dopo la ricarica del master i telefoni rientrano in circa 20 s (attese tra i tentativi + tempo
   di PeerJS per riassegnare l'ID). Accettabile; se dà fastidio si accorciano le attese in `js/config/net-config.js`.
 - Un telefono chiuso di colpo risulta "disconnesso" solo dopo 3 battiti persi (circa 15-20 s):
@@ -63,7 +63,7 @@ Aggiornato da Claude Code alla fine di ogni sessione di lavoro.
 - Piano B: da GitHub Pages (https) il server di aggancio personale deve essere raggiungibile in
   https/wss. Un PeerServer su un PC di casa in semplice http non funziona senza un certificato.
 
-## Checklist di prova Fase 0 (telefoni veri)
+## Checklist di prova Fase 0 (telefoni veri) — superata
 
 1. Master su PC/TV: apri il sito, "Nuova stanza". Compare QR e codice, stato "Castello aperto".
 2. 3 telefoni sullo stesso Wi-Fi inquadrano il QR, inseriscono il nome: compaiono sul master.
