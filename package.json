@@ -1,0 +1,7 @@
+{
+  "name": "castello-traditori",
+  "private": true,
+  "type": "module",
+  "description": "Solo per i test in locale: npm test",
+  "scripts": { "test": "node --test \"tests/*.test.js\"" }
+}

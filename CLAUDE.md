@@ -49,7 +49,8 @@ Leggi questi tre file prima di iniziare qualsiasi attività.
 
 ## Test
 
-- Motore: `node --test tests/` (test runner integrato di Node, nessuna dipendenza).
+- Motore: `npm test`, cioè `node --test "tests/*.test.js"` (test runner integrato di Node, nessuna dipendenza;
+  da Node 22 serve il percorso con il glob, `tests/` da solo non basta).
   Ogni regola nuova ha almeno un test. Test obbligatorio e permanente: nessuna `viewFor` di un
   Leale contiene il ruolo di un altro giocatore.
 - Interfaccia in locale: `npx serve .` (o `python3 -m http.server`) e più schede del browser.
