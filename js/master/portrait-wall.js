@@ -42,7 +42,7 @@ const CRACK = `
 
 // players: elenco pubblico [{ id, name, status, faction }]
 // opts: { photoOf(id) -> dataURL|null, breakingId: id del quadro che si rompe ora }
-export function portraitWallHtml(players, { photoOf, breakingId = null }) {
+export function portraitWallHtml(players, { photoOf, breakingId = null, suspects = [] }) {
   const frames = players.map((p) => {
     const photo = photoOf(p.id);
     const canvas = photo
@@ -53,9 +53,9 @@ export function portraitWallHtml(players, { photoOf, breakingId = null }) {
       `is-${p.status}`,
       p.id === breakingId ? 'is-breaking' : '',
     ].join(' ');
-    const tag = p.status === 'banished' && p.faction
-      ? `<span class="tag tag-${p.faction}">${FACTION_LABEL[p.faction]}</span>`
-      : '';
+    let tag = '';
+    if (p.status === 'banished' && p.faction) tag = `<span class="tag tag-${p.faction}">${FACTION_LABEL[p.faction]}</span>`;
+    else if (p.status === 'alive' && suspects.includes(p.id)) tag = '<span class="tag tag-suspect">Sospettato</span>';
     return `
       <figure class="${cls}">
         <div class="frame">

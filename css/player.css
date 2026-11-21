@@ -108,3 +108,6 @@
 .chat-log li { margin-bottom: 0.3rem; overflow-wrap: anywhere; }
 .chat-form { display: flex; gap: 0.5rem; }
 .chat-form input { font-size: 1rem; padding: 0.6em 0.8em; }
+
+.suspects { color: var(--gold); font-size: 1.1rem; }
+.pick.is-ally { opacity: 0.45; border-style: dashed; }

@@ -138,9 +138,15 @@ function stageHtml(v, nameOf, host) {
       if (st.firstDay) msg = 'Il castello si sveglia. Tutti sono scesi a colazione… per ora.';
       else if (st.victimId) msg = `Stanotte i Traditori hanno colpito: <strong>${esc(nameOf(st.victimId))}</strong> non scenderà più a colazione.`;
       else msg = 'Stanotte nessuno è stato assassinato.';
+      // I più sospettati della notte, senza dire chi li ha indicati
+      const names = st.suspects.map((id) => `<strong>${esc(nameOf(id))}</strong>`);
+      const suspects = names.length
+        ? `<p class="suspects-line">Il castello sospetta di ${names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} e ${names.at(-1)}`}.</p>`
+        : '';
       return `<h1>Colazione</h1>
         <p class="lead ${st.victimId ? 'after-break' : ''}">${msg}</p>
-        ${portraitWallHtml(v.players, { photoOf: (id) => host.photoOf(id), breakingId: st.victimId })}`;
+        ${suspects}
+        ${portraitWallHtml(v.players, { photoOf: (id) => host.photoOf(id), breakingId: st.victimId, suspects: st.suspects })}`;
     }
     case 'roundtable':
       return voteStageHtml(st, nameOf, 'Tavola Rotonda');

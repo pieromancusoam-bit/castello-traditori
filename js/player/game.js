@@ -167,11 +167,20 @@ function confirmHtml(ui, label) {
     </div>`;
 }
 
-function pickGrid(options, kind, ui, nameOf, extra = () => '') {
-  return `<div class="pick-grid">${options.map((id) => `
-    <button class="btn pick ${ui.pending && ui.pending.value === id ? 'is-pending' : ''}" data-pick="${esc(id)}" data-kind="${kind}">
+function pickGrid(options, kind, ui, nameOf, extra = () => '', disabled = []) {
+  return `<div class="pick-grid">${options.map((id) => disabled.includes(id)
+    ? `<button class="btn pick is-ally" disabled>${esc(nameOf(id))}<small>complice</small></button>`
+    : `<button class="btn pick ${ui.pending && ui.pending.value === id ? 'is-pending' : ''}" data-pick="${esc(id)}" data-kind="${kind}">
       ${esc(nameOf(id))}${extra(id)}
     </button>`).join('')}</div>`;
+}
+
+// "Il castello sospetta di …" (alla Colazione)
+function suspectsText(ids, nameOf) {
+  if (!ids || !ids.length) return '';
+  const names = ids.map((id) => `<strong>${esc(nameOf(id))}</strong>`);
+  const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} e ${names.at(-1)}`;
+  return `<p class="suspects">Stanotte il castello sospetta di ${list}.</p>`;
 }
 
 const spectator = () => '<p class="muted">Sei fuori dal gioco: segui la partita sullo schermo principale.</p>';
@@ -202,13 +211,22 @@ function nightHtml(v, ui, nameOf) {
   const turned = v.me.justTurned
     ? '<p class="turned">Il castello ti ha scelto: <strong>ora sei un Traditore</strong>. Agirai dalla prossima notte. Non dirlo a nessuno.</p>'
     : '';
-  // Stessa forma per tutti: titolo, griglia di nomi, conferma
+  // Stessa forma per tutti: titolo, griglia con lo stesso numero di nomi, conferma.
+  // I Traditori scelgono chi colpire; gli altri indicano un sospetto (annunciato alla Colazione).
   const allyMarks = (id) => {
     if (!st.killer) return '';
     const who = st.allyPicks.filter((a) => a.targetId === id).map((a) => (a.id === v.me.id ? 'tu' : esc(nameOf(a.id))));
     return who.length ? `<small>${who.join(', ')}</small>` : '';
   };
-  const mine = st.myChoice ? `<p class="muted">La tua scelta: ${esc(nameOf(st.myChoice))}${st.killer ? ' (puoi cambiarla)' : ''}</p>` : '';
+  let mine = '';
+  if (st.myChoice) {
+    mine = st.killer
+      ? `<p class="muted">La tua scelta: ${esc(nameOf(st.myChoice))} (puoi cambiarla)</p>`
+      : `<p class="big">Hai indicato ${esc(nameOf(st.myChoice))}.</p><p class="muted">Torna a dormire: alla colazione il castello svelerà il più sospettato.</p>`;
+  }
+  const question = st.killer
+    ? '<p>Chi colpire stanotte?</p>'
+    : '<p>Di chi sospetti?</p><p class="muted small">Nessuno saprà che l\'hai indicato tu.</p>';
   let killerBox = '';
   if (st.killer) {
     const consensus = st.consensus
@@ -226,10 +244,13 @@ function nightHtml(v, ui, nameOf) {
       </div>`;
   }
   const canPick = !st.myChoice || st.killer;
-  return `<h1>La notte</h1>${turned}<p>Chi scegli stanotte?</p>
-    ${canPick ? pickGrid(st.options, 'night', ui, nameOf, allyMarks) : ''}
+  const confirmLabel = ui.pending && (st.killer
+    ? `Colpire <strong>${esc(nameOf(ui.pending.value))}</strong>?`
+    : `Sospettare di <strong>${esc(nameOf(ui.pending.value))}</strong>?`);
+  return `<h1>La notte</h1>${turned}${canPick ? question : ''}
+    ${canPick ? pickGrid(st.options, 'night', ui, nameOf, allyMarks, st.disabled) : ''}
     ${mine}
-    ${ui.pending ? confirmHtml(ui, `Scegliere <strong>${esc(nameOf(ui.pending.value))}</strong>?`) : ''}
+    ${ui.pending ? confirmHtml(ui, confirmLabel) : ''}
     ${killerBox}`;
 }
 
@@ -284,7 +305,7 @@ function mainHtml(v, ui, nameOf) {
       if (st.victimId === v.me.id) {
         return `<h1>Colazione</h1><p class="big">Stanotte sei stato assassinato.</p>${spectator()}`;
       }
-      return `<h1>Colazione</h1><p class="big">Guarda lo schermo principale.</p>`;
+      return `<h1>Colazione</h1><p class="big">Guarda lo schermo principale.</p>${suspectsText(st.suspects, nameOf)}`;
     case 'roundtable':
       return voteHtml(v, ui, nameOf, 'Tavola Rotonda');
     case 'reveal':

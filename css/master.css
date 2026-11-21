@@ -224,3 +224,7 @@
 .phase-night { background: #040306; }
 .phase-night h1 { color: #8a7a55; }
 .phase-night .btn-advance { background: #2a0a10; }
+
+/* Sospettati della notte */
+.suspects-line { font-size: 1.3em; color: var(--gold); margin: 0; animation: fade-in 0.8s 3.4s both; }
+.tag-suspect { background: var(--gold); color: #1d1a21; animation: fade-in 0.8s 3.4s both; }
