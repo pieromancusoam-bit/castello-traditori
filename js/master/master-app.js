@@ -1,4 +1,4 @@
-// Avvio della modalità master: Home -> Sala d'attesa.
+// Avvio della modalità master: Home -> Sala d'attesa -> Partita.
 
 import { Host, loadSavedRoom } from '../net/host.js';
 import { peerAvailable } from '../net/peer-common.js';
@@ -7,6 +7,7 @@ import { local, KEYS } from '../platform/storage.js';
 import { keepAwake, onWakeLockChange } from '../platform/wake-lock.js';
 import { renderHome } from './home.js';
 import { mountLobby } from './lobby.js';
+import { mountGame } from './game.js';
 import { errorText } from '../ui/messages.js';
 import { esc } from '../ui/dom.js';
 
@@ -52,7 +53,7 @@ export function startMaster(root, { debug }) {
       if (prev) local.remove(KEYS.room(prev.roomCode));
       host = new Host({ peerServer: local.get(KEYS.peerServer), onChange: () => update() });
     }
-    update = mountLobby(root, host, {
+    const opts = {
       debug,
       onClose: () => {
         host.close({ forget: true });
@@ -60,8 +61,22 @@ export function startMaster(root, { debug }) {
         update = () => {};
         showHome();
       },
-    });
+    };
+    // Sala d'attesa o partita, secondo lo stato del master
+    let mounted = null;
+    let screenUpdate = () => {};
+    update = () => {
+      if (!host) return;
+      const want = host.game ? 'game' : 'lobby';
+      if (want !== mounted) {
+        mounted = want;
+        screenUpdate = want === 'game' ? mountGame(root, host, opts) : mountLobby(root, host, opts);
+      } else {
+        screenUpdate();
+      }
+    };
     host.start();
+    update();
   }
 
   onWakeLockChange(() => update());

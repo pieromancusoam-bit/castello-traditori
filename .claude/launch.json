@@ -6,6 +6,13 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "8123", "--bind", "127.0.0.1"],
       "port": 8123
+    },
+    {
+      "name": "castello-alt",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8125", "--bind", "127.0.0.1"],
+      "port": 8125,
+      "autoPort": false
     }
   ]
 }

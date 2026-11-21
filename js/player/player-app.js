@@ -1,4 +1,4 @@
-// Avvio della modalità giocatore: nome -> collegamento -> attesa.
+// Avvio della modalità giocatore: nome -> collegamento -> sala d'attesa (con ritratto) -> partita.
 // L'identità (codice stanza + token) resta nel browser per rientrare dopo un ricaricamento.
 
 import { Client } from '../net/client.js';
@@ -8,6 +8,8 @@ import { local, session, KEYS } from '../platform/storage.js';
 import { keepAwake, wakeLockStatus, onWakeLockChange } from '../platform/wake-lock.js';
 import { errorText } from '../ui/messages.js';
 import { esc, on } from '../ui/dom.js';
+import { fileToPortrait } from './photo.js';
+import { createGameScreen } from './game.js';
 
 const NAME_ERRORS = new Set(['NAME_REQUIRED', 'NAME_TAKEN']);
 
@@ -22,6 +24,9 @@ export function startPlayer(root, { roomCode, peerServer, newIdentity }) {
   const identity = sameRoom ? { token: saved.token, name: saved.name } : { name: saved?.name || '' };
 
   let client = null;
+  let gameRender = null;
+  let myPhoto = store.get(KEYS.myPhoto);
+  let photoState = { sending: false, rejected: false, msg: '' };
 
   const saveIdentity = (id) => store.set(KEYS.player, { roomCode, token: id.token, name: id.name });
 
@@ -46,7 +51,14 @@ export function startPlayer(root, { roomCode, peerServer, newIdentity }) {
     if (client.phase === 'stopped' && NAME_ERRORS.has(client.errorCode)) {
       return renderNameForm(root, { roomCode, name: client.identity.name, error: client.errorCode, onSubmit: connect });
     }
-    if (client.phase === 'joined' && client.view) return renderWaiting(root, client);
+    if (client.phase === 'joined' && client.view) {
+      if (client.view.game) {
+        if (!gameRender) gameRender = createGameScreen(root, client);
+        return gameRender();
+      }
+      autoSendPhoto();
+      return renderWaiting(root, client, myPhoto, photoState.msg);
+    }
     return renderConnecting(root, client);
   }
 
@@ -59,6 +71,42 @@ export function startPlayer(root, { roomCode, peerServer, newIdentity }) {
     setTimeout(() => render(), 1500);
   });
   on(root, '[data-act="retry"]', 'click', () => client && client.retryNow());
+
+  // Ritratto: scatto (o scelta) -> piccolo JPEG -> master
+  root.addEventListener('change', async (e) => {
+    if (!e.target.matches('[data-act="photo-input"]')) return;
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    photoState.msg = 'Preparo il ritratto…';
+    render();
+    try {
+      myPhoto = await fileToPortrait(file);
+      store.set(KEYS.myPhoto, myPhoto);
+      photoState.rejected = false;
+      await sendPhoto();
+    } catch {
+      photoState.msg = 'Non riesco a usare questa foto. Riprova.';
+      render();
+    }
+  });
+
+  async function sendPhoto() {
+    if (!client || !myPhoto || photoState.sending) return;
+    photoState.sending = true;
+    const res = await client.sendAction(ACTIONS.SET_PHOTO, { data: myPhoto });
+    photoState.sending = false;
+    if (res.ok) photoState.msg = 'Il tuo ritratto è appeso nel castello.';
+    else {
+      photoState.msg = 'Ritratto non arrivato al master.';
+      if (res.error === 'INVALID_PHOTO') photoState.rejected = true;
+    }
+    render();
+  }
+
+  // Dopo un rientro il master potrebbe non avere il ritratto: lo rimanda da solo
+  function autoSendPhoto() {
+    if (myPhoto && !client.view.hasPhoto && !photoState.sending && !photoState.rejected) sendPhoto();
+  }
 
   onWakeLockChange(() => client && client.phase === 'joined' && render());
 
@@ -110,16 +158,24 @@ function renderConnecting(root, client) {
     </section>`;
 }
 
-function renderWaiting(root, client) {
+function renderWaiting(root, client, myPhoto, photoMsg) {
   const v = client.view;
   const wl = wakeLockStatus();
+  const initials = v.me.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
   root.innerHTML = `
     <section class="player-screen player-waiting">
       <p class="eyebrow">Stanza ${esc(v.roomCode)}</p>
       <h1>Benvenuto, ${esc(v.me.name)}</h1>
       <p class="big">Guarda lo schermo principale</p>
       <p class="muted">${v.connectedCount} ${v.connectedCount === 1 ? 'giocatore collegato' : 'giocatori collegati'}</p>
-      <button class="btn btn-secondary btn-block" data-act="wave">Saluta il master</button>
+      <div class="my-portrait">
+        <div class="mini-frame">${myPhoto ? `<img src="${esc(myPhoto)}" alt="Il tuo ritratto">` : `<span>${esc(initials)}</span>`}</div>
+        <label class="btn btn-secondary btn-block">${myPhoto ? 'Cambia ritratto' : 'Scatta il tuo ritratto'}
+          <input type="file" accept="image/*" capture="user" data-act="photo-input" hidden>
+        </label>
+        <p class="muted small">${esc(photoMsg || 'Facoltativo. La foto va solo allo schermo principale.')}</p>
+      </div>
+      <button class="btn btn-ghost btn-block" data-act="wave">Saluta il master</button>
       <footer class="conn-footer">
         <span class="dot on" aria-hidden="true"></span> Collegato
         · ${wl === 'active' ? 'schermo sempre acceso' : wl === 'unsupported' ? 'tieni lo schermo acceso' : 'blocco schermo non attivo'}

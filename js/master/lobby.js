@@ -4,6 +4,7 @@ import { esc, on } from '../ui/dom.js';
 import { qrSvg } from '../ui/qr.js';
 import { errorText } from '../ui/messages.js';
 import { wakeLockStatus } from '../platform/wake-lock.js';
+import { GAME } from '../config/game-config.js';
 
 const STATUS_LABEL = {
   opening: 'Apro il castello…',
@@ -27,6 +28,7 @@ export function mountLobby(root, host, { debug, onClose }) {
         <div class="status-line" aria-live="polite"></div>
         <h2 class="players-title"></h2>
         <ul class="players"></ul>
+        <button class="btn btn-primary btn-start" data-act="start"></button>
         <div class="lobby-footer">
           <span class="wake"></span>
           <button class="btn btn-small btn-ghost" data-act="retry" hidden>Riprova</button>
@@ -40,6 +42,11 @@ export function mountLobby(root, host, { debug, onClose }) {
   let shownUrl = null;
 
   on(root, '[data-act="retry"]', 'click', () => host.retryNow());
+  on(root, '[data-act="start"]', 'click', () => {
+    const off = host.publicPlayers().filter((p) => !p.connected).length;
+    if (off && !confirm(`${off} giocatori risultano disconnessi. Iniziare lo stesso?`)) return;
+    host.startGame();
+  });
   on(root, '[data-act="close"]', 'click', () => {
     if (confirm('Chiudere la stanza? I telefoni collegati verranno scollegati.')) onClose();
   });
@@ -67,9 +74,16 @@ export function mountLobby(root, host, { debug, onClose }) {
     el('.players').innerHTML = players.map((p) => `
       <li class="player ${p.connected ? 'is-on' : 'is-off'} ${p.wavedRecently ? 'is-waving' : ''}">
         <span class="dot" aria-hidden="true"></span>
+        <span class="thumb">${host.photoOf(p.id) ? `<img src="${esc(host.photoOf(p.id))}" alt="">` : ''}</span>
         <span class="name">${esc(p.name)}</span>
         <span class="state">${p.wavedRecently ? 'saluta!' : p.connected ? 'collegato' : 'disconnesso'}</span>
       </li>`).join('');
+
+    const start = el('[data-act="start"]');
+    start.disabled = !host.canStart;
+    start.textContent = host.canStart
+      ? 'Inizia la partita'
+      : `Servono almeno ${GAME.minPlayers} giocatori`;
 
     const wl = wakeLockStatus();
     el('.wake').textContent = wl === 'active' ? 'Schermo sempre acceso' : wl === 'unsupported' ? 'Schermo: blocco non supportato' : 'Schermo: blocco non attivo';
