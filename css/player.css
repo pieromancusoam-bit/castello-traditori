@@ -1,0 +1,33 @@
+/* Telefono: verticale, una mano, pulsanti grandi. */
+
+.mode-player { font-size: 18px; }
+
+.player-screen {
+  max-width: 28rem;
+  margin: 0 auto;
+  min-height: 100dvh;
+  padding: max(1.5rem, env(safe-area-inset-top)) 1.25rem max(1.5rem, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  gap: 0.6rem;
+}
+
+.eyebrow { color: var(--muted); text-transform: uppercase; letter-spacing: 0.18em; font-size: 0.75rem; margin: 0; }
+.player-screen h1 { font-size: 1.8rem; }
+.player-join .title { font-size: 2rem; margin-bottom: 1.2rem; }
+
+.join-form { display: flex; flex-direction: column; gap: 0.8rem; text-align: left; }
+.join-form label { color: var(--muted); }
+.join-form .btn { margin-top: 0.4rem; font-size: 1.15rem; padding: 1em; }
+.form-error { color: var(--bad); margin: 0; }
+
+.big { font-size: 1.35rem; color: var(--text); }
+.player-waiting .btn { margin-top: 1.5rem; }
+
+.conn-footer {
+  margin-top: 2rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
