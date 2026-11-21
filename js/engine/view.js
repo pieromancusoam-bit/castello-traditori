@@ -5,6 +5,7 @@
 import { PHASE, STATUS } from './state.js';
 import { ROLE, factionOf } from './roles.js';
 import { nightConsensus } from './phases.js';
+import { MISSION_MODULES } from './missions/index.js';
 
 const ids = (list) => (list ? [...list] : null);
 const isAlive = (p) => p.status === STATUS.ALIVE;
@@ -40,13 +41,37 @@ function publicOutcome(o) {
   return { kind: o.kind, reason: o.reason };
 }
 
+// A fine partita il montepremi si divide tra i sopravvissuti della fazione vincente
+function prizeOf(s) {
+  if (s.phase !== PHASE.ENDED) return null;
+  const winners = aliveIdList(s).filter((id) => factionOf(s.players[id].role) === s.winner);
+  return { pot: s.pot, winners, share: winners.length ? Math.floor(s.pot / winners.length) : 0 };
+}
+
 function common(s) {
   return {
     phase: s.phase,
     day: s.day,
+    pot: s.pot,
+    missions: s.missionLog.map((m) => ({ day: m.day, id: m.id, coins: m.coins })),
     players: publicPlayers(s),
     history: publicHistory(s),
     winner: s.phase === PHASE.ENDED ? s.winner : null,
+    prize: prizeOf(s),
+  };
+}
+
+// Missione: parte comune + allow-list del modulo della missione (p = null per lo schermo)
+function missionStep(s, p) {
+  const pd = s.phaseData;
+  const m = MISSION_MODULES[pd.id];
+  return {
+    id: pd.id,
+    stage: pd.stage,
+    value: pd.value,
+    timer: pd.timer ? { key: pd.timer.key, ms: pd.timer.ms } : null,
+    result: pd.result ? { success: pd.result.success, coins: pd.result.coins, detail: { ...pd.result.detail } } : null,
+    mission: p ? m.playerView(s, p) : m.masterView(s),
   };
 }
 
@@ -85,6 +110,8 @@ function masterStep(s) {
       return { seenCount: s.order.filter((id) => pd.seen[id]).length, total: s.order.length };
     case PHASE.BREAKFAST:
       return { victimId: pd.victimId, firstDay: pd.firstDay, suspects: [...pd.suspects] };
+    case PHASE.MISSION:
+      return missionStep(s, null);
     case PHASE.ROUNDTABLE:
       return masterVote(s);
     case PHASE.REVEAL:
@@ -192,6 +219,8 @@ function playerStep(s, p) {
       return { seen: Boolean(pd.seen[p.id]) };
     case PHASE.BREAKFAST:
       return { victimId: pd.victimId, firstDay: pd.firstDay, suspects: [...pd.suspects] };
+    case PHASE.MISSION:
+      return missionStep(s, p);
     case PHASE.ROUNDTABLE:
       return playerVote(s, p);
     case PHASE.REVEAL:

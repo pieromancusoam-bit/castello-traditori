@@ -9,8 +9,10 @@ import { createRng } from '../js/engine/rng.js';
 
 export const makePlayers = (n) => Array.from({ length: n }, (_, i) => ({ id: `p${i + 1}`, name: `Giocatore ${i + 1}` }));
 
-export function newGame(n, seed = 1, settings) {
-  return createGame({ players: makePlayers(n), seed, settings });
+// Di base senza missioni: i test delle regole della Fase 1 vanno dalla Colazione
+// direttamente alla Tavola Rotonda. Le missioni hanno test propri (missions: true).
+export function newGame(n, seed = 1, settings = {}) {
+  return createGame({ players: makePlayers(n), seed, settings: { missions: false, ...settings } });
 }
 
 // Forza i ruoli: traitorIds diventano Traditori, gli altri Leali
@@ -100,15 +102,42 @@ function possibleActions(s, r) {
       }
       break;
     }
+    case PHASE.MISSION:
+      if (pd.stage === 'play') acts.push(...missionInputs(s, r, live));
+      if (pd.timer && r.next() < 0.05) acts.push({ type: A.TIMER_EXPIRED, payload: { key: pd.timer.key } });
+      break;
     default:
       break;
   }
   return acts;
 }
 
+// Mosse casuali per la missione in corso
+function missionInputs(s, r, live) {
+  const d = s.phaseData.data;
+  const input = (playerId, payload) => ({ type: A.MISSION_INPUT, playerId, payload });
+  switch (s.phaseData.id) {
+    case 'chest':
+      return d.group.filter((id) => d.choices[id] === undefined)
+        .map((id) => input(id, { choice: r.next() < 0.7 ? 'gold' : 'lead' }));
+    case 'riddle':
+      if (d.sub !== 'question') return [];
+      return d.players.filter((id) => d.answers[id] === undefined)
+        .map((id) => input(id, { index: d.index, answer: r.int(4) }));
+    case 'torches':
+      return d.players.filter((id) => !d.reported[d.round][id])
+        .map((id) => input(id, { round: d.round, ms: r.next() < 0.1 ? null : 150 + r.int(800) }));
+    case 'trial':
+      if (d.sub !== 'voting') return [];
+      return d.players.filter((id) => d.votes[id] === undefined).map((id) => input(id, { ok: r.next() < 0.6 }));
+    default:
+      return [];
+  }
+}
+
 // Gioca una partita casuale fino alla fine. onState(state) viene chiamata a ogni passo.
-export function playRandomGame({ players, seed, onState = () => {}, maxSteps = 5000 }) {
-  let s = newGame(players, seed);
+export function playRandomGame({ players, seed, onState = () => {}, maxSteps = 8000 }) {
+  let s = newGame(players, seed, { missions: true });
   const r = createRng(seed * 7919 + 13);
   onState(s);
   for (let step = 0; step < maxSteps; step++) {

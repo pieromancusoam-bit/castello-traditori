@@ -5,6 +5,8 @@ import { PHASE, STATUS } from './state.js';
 import { ROLE, factionOf, alivePlayers, aliveTraitors, aliveFaithfuls, winnerOf } from './roles.js';
 import { openBallot, outcomeOf, tally } from './votes.js';
 import { FINAL_CHOICES } from './actions.js';
+import { MISSION_MODULES, drawMission, missionValue } from './missions/index.js';
+import { clearTimer } from './missions/common.js';
 
 export const aliveIds = (s) => alivePlayers(s).map((p) => p.id);
 
@@ -17,10 +19,49 @@ export function enterBreakfast(s, victimId, suspects = []) {
   s.phaseData = { victimId, firstDay: s.day === 1, suspects };
 }
 
-// Dopo la Colazione: finale se restano pochi giocatori, altrimenti Tavola Rotonda
-export function leaveBreakfast(s) {
+// Dopo la Colazione: finale se restano pochi giocatori, altrimenti la missione del giorno
+export function leaveBreakfast(s, rng) {
   if (alivePlayers(s).length <= s.settings.finalThreshold) enterFinal(s);
+  else if (s.settings.missions) enterMission(s, rng);
   else enterRoundtable(s);
+}
+
+// ---- Missione ----
+// Momenti: intro (regole) -> play (gioco, con timer) -> result (monete) -> board (tabellone)
+
+export const currentMission = (s) => MISSION_MODULES[s.phaseData.id];
+
+export function enterMission(s, rng) {
+  const id = drawMission(s, rng);
+  s.phase = PHASE.MISSION;
+  s.phaseData = { id, stage: 'intro', value: missionValue(s.day), data: null, result: null, timer: null };
+  s.phaseData.data = MISSION_MODULES[id].setup(s, rng);
+}
+
+export function startMission(s, rng) {
+  s.phaseData.stage = 'play';
+  currentMission(s).start(s, rng);
+}
+
+// Fine del gioco: monete al montepremi
+export function finishMission(s) {
+  const result = currentMission(s).result(s);
+  clearTimer(s);
+  s.phaseData.stage = 'result';
+  s.phaseData.result = result;
+  s.pot += result.coins;
+  s.missionLog.push({ day: s.day, id: s.phaseData.id, coins: result.coins });
+}
+
+// "Avanti" (o timer scaduto) durante la missione
+export function advanceMission(s, rng) {
+  const pd = s.phaseData;
+  switch (pd.stage) {
+    case 'intro': return startMission(s, rng);
+    case 'play': if (currentMission(s).advance(s, rng)) finishMission(s); return undefined;
+    case 'result': pd.stage = 'board'; return undefined;
+    default: return enterRoundtable(s);
+  }
 }
 
 // ---- Tavola Rotonda (e voto della Cerimonia) ----

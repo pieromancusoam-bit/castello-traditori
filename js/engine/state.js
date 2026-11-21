@@ -7,6 +7,7 @@ import { assignRoles, traitorCountFor } from './roles.js';
 export const PHASE = Object.freeze({
   ROLES: 'roles',
   BREAKFAST: 'breakfast',
+  MISSION: 'mission',
   ROUNDTABLE: 'roundtable',
   REVEAL: 'reveal',
   NIGHT: 'night',
@@ -24,6 +25,7 @@ export function createGame({ players, seed, settings = {} }) {
     traitorCount: settings.traitorCount ?? traitorCountFor(ids.length),
     finalThreshold: settings.finalThreshold ?? GAME.finalThreshold,
     finalMinPlayers: settings.finalMinPlayers ?? GAME.finalMinPlayers,
+    missions: settings.missions ?? true, // missione del giorno tra Colazione e Tavola Rotonda
   };
   const rng = createRng(seed);
   const roles = assignRoles(ids, fullSettings.traitorCount, rng);
@@ -44,5 +46,24 @@ export function createGame({ players, seed, settings = {} }) {
     phaseData: { seen: {} },
     history: [], // eventi pubblici: { day, type: 'banished'|'murdered'|'no-banish'|'no-murder', playerId?, faction? }
     winner: null,
+    ...missionFields(),
   };
+}
+
+// Montepremi e missioni (aggiunti in Fase 2)
+const missionFields = () => ({
+  pot: 0,
+  missionBag: [], // missioni ancora da estrarre
+  lastMission: null, // ultima estratta: non si ripete subito dopo il rimescolamento
+  missionLog: [], // missioni giocate: { day, id, coins } (pubblico)
+  used: {}, // domande e prove già uscite, per non ripeterle
+  timerSeq: 0,
+});
+
+// Partita salvata da una versione precedente: aggiunge i campi mancanti
+export function upgradeGame(game) {
+  if (!game) return game;
+  const g = { ...missionFields(), ...game };
+  g.settings = { missions: true, ...g.settings };
+  return g;
 }

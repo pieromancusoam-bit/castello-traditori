@@ -12,27 +12,11 @@ import { ROLE } from './roles.js';
 import { createRng } from './rng.js';
 import { voteError } from './votes.js';
 import * as P from './phases.js';
+import { REJECT, Rejection, reject, check } from './errors.js';
 
-export const REJECT = Object.freeze({
-  UNKNOWN_ACTION: 'UNKNOWN_ACTION',
-  NOT_ALLOWED: 'NOT_ALLOWED',
-  WRONG_PHASE: 'WRONG_PHASE',
-  NOT_ALIVE: 'NOT_ALIVE',
-  INVALID_PAYLOAD: 'INVALID_PAYLOAD',
-  INVALID_TARGET: 'INVALID_TARGET',
-  ALREADY_DONE: 'ALREADY_DONE',
-});
+export { REJECT };
 
 const utf8 = new TextEncoder();
-
-class Rejection extends Error {
-  constructor(reason) {
-    super(reason);
-    this.reason = reason;
-  }
-}
-const reject = (reason) => { throw new Rejection(reason); };
-const check = (cond, reason) => { if (!cond) reject(reason); };
 
 export function applyAction(state, action) {
   try {
@@ -132,13 +116,30 @@ const HANDLERS = {
     if (P.allChose(s)) P.closeChoice(s);
   },
 
+  [A.MISSION_INPUT](s, action, rng) {
+    check(s.phase === PHASE.MISSION && s.phaseData.stage === 'play', REJECT.WRONG_PHASE);
+    const p = me(s, action);
+    check(isAlive(p), REJECT.NOT_ALIVE);
+    if (P.currentMission(s).input(s, p, payload(action), rng)) P.finishMission(s);
+  },
+
+  // Il tempo è scaduto: vale solo per il timer ancora in corso (la chiave lo identifica)
+  [A.TIMER_EXPIRED](s, action, rng) {
+    const timer = s.phaseData && s.phaseData.timer;
+    check(timer && payload(action).key === timer.key, REJECT.STALE);
+    check(s.phase === PHASE.MISSION && s.phaseData.stage === 'play', REJECT.WRONG_PHASE);
+    P.advanceMission(s, rng);
+  },
+
   // "Avanti" del master: chiude ciò che è aperto (chi manca è astenuto) o passa oltre
   [A.ADVANCE](s, action, rng) {
     switch (s.phase) {
       case PHASE.ROLES:
         return P.enterBreakfast(s, null);
       case PHASE.BREAKFAST:
-        return P.leaveBreakfast(s);
+        return P.leaveBreakfast(s, rng);
+      case PHASE.MISSION:
+        return P.advanceMission(s, rng);
       case PHASE.ROUNDTABLE:
         return s.phaseData.stage === 'voting' ? P.closeVoting(s) : P.leaveResults(s, rng);
       case PHASE.REVEAL:

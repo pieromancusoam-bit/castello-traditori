@@ -23,6 +23,10 @@ export const GAME = Object.freeze({
     flameMs: 2600,    // fiamme verdi (chiudere) o rosse (bandire)
   }),
 
+  // Montepremi: valore massimo di una missione il giorno 1, poi cresce ogni giorno
+  missionBaseValue: 1000,
+  missionValuePerDay: 250,
+
   // Chat notturna dei Traditori
   chatMaxLength: 200,
   // Pochi messaggi: la vista di un Traditore deve restare sotto NET.messageMaxBytes

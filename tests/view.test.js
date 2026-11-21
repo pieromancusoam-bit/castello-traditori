@@ -42,6 +42,8 @@ function permuteHiddenRoles(s, hidden, rng) {
 }
 
 const SEEDS = 150;
+// Campi interni delle missioni con le scelte individuali: non devono mai uscire dal master
+const SECRET_KEYS = ['"choices"', '"answers"', '"times"', '"reported"', '"delays"', '"data"'];
 
 test('OBBLIGATORIO: nessuna vista di un Leale contiene il ruolo di un altro giocatore', () => {
   let checked = 0;
@@ -66,6 +68,8 @@ test('OBBLIGATORIO: nessuna vista di un Leale contiene il ruolo di un altro gioc
           const json = JSON.stringify(view);
           assert.ok(!json.includes('messaggio segreto'), `${label}: chat dei Traditori presente`);
           assert.ok(!json.includes('"votes"'), `${label}: voti individuali presenti`);
+          // Nessuna scelta segreta delle missioni (Forziere, Enigma, Torce, Prova Fisica)
+          for (const key of SECRET_KEYS) assert.ok(!json.includes(key), `${label}: ${key} presente`);
 
           // 3. Non interferenza: rimescolando i ruoli nascosti la vista non cambia di una virgola
           if (hidden.size > 1) {
@@ -95,6 +99,7 @@ test('lo schermo del master non contiene ruoli nascosti e non dipende da essi', 
         const json = JSON.stringify(view);
         assert.ok(!json.includes('"role"'), `${label}: campo role sullo schermo`);
         assert.ok(!json.includes('messaggio segreto'), `${label}: chat sullo schermo`);
+        for (const key of SECRET_KEYS) assert.ok(!json.includes(key), `${label}: ${key} sullo schermo`);
         if (s.phaseData.stage === 'voting') assert.ok(!json.includes('"voterId"'), `${label}: voti prima della chiusura`);
         if (hidden.size > 1) assert.deepEqual(viewForMaster(permuteHiddenRoles(s, hidden, rng)), view, `${label}: dipende dai ruoli`);
       },
