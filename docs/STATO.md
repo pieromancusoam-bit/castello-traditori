@@ -44,10 +44,10 @@ Aggiornato da Claude Code alla fine di ogni sessione di lavoro.
 | 2026-11-21 | Nessuna fine anticipata: si continua anche senza Traditori o con Traditori ≥ Leali | Decisione di Piero |
 | 2026-11-21 | Cerimonia delle Polveri: minimo 2 giocatori, poi rivelazione uno alla volta | Decisione di Piero |
 | 2026-11-21 | Ultimatum di reclutamento: solo al bando del primo Traditore | Decisione di Piero |
+| 2026-11-21 | Tutti i Traditori banditi con più di 4 in gioco: la notte dopo il castello trasforma in segreto un Leale a caso in Traditore (nessun omicidio quella notte); numero di Traditori iniziali non annunciato | Decisione di Piero (opzione A) |
 
 ## Decisioni aperte
 
-- Come continuare se tutti i Traditori sono banditi con più di 4 giocatori in gioco (da decidere prima della Fase 1)
 - Nome definitivo del gioco (provvisorio: Il Castello dei Traditori)
 - Ruoli speciali da includere nella prima versione
 - Montepremi "per la gloria" o con premio reale

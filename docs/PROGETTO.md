@@ -88,7 +88,8 @@ Ci sono due fazioni: **Leali** e **Traditori**. I Leali vincono se arrivano al f
 - Chi viene **bandito** alla Tavola Rotonda rivela la propria fazione. Chi viene **assassinato** di notte invece no, per mantenere il mistero.
 - I giocatori eliminati restano collegati come **spettatori**: vedono le fasi ma non i ruoli segreti, e non possono votare.
 - Il **finale** scatta quando restano 4 giocatori (valore modificabile). Il controllo si fa sia dopo la Tavola Rotonda sia alla Colazione, dopo l'omicidio notturno.
-- La partita **non finisce in anticipo**: anche se tutti i Traditori vengono banditi o se i Traditori raggiungono i Leali, si prosegue fino al finale. *(Da definire: come continuare se tutti i Traditori sono banditi con più di 4 giocatori in gioco.)*
+- La partita **non finisce in anticipo**: anche se tutti i Traditori vengono banditi o se i Traditori raggiungono i Leali, si prosegue fino al finale.
+- **Nuovo Traditore scelto dal castello**: se tutti i Traditori sono stati banditi e in gioco restano più di 4 giocatori, la notte successiva il master trasforma in segreto un Leale vivo, scelto a caso, in Traditore. Quella notte non c'è omicidio; il nuovo Traditore lo scopre sul proprio telefono e agisce dalla notte dopo. Perché il colpo di scena funzioni, il numero di Traditori iniziali **non viene annunciato** ai giocatori.
 - In caso di **parità nel voto** si fa un ballottaggio tra i più votati. Se c'è ancora parità, nessuno viene bandito quel giorno.
 
 ## Ciclo di gioco
