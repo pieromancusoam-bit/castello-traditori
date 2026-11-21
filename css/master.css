@@ -290,3 +290,64 @@
   .tongue { animation: none; }
   .cer-intro h1 { animation: none; }
 }
+
+/* ---------- Fase 2: barra, clessidra, missioni, tabellone ---------- */
+.game-bar { align-items: center; }
+.bar-pot { color: var(--text); }
+.bar-pot strong { color: var(--gold); font-size: 1.25em; letter-spacing: 0.02em; }
+.master-countdown { position: fixed; top: 9vh; right: 4vw; font-size: 1.6em; z-index: 5; }
+
+.stage .kicker { font-size: 0.9em; }
+.stage .rules { font-family: var(--font-serif); font-size: 1.5em; max-width: 34em; margin: 0.2em 0; }
+.stage .stake { font-size: 1.4em; margin-top: 0.4em; }
+.stage .trial-card { max-width: 40em; font-size: 1.2em; }
+.stage .trial-card.is-big { font-size: 1.6em; }
+.stage .question { font-size: 2.2em; max-width: 26em; }
+.stage .outcome.good { color: var(--ok); }
+.stage .outcome.bad { color: var(--bad); }
+
+.options { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 0.8em 1.6em; width: 100%; max-width: 52em; text-align: left; }
+.options li { display: flex; align-items: center; padding: 0.6em 1em; font-size: 1.5em; border: 2px solid var(--stone-600); border-radius: var(--radius); background: rgba(0, 0, 0, 0.3); transition: opacity 0.4s, border-color 0.4s; }
+.options li.is-right { border-color: var(--ok); background: rgba(92, 191, 134, 0.18); }
+.options li.is-wrong { border-color: var(--bad); }
+.options li.is-dim { opacity: 0.45; }
+.opt-count { margin-left: auto; padding-left: 0.6em; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* Forziere disegnato in CSS */
+.chest-scene { font-size: 1.4em; margin: 0.4em 0; }
+.chest { position: relative; width: 7em; height: 4.4em; margin: 0 auto; border-radius: 0.3em; background: linear-gradient(180deg, #6b4423, #4a2d15); box-shadow: inset 0 0 0 0.25em #c9a23d, 0 0.6em 1.2em rgba(0, 0, 0, 0.6); }
+.chest::before { content: ''; position: absolute; left: 0; right: 0; top: -1.8em; height: 2em; border-radius: 3em 3em 0.2em 0.2em; background: linear-gradient(180deg, #7c5029, #55341a); box-shadow: inset 0 0 0 0.25em #c9a23d; animation: lid 2.4s ease-in-out infinite alternate; transform-origin: 50% 100%; }
+.chest::after { content: ''; position: absolute; left: 50%; top: 0.5em; width: 1em; height: 1.3em; margin-left: -0.5em; border-radius: 0.2em; background: #e0bb54; box-shadow: 0 0 10px rgba(224, 187, 84, 0.8); }
+@keyframes lid { from { transform: rotateX(0); } to { transform: rotateX(25deg) translateY(-0.15em); } }
+
+.torch-scene { font-size: 1.8em; }
+
+.mission-result { display: flex; flex-direction: column; align-items: center; }
+.mission-result .coins-won { font-size: 6em; }
+.mission-result .coins-lost { font-size: 3.4em; }
+
+/* Tabellone */
+.board { width: 100%; max-width: 80em; display: flex; flex-direction: column; gap: 1.2em; align-items: center; }
+.board-pot { text-align: center; }
+.pot-value { font-family: var(--font-title); font-size: 5.5em; line-height: 1; color: var(--gold); margin: 0.05em 0; text-shadow: 0 0 30px rgba(212, 174, 74, 0.45); }
+.board-cols { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.4em; width: 100%; text-align: left; }
+.board-col { background: rgba(0, 0, 0, 0.35); border: 1px solid var(--stone-600); border-top: 3px solid var(--gold-dim); border-radius: var(--radius); padding: 0.8em 1em; }
+.board-col h2 { font-size: 1.5em; display: flex; justify-content: space-between; align-items: baseline; }
+.board-col .count { font-family: var(--font-body); font-size: 0.6em; color: var(--muted); }
+.board-col ul { list-style: none; margin: 0; padding: 0; font-size: 1.05em; }
+.board-col li { padding: 0.25em 0; border-bottom: 1px solid rgba(255, 255, 255, 0.06); display: flex; justify-content: space-between; gap: 0.5em; }
+.board-col .tag { margin: 0; font-size: 0.7em; align-self: center; }
+.board-col .tag.faction-traitors { background: var(--velvet); color: #fff; }
+.board-col .tag.faction-faithfuls { background: #2d5a43; color: #fff; }
+.board-missions strong { color: var(--gold); }
+
+.board-overlay { position: fixed; inset: 0 0 5.5em; z-index: 10; padding: 4vh 4vw; display: flex; align-items: center; justify-content: center; background: rgba(10, 8, 12, 0.96); }
+.board-overlay[hidden] { display: none; }
+
+.prize { font-size: 1.5em; margin: 0.2em 0 0.6em; }
+.prize strong { color: var(--gold); }
+
+@media (max-width: 900px) {
+  .board-cols { grid-template-columns: 1fr 1fr; }
+  .options { grid-template-columns: 1fr; }
+}

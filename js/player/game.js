@@ -1,8 +1,11 @@
-// Schermate di gioco del telefono (Fase 1: semplici, solo testo).
+// Schermate di gioco del telefono.
 // Il telefono riceve solo la propria vista filtrata e manda solo azioni.
 
 import { A, FINAL_CHOICES } from '../engine/actions.js';
 import { esc, on } from '../ui/dom.js';
+import { missionHtml } from './mission.js';
+import { countdownHtml, runCountdown } from '../ui/countdown.js';
+import { coins } from '../ui/format.js';
 
 const FACTION = { faithfuls: 'Leale', traitors: 'Traditore' };
 const FACTION_A = { faithfuls: 'un Leale', traitors: 'un Traditore' };
@@ -16,6 +19,8 @@ export function createGameScreen(root, client) {
     stepKey: '',         // cambia a ogni nuova fase: azzera la conferma in sospeso
     error: '',
     busy: false,
+    timer: null,         // { key, ms, start }: conto alla rovescia locale del timer del master
+    torch: null,         // Le Torce: { key, round, phase: 'wait'|'lit'|'done', litAt, result, timers }
   };
 
   const view = () => client.view && client.view.game;
@@ -71,6 +76,63 @@ export function createGameScreen(root, client) {
     if (e.target.closest('[data-hold]')) e.preventDefault();
   });
 
+  // ---- Timer: il telefono conta da quando riceve una chiave nuova ----
+  function syncTimer(v) {
+    const t = v.step && v.step.timer;
+    if (!t) ui.timer = null;
+    else if (!ui.timer || ui.timer.key !== t.key) ui.timer = { key: t.key, ms: t.ms, start: Date.now() };
+  }
+  runCountdown(root, () => (ui.timer ? { left: ui.timer.ms - (Date.now() - ui.timer.start), total: ui.timer.ms } : null));
+
+  // ---- Le Torce: il tempo di reazione si misura qui, sul telefono ----
+  function stopTorch() {
+    if (ui.torch) ui.torch.timers.forEach(clearTimeout);
+  }
+  function syncTorch(v) {
+    const st = v.step;
+    if (v.phase !== 'mission' || st.id !== 'torches' || st.stage !== 'play' || !st.mission.canTap) {
+      if (ui.torch && ui.torch.phase !== 'done') {
+        stopTorch();
+        ui.torch = null;
+      }
+      return;
+    }
+    const m = st.mission;
+    const key = `${v.day}|${m.round}`;
+    if (ui.torch && ui.torch.key === key) return;
+    stopTorch();
+    const torch = { key, round: m.round, phase: 'wait', litAt: 0, result: null, timers: [] };
+    ui.torch = torch;
+    torch.timers.push(setTimeout(() => {
+      if (ui.torch !== torch) return;
+      torch.phase = 'lit';
+      render();
+      torch.litAt = performance.now();
+      requestAnimationFrame(() => { torch.litAt = performance.now(); }); // dal momento in cui si vede
+      torch.timers.push(setTimeout(() => tapTorch('miss'), m.litMs));
+    }, m.delayMs));
+  }
+  function tapTorch(kind = 'tap') {
+    const torch = ui.torch;
+    if (!torch || torch.phase === 'done') return;
+    let ms = null;
+    if (torch.phase === 'wait') torch.result = 'early';
+    else if (kind === 'miss') torch.result = 'miss';
+    else {
+      ms = Math.round(performance.now() - torch.litAt);
+      torch.result = ms;
+    }
+    torch.phase = 'done';
+    stopTorch();
+    send(A.MISSION_INPUT, { round: torch.round, ms });
+  }
+  root.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('[data-torch]')) {
+      e.preventDefault();
+      tapTorch();
+    }
+  });
+
   // ---- Pulsanti ----
   on(root, '[data-act="seen"]', 'click', () => send(A.ROLE_SEEN));
   on(root, '[data-pick]', 'click', (e, btn) => {
@@ -88,6 +150,13 @@ export function createGameScreen(root, client) {
     if (p.kind === 'vote') send(A.VOTE, { targetId: p.value });
     if (p.kind === 'night') send(A.NIGHT_CHOOSE, { targetId: p.value });
     if (p.kind === 'final') send(A.FINAL_CHOICE, { choice: p.value });
+    if (p.kind === 'chest') send(A.MISSION_INPUT, { choice: p.value });
+    if (p.kind === 'trial') send(A.MISSION_INPUT, { ok: p.value === 'yes' });
+  });
+  // Enigma: la risposta parte subito (c'è poco tempo)
+  on(root, '[data-answer]', 'click', (e, btn) => {
+    if (ui.busy) return;
+    send(A.MISSION_INPUT, { index: Number(btn.dataset.index), answer: Number(btn.dataset.answer) });
   });
   root.addEventListener('submit', async (e) => {
     if (!e.target.matches('[data-act="chat"]')) return;
@@ -105,13 +174,16 @@ export function createGameScreen(root, client) {
   function render() {
     const v = view();
     if (!v) return;
-    const key = `${v.phase}|${v.day}|${v.step.stage || ''}|${v.step.round || ''}`;
+    const m = v.step.mission || {};
+    const key = `${v.phase}|${v.day}|${v.step.stage || ''}|${v.step.round || ''}|${m.sub || ''}|${m.index ?? ''}`;
     if (key !== ui.stepKey) {
       ui.stepKey = key;
       ui.pending = null;
       ui.error = '';
       if (v.phase === 'roles') ui.roleSeenOnce = false; // partita nuova: si guarda di nuovo il ruolo
     }
+    syncTimer(v);
+    syncTorch(v);
 
     // Il testo che si sta scrivendo in chat sopravvive al ridisegno
     const chatInput = root.querySelector('[data-act="chat"] input');
@@ -123,8 +195,10 @@ export function createGameScreen(root, client) {
       <section class="player-screen game-screen phase-${esc(v.phase)} ${night ? 'is-night' : ''}">
         <header class="game-top">
           <span>${v.day ? `Giorno ${v.day}` : 'Il castello'}</span>
+          <span class="top-pot">${coins(v.pot)} monete</span>
           <span>${esc(v.me.name)}${v.me.status !== 'alive' ? ' · spettatore' : ''}</span>
         </header>
+        ${countdownHtml('phone-countdown')}
         <div class="game-main">${mainHtml(v, ui, nameOf)}</div>
         ${ui.error ? `<p class="form-error" role="alert">${esc(ui.error)}</p>` : ''}
         ${v.phase === 'roles' ? '' : roleCardHtml(v, ui, true)}
@@ -308,6 +382,8 @@ function mainHtml(v, ui, nameOf) {
         return `<h1>Colazione</h1><p class="big">Stanotte sei stato assassinato.</p>${spectator()}`;
       }
       return `<h1>Colazione</h1><p class="big">Guarda lo schermo principale.</p>${suspectsText(st.suspects, nameOf)}`;
+    case 'mission':
+      return missionHtml(v, ui, nameOf, confirmHtml);
     case 'roundtable':
       return voteHtml(v, ui, nameOf, 'Tavola Rotonda');
     case 'reveal':
@@ -320,9 +396,20 @@ function mainHtml(v, ui, nameOf) {
       const won = v.winner === v.me.faction;
       return `<h1>${v.winner === 'traitors' ? 'Vincono i Traditori' : 'Vincono i Leali'}</h1>
         <p class="big">${won ? 'Hai vinto!' : 'Hai perso.'}</p>
+        ${prizeText(v)}
         <ul class="final-list">${v.players.map((p) => `<li><span>${esc(p.name)}</span><span class="tag-${p.faction}">${FACTION[p.faction] || ''}</span></li>`).join('')}</ul>`;
     }
     default:
       return '';
   }
+}
+
+// Montepremi a fine partita: la propria quota, se si è tra i vincitori sopravvissuti
+function prizeText(v) {
+  const pr = v.prize;
+  if (!pr) return '';
+  if (pr.winners.includes(v.me.id)) {
+    return pr.pot ? `<p class="coins-won">+${coins(pr.share)} <span>monete</span></p>` : '<p class="muted">Montepremi vuoto: vinci per la gloria.</p>';
+  }
+  return `<p class="muted">Montepremi: ${coins(pr.pot)} monete ai vincitori sopravvissuti.</p>`;
 }

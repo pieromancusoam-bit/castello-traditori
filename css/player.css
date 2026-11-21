@@ -111,3 +111,42 @@
 
 .suspects { color: var(--gold); font-size: 1.1rem; }
 .pick.is-ally { opacity: 0.45; border-style: dashed; }
+
+/* ---------- Fase 2: montepremi, clessidra, missioni ---------- */
+.game-top { align-items: center; }
+.top-pot { color: var(--gold); white-space: nowrap; }
+.phone-countdown { position: fixed; top: max(3.2rem, calc(env(safe-area-inset-top) + 2.6rem)); right: 0.8rem; font-size: 0.8rem; z-index: 5; }
+.game-main .kicker { margin-top: 0.4rem; font-size: 0.7rem; }
+.game-main .question { font-size: 1.25rem; }
+.stake { font-size: 1rem; }
+
+.chest-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+.coin { aspect-ratio: 1; border-radius: 50%; font-family: var(--font-title); font-size: 1.8rem; display: flex; align-items: center; justify-content: center; border-width: 3px; }
+.coin-gold { background: radial-gradient(circle at 35% 30%, #ffe9a0, #d4ae4a 45%, #8a6a1e); color: #3a2a05; border-color: #f3d77e; }
+.coin-lead { background: radial-gradient(circle at 35% 30%, #c9c9cf, #6e6e78 45%, #35353c); color: #141418; border-color: #9a9aa3; }
+.coin.is-pending { outline: 4px solid var(--text); outline-offset: 3px; }
+
+.options { display: flex; flex-direction: column; gap: 0.6rem; }
+.option { display: flex; align-items: center; text-align: left; padding: 0.9em 1em; font-size: 1.05rem; border-color: var(--stone-600); }
+.option:disabled { opacity: 1; }
+.option.is-mine { border-color: var(--gold); background: #2c2632; }
+.option.is-right { border-color: var(--ok); background: rgba(92, 191, 134, 0.18); }
+.option.is-wrong { border-color: var(--bad); background: rgba(224, 96, 106, 0.15); }
+.option.is-dim { opacity: 0.5; }
+
+/* Torcia da toccare: tutta l'area è il pulsante */
+.torch-pad {
+  appearance: none; font: inherit; color: var(--text);
+  min-height: 52vh; border-radius: var(--radius); border: 2px solid var(--stone-600);
+  background: radial-gradient(circle at 50% 40%, #1d1a21, #0b0a0d);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem;
+  touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
+}
+.torch-pad .torch { font-size: 1.6rem; }
+.torch-pad.is-lit { border-color: #ffb03a; background: radial-gradient(circle at 50% 40%, #6b2a08, #1a0a04 70%); }
+.torch-pad.is-done { min-height: 30vh; border-style: dashed; }
+.torch-label { font-weight: 700; font-size: 1.3rem; letter-spacing: 0.05em; }
+.torch-pad.is-lit .torch-label { color: #ffd23a; font-size: 2rem; }
+
+.trial-card p { font-size: 1rem; }
+.game-main .coins-won { font-size: 2.6rem; }

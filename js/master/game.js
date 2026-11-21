@@ -1,10 +1,13 @@
-// Schermo del master durante la partita (Fase 1: testo semplice, più la parete dei ritratti).
+// Schermo del master durante la partita: fasi, missioni, tabellone e parete dei ritratti.
 // Mostra solo viewForMaster: niente ruoli nascosti, lo schermo lo vedono tutti.
 
 import { A } from '../engine/actions.js';
 import { esc, on } from '../ui/dom.js';
 import { portraitWallHtml, portraitFrameHtml } from './portrait-wall.js';
 import { GAME } from '../config/game-config.js';
+import { missionStageHtml, missionAdvanceLabel, boardHtml, prizeHtml } from './mission.js';
+import { countdownHtml, runCountdown } from '../ui/countdown.js';
+import { coins } from '../ui/format.js';
 
 const FACTION_A = { faithfuls: 'un Leale', traitors: 'un Traditore' };
 const FACTION = { faithfuls: 'Leale', traitors: 'Traditore' };
@@ -13,10 +16,13 @@ export function mountGame(root, host, { debug, onClose }) {
   root.innerHTML = `
     <section class="master-game">
       <header class="game-bar"></header>
+      ${countdownHtml('master-countdown')}
       <div class="stage"></div>
+      <div class="board-overlay" hidden></div>
       <footer class="game-footer">
         <span class="conn"></span>
         <button class="btn btn-small btn-ghost" data-act="close">Chiudi stanza</button>
+        <button class="btn btn-small btn-secondary" data-act="board">Tabellone</button>
         <button class="btn btn-small btn-ghost" data-act="lobby" hidden>Nuova partita, stessi giocatori</button>
         <button class="btn btn-primary btn-advance" data-act="advance"></button>
       </footer>
@@ -28,7 +34,20 @@ export function mountGame(root, host, { debug, onClose }) {
   let busy = false; // animazione in corso: "Avanti" nascosto
   const timers = [];
 
+  let boardOpen = false;
   on(root, '[data-act="advance"]', 'click', () => host.dispatch({ type: A.ADVANCE }));
+  on(root, '[data-act="board"]', 'click', () => {
+    boardOpen = !boardOpen;
+    update();
+  });
+  // Conto alla rovescia del timer della partita (missioni), dall'orologio del master
+  runCountdown(root, () => {
+    const v = host.masterView();
+    const t = v && v.step && v.step.timer;
+    if (!t) return null;
+    const left = host.timerLeft(t.key);
+    return left === null ? null : { left, total: t.ms };
+  });
   on(root, '[data-act="lobby"]', 'click', () => host.backToLobby());
   on(root, '[data-act="close"]', 'click', () => {
     if (confirm('Chiudere la stanza? La partita salvata verrà cancellata.')) onClose();
@@ -43,8 +62,16 @@ export function mountGame(root, host, { debug, onClose }) {
     el('.master-game').className = `master-game phase-${v.phase}`;
     el('.game-bar').innerHTML = `
       <span>${v.day ? `Giorno ${v.day}` : 'Il castello'}</span>
+      <span class="bar-pot">Montepremi <strong>${coins(v.pot)}</strong></span>
       <span>${alive} in gioco su ${v.players.length}</span>
       <span>Stanza ${esc(host.roomCode)}</span>`;
+
+    const overlay = el('.board-overlay');
+    overlay.hidden = !boardOpen;
+    if (boardOpen) overlay.innerHTML = boardHtml(v, nameOf);
+    el('[data-act="board"]').textContent = boardOpen ? 'Chiudi il tabellone' : 'Tabellone';
+    // Dopo la missione il tabellone arriva da solo: niente doppione del pulsante
+    el('[data-act="board"]').hidden = !boardOpen && v.phase === 'mission' && (v.step.stage === 'result' || v.step.stage === 'board');
 
     // Il palco si ridisegna solo se cambia davvero: così le animazioni non ripartono
     const stageKey = JSON.stringify(v);
@@ -85,6 +112,7 @@ function advanceLabel(v) {
   switch (v.phase) {
     case 'roles': return 'Inizia la giornata';
     case 'breakfast': return 'Prosegui';
+    case 'mission': return missionAdvanceLabel(st);
     case 'roundtable':
       return st.stage === 'voting' ? 'Chiudi la votazione' : st.outcome.kind === 'runoff' ? 'Al ballottaggio' : st.outcome.kind === 'banish' ? 'Rivela la fazione' : 'Prosegui';
     case 'reveal': return 'Prosegui';
@@ -161,6 +189,8 @@ function stageHtml(v, nameOf, host) {
         ${suspects}
         ${portraitWallHtml(v.players, { photoOf: (id) => host.photoOf(id), breakingId: st.victimId, suspects: st.suspects })}`;
     }
+    case 'mission':
+      return missionStageHtml(v, nameOf);
     case 'roundtable':
       return voteStageHtml(st, nameOf, 'Tavola Rotonda');
     case 'reveal':
@@ -203,6 +233,7 @@ function stageHtml(v, nameOf, host) {
       }
     case 'ended':
       return `<h1 class="winner faction-${v.winner}">${v.winner === 'traitors' ? 'Vincono i Traditori' : 'Vincono i Leali'}</h1>
+        ${prizeHtml(v, nameOf)}
         <ul class="unveil">${v.players.map((p) => `
           <li class="faction-${p.faction} ${p.status !== 'alive' ? 'is-out' : ''}">
             <span>${esc(p.name)}${p.status === 'banished' ? ' · bandito' : p.status === 'murdered' ? ' · assassinato' : ''}</span>

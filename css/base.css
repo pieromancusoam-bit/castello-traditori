@@ -1,4 +1,13 @@
-/* Base comune: palette scura (pietra, velluto rosso, oro). Il font gotico arriva in Fase 2. */
+/* Base comune: palette scura (pietra, velluto rosso, oro), titoli in gotico. */
+
+/* Grenze Gotisch (SIL Open Font License, vedi assets/fonts/OFL-GrenzeGotisch.txt) */
+@font-face {
+  font-family: 'Grenze Gotisch';
+  src: url('../assets/fonts/grenze-gotisch-latin.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
 
 :root {
   --stone-900: #141217;
@@ -15,7 +24,8 @@
   --warn: #e0a84a;
   --bad: #e0606a;
   --radius: 14px;
-  --font-title: "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --font-title: "Grenze Gotisch", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-serif: "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
   --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
@@ -32,9 +42,15 @@ html, body {
 }
 
 body {
+  /* velluto in alto, pietra scura con una leggera trama di blocchi */
   background:
-    radial-gradient(ellipse at top, rgba(140, 28, 44, 0.18), transparent 60%),
+    radial-gradient(ellipse at top, rgba(140, 28, 44, 0.28), transparent 60%),
+    radial-gradient(ellipse at bottom, rgba(212, 174, 74, 0.06), transparent 55%),
+    linear-gradient(rgba(0, 0, 0, 0.18) 1px, transparent 1px) 0 0 / 100% 64px,
+    linear-gradient(90deg, rgba(0, 0, 0, 0.14) 1px, transparent 1px) 0 0 / 128px 128px,
+    linear-gradient(90deg, rgba(0, 0, 0, 0.14) 1px, transparent 1px) 64px 64px / 128px 128px,
     var(--stone-900);
+  background-attachment: fixed;
   min-height: 100dvh;
 }
 
@@ -43,10 +59,63 @@ body {
 h1, h2, .title {
   font-family: var(--font-title);
   color: var(--gold);
-  font-weight: 700;
-  letter-spacing: 0.01em;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
   margin: 0 0 0.4em;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.6), 0 0 18px rgba(212, 174, 74, 0.18);
 }
+
+/* Piccola dicitura sopra i titoli */
+.kicker { margin: 0; color: var(--gold-dim); text-transform: uppercase; letter-spacing: 0.25em; font-size: 0.75em; }
+
+/* Monete vinte o perse */
+.coins-won { font-family: var(--font-title); font-size: 3em; line-height: 1; color: var(--gold); margin: 0.2em 0; text-shadow: 0 0 24px rgba(212, 174, 74, 0.55); animation: coins-pop 0.7s both; }
+.coins-won span { font-size: 0.45em; color: var(--text); }
+.coins-lost { font-family: var(--font-title); font-size: 2.2em; color: var(--muted); margin: 0.2em 0; }
+@keyframes coins-pop { 0% { transform: scale(0.6); opacity: 0; } 70% { transform: scale(1.08); opacity: 1; } 100% { transform: none; } }
+
+/* Clessidra (timer delle missioni) */
+.countdown { position: relative; width: 4.2em; height: 4.2em; flex: none; }
+.countdown svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.cd-track { fill: rgba(0, 0, 0, 0.35); stroke: var(--stone-600); stroke-width: 7; }
+.cd-fill { fill: none; stroke: var(--gold); stroke-width: 7; stroke-linecap: round; transition: stroke-dashoffset 0.25s linear; }
+.cd-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+.countdown.is-low .cd-fill { stroke: var(--bad); }
+.countdown.is-low .cd-text { color: var(--bad); }
+
+/* Domande dell'Enigma (master e telefono) */
+.q-index { margin: 0; color: var(--muted); text-transform: uppercase; letter-spacing: 0.15em; font-size: 0.8em; }
+.question { font-family: var(--font-serif); font-size: 1.4em; line-height: 1.3; margin: 0.2em 0 0.6em; }
+.opt-letter {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 1.8em; height: 1.8em; border-radius: 50%; margin-right: 0.6em;
+  border: 2px solid var(--gold-dim); color: var(--gold); font-weight: 700; font-size: 0.85em;
+}
+.is-right .opt-letter { background: var(--ok); border-color: var(--ok); color: #0c1f14; }
+.is-wrong .opt-letter { background: var(--bad); border-color: var(--bad); color: #2a0a10; }
+
+/* Scheda della Prova Fisica */
+.trial-card {
+  border: 2px solid var(--gold-dim); border-radius: var(--radius);
+  background: linear-gradient(180deg, rgba(140, 28, 44, 0.25), rgba(0, 0, 0, 0.25));
+  padding: 1em 1.2em; text-align: center;
+}
+.trial-card h2 { margin-bottom: 0.3em; }
+.trial-card p { font-family: var(--font-serif); margin: 0; }
+
+/* Torcia (master e telefono) */
+.torch { position: relative; width: 3em; height: 7em; margin: 0 auto; }
+.torch-stick { position: absolute; left: 50%; bottom: 0; width: 0.7em; height: 4.4em; margin-left: -0.35em; border-radius: 0.2em; background: linear-gradient(90deg, #4a3220, #7a5536, #3b2717); }
+.torch-stick::before { content: ''; position: absolute; top: -0.3em; left: -0.35em; right: -0.35em; height: 0.8em; border-radius: 0.2em; background: linear-gradient(90deg, #555, #999, #444); }
+.torch-flame { position: absolute; left: 50%; bottom: 4.2em; width: 2.4em; height: 3.2em; margin-left: -1.2em; opacity: 0; transform: scale(0.3); transform-origin: 50% 100%;
+  border-radius: 50% 50% 45% 45% / 65% 65% 35% 35%;
+  background: radial-gradient(ellipse at 50% 80%, #fff 0%, #ffd23a 30%, #ff6a1a 60%, transparent 75%);
+  filter: blur(1px); transition: opacity 0.05s, transform 0.08s; }
+.torch.is-lit .torch-flame { opacity: 1; transform: none; animation: flicker 0.6s ease-in-out infinite alternate; }
+
+.stake { font-size: 1.1em; color: var(--muted); }
+.stake strong { color: var(--gold); font-size: 1.3em; }
 
 p { margin: 0 0 0.8em; }
 code { background: var(--stone-700); padding: 0.1em 0.35em; border-radius: 4px; }

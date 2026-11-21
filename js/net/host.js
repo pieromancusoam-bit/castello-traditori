@@ -4,7 +4,8 @@
 import { NET } from '../config/net-config.js';
 import { GAME } from '../config/game-config.js';
 import { MSG, ERR, ACTIONS, isGameAction, isValidPhoto, validateMessage, makeMessage } from './protocol.js';
-import { createGame } from '../engine/state.js';
+import { createGame, upgradeGame } from '../engine/state.js';
+import { A } from '../engine/actions.js';
 import { applyAction } from '../engine/reducer.js';
 import { viewFor, viewForMaster } from '../engine/view.js';
 import * as R from './roster.js';
@@ -21,7 +22,8 @@ export class Host {
     this.roster = roster ? R.markAllDisconnected(roster) : R.createRoster();
     this.resuming = resuming;
     this.onChange = onChange;
-    this.game = game; // stato completo della partita: non esce mai da qui
+    this.game = upgradeGame(game); // stato completo della partita: non esce mai da qui
+    this.timer = null; // { key, endsAt, handle }: orologio del timer della partita
     this.photos = new Map(Object.entries(photos || {})); // playerId -> ritratto (data URL)
 
     this.status = 'opening';
@@ -45,6 +47,7 @@ export class Host {
     // Libera subito l'ID su PeerJS quando la pagina si chiude o si ricarica
     this._onUnload = () => this.peer && this.peer.destroy();
     window.addEventListener('pagehide', this._onUnload);
+    this._syncTimer(); // dopo "Riprendi" a metà missione il timer riparte
     this._save();
   }
 
@@ -53,6 +56,7 @@ export class Host {
     this.closed = true;
     clearInterval(this.beatTimer);
     clearTimeout(this.retryTimer);
+    this._clearTimer();
     window.removeEventListener('pagehide', this._onUnload);
     if (this.peer) this.peer.destroy();
     if (forget) {
@@ -135,6 +139,7 @@ export class Host {
   // Fine partita: si torna alla sala d'attesa con gli stessi giocatori
   backToLobby() {
     this.game = null;
+    this._clearTimer();
     this.roster = { ...this.roster, locked: false };
     this._changed();
   }
@@ -349,9 +354,36 @@ export class Host {
 
   // Lo stato è cambiato: viste nuove a tutti, salvataggio, schermo del master
   _changed() {
+    this._syncTimer();
     for (const [pid, conn] of this.conns) safeSend(conn, makeMessage(MSG.VIEW, { view: this._viewFor(pid) }));
     this._save();
     this.onChange(this);
+  }
+
+  // ---- Timer ----
+  // Il motore dice solo durata e chiave; qui gira l'orologio vero. Allo scadere si manda
+  // TIMER_EXPIRED con la stessa chiave (una chiave vecchia viene ignorata dal motore).
+  // Dopo "Riprendi" il timer in corso riparte da capo.
+  _syncTimer() {
+    const t = this.game && this.game.phaseData && this.game.phaseData.timer;
+    if (!t) return this._clearTimer();
+    if (this.timer && this.timer.key === t.key) return;
+    this._clearTimer();
+    const handle = setTimeout(() => {
+      if (!this.closed) this.dispatch({ type: A.TIMER_EXPIRED, payload: { key: t.key } });
+    }, t.ms);
+    this.timer = { key: t.key, endsAt: Date.now() + t.ms, handle };
+  }
+
+  _clearTimer() {
+    if (this.timer) clearTimeout(this.timer.handle);
+    this.timer = null;
+  }
+
+  // Millisecondi rimasti al timer in corso (per il conto alla rovescia sullo schermo)
+  timerLeft(key) {
+    if (!this.timer || this.timer.key !== key) return null;
+    return Math.max(0, this.timer.endsAt - Date.now());
   }
 
   // Vista per un telefono: stanza (Fase 0) + partita filtrata dal motore

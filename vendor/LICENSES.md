@@ -8,6 +8,12 @@ e non vengono mai caricate da CDN durante il gioco.
 | `peerjs-1.5.5.min.js` | PeerJS (build `dist/peerjs.min.js`) | 1.5.5 | https://www.npmjs.com/package/peerjs | MIT |
 | `qrcode-generator-2.0.4.mjs` | qrcode-generator (build `dist/qrcode.mjs`) | 2.0.4 | https://www.npmjs.com/package/qrcode-generator | MIT |
 
+## Font in /assets/fonts
+
+| File | Font | Fonte | Licenza |
+| --- | --- | --- | --- |
+| `grenze-gotisch-latin.woff2` | Grenze Gotisch (sottoinsieme latino, variabile 100–900) | Google Fonts (fonts.gstatic.com, v20) | SIL Open Font License 1.1, testo in `assets/fonts/OFL-GrenzeGotisch.txt` |
+
 Per aggiornare: scarica la nuova versione, rinomina il file con il nuovo numero di versione,
 aggiorna `index.html` / `js/ui/qr.js` e questa tabella.
 
