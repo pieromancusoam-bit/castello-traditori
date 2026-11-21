@@ -1,0 +1,18 @@
+# Sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+
+# Node (solo per i test in locale)
+node_modules/
+
+# Impostazioni locali di Claude Code
+.claude/settings.local.json
+
+# Salvataggi o esportazioni di partite: mai nel repository pubblico
+salvataggi/
+*.partita.json
