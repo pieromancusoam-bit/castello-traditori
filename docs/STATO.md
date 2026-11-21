@@ -4,7 +4,7 @@ Aggiornato da Claude Code alla fine di ogni sessione di lavoro.
 
 ## Fase corrente
 
-**Fase 2 — MVP giocabile** (non iniziata)
+**Fase 2 — MVP giocabile**: codice completo e provato in locale il 2026-11-21; manca la prima serata di gioco vera con il gruppo.
 
 Fase 1 — Scheletro del gioco: **completata il 2026-11-21** (prova con i telefoni veri superata).
 
@@ -42,6 +42,42 @@ Fase 0 — Prototipo di connessione: **completata il 2026-11-21** (prova con 3 t
   (stessa fase, ritratti e telefoni ricollegati in circa 30 s), Cerimonia con un "Bandire", bando,
   rivelazioni una alla volta, vittoria dei Traditori, "Nuova partita, stessi giocatori".
   Nessun errore in console.
+
+- Fase 2, codice:
+  - montepremi (parte da zero, sempre visibile sul master e sui telefoni) e valore delle missioni
+    che cresce ogni giorno (`GAME.missionBaseValue`, `GAME.missionValuePerDay`);
+  - interfaccia comune delle missioni in `js/engine/missions/` (setup, start, input, advance,
+    result, masterView, playerView) e catalogo in `js/config/missions.js`;
+  - 4 missioni: **Il Forziere**, **L'Enigma del Castello** (42 domande originali),
+    **Le Torce**, **La Prova Fisica** (10 prove); estrazione senza ripetizioni;
+  - timer nel motore come durata + chiave (`TIMER_EXPIRED`), orologio vero sul master,
+    clessidra su master e telefoni;
+  - tabellone (montepremi, vivi, banditi con fazione, assassinati, missioni giocate) dopo ogni
+    missione e a richiesta con il pulsante "Tabellone";
+  - finale: il montepremi si divide tra i sopravvissuti della fazione vincente; ognuno vede la
+    propria quota sul telefono;
+  - salvataggio: anche i dati delle missioni; dopo "Riprendi" il timer in corso riparte;
+  - grafica a tema: font gotico Grenze Gotisch (OFL) in `assets/fonts/`, sfondo di pietra e velluto,
+    forziere, monete, torcia e risultati disegnati in CSS.
+- Test: 94 (`npm test`). Il test obbligatorio gioca anche le missioni e controlla che nessuna vista
+  (telefono o schermo) contenga scelte individuali (Oro/Piombo, risposte, tempi, voti della prova);
+  un test dedicato rimescola le scelte altrui e verifica che nessuna vista cambi.
+- Prova in locale (browser integrato, master + 5 schede): le 4 missioni dall'inizio al tabellone,
+  Torce con chi tocca troppo presto e chi non tocca, Forziere con un Piombo, Enigma con rivelazione
+  e passaggio automatico alla domanda dopo, "Riprendi" del master e ricarica dei telefoni a metà
+  partita, Tavola Rotonda → Cerimonia → montepremi al vincitore. Nessun errore in console.
+
+## Fase 2 — attività
+
+- [x] Montepremi e valori in configurazione
+- [x] Interfaccia comune delle missioni e timer
+- [x] Il Forziere, L'Enigma del Castello, Le Torce, La Prova Fisica (con test)
+- [x] Tabellone sul master
+- [x] Finale con Cerimonia delle Polveri e divisione del montepremi
+- [x] Salvataggio automatico anche delle missioni
+- [x] Prima grafica a tema (palette scura, font gotico per i titoli)
+- [x] Prova in locale con 5 schede
+- [ ] Push su GitHub Pages e prima serata di gioco vera con il gruppo
 
 ## Fase 1 — attività (completate)
 
@@ -94,6 +130,13 @@ Fase 0 — Prototipo di connessione: **completata il 2026-11-21** (prova con 3 t
 | 2026-11-21 | Fine partita: "Nuova partita, stessi giocatori" riporta alla sala d'attesa | Decisione minore di Claude, utile per le prove |
 | 2026-11-21 | Cerimonia: chiuse le scelte, attesa e poi rivelazione pubblica una per una (ritratto, nome, fiamme verdi = Chiudere, rosse = Bandire), nell'ordine d'ingresso; chi non ha scelto compare come "Chiudere". "Avanti" compare solo a fine animazione; tempi in `GAME.ceremonyReveal` | Decisione di Piero; ordine, astenuti e tempi decisioni minori di Claude |
 | 2026-11-21 | Sala d'attesa: il master può rimuovere i giocatori disconnessi; se rientrano, ricompaiono come nuovi | Richiesta di Piero |
+| 2026-11-21 | Missioni: 1.000 monete il giorno 1, +250 al giorno; Forziere con metà dei vivi (minimo 3) e 2 Piombo per svuotarlo; Enigma 5 domande da 20 s, vale la maggioranza, parità = sbagliata; Torce 5 giri, mancata = 1,5 s, premio pieno fino a 0,45 s di media e metà fino a 0,65 s; Prova Fisica riuscita con la maggioranza dei vivi; montepremi diviso in parti uguali per difetto tra i sopravvissuti vincitori; solo i vivi giocano le missioni | Proposte approvate da Piero |
+| 2026-11-21 | Missione dopo la Colazione anche il primo giorno; momenti: regole → gioco → risultato → tabellone → Tavola Rotonda | Decisione minore di Claude |
+| 2026-11-21 | Forziere: chi non sceglie in tempo (60 s) vale Oro. Enigma: dopo ogni domanda 6 s di rivelazione, poi la successiva da sola. Prova Fisica: tempo della prova dal catalogo, poi 45 s di voto | Decisioni minori di Claude (tempi in `js/config/missions.js`) |
+| 2026-11-21 | Le Torce: il telefono misura da sé il tempo di reazione (il ritardo del Wi-Fi non conta); toccare prima della fiamma = torcia mancata | Decisione minore di Claude |
+| 2026-11-21 | Testi di domande e prove viaggiano nella vista (non solo l'indice), così un telefono con la versione vecchia in cache non mostra la domanda sbagliata; la risposta giusta arriva solo a domanda chiusa | Decisione minore di Claude |
+| 2026-11-21 | Le missioni non usano i ruoli: i Traditori sabotano solo con le proprie scelte, con schermate identiche a quelle dei Leali | Decisione minore di Claude, coerente con il test di non interferenza |
+| 2026-11-21 | Font dei titoli: Grenze Gotisch (SIL OFL), scaricato in `assets/fonts/` | Gotico ma leggibile anche sulla TV |
 | 2026-11-21 | Ogni messaggio di rete resta sotto 15.000 byte (`NET.messageMaxBytes`): ritratto ridotto fino a stare in 12.000 caratteri, chat limitata a 30 messaggi e 4.000 byte, test sul caso peggiore (16 giocatori, nomi e chat pieni: circa 9.600 byte) | Correzione del bug iOS: PeerJS (JSON) chiude il canale sopra 16.300 byte |
 
 ## Decisioni aperte
@@ -103,6 +146,14 @@ Fase 0 — Prototipo di connessione: **completata il 2026-11-21** (prova con 3 t
 - Montepremi "per la gloria" o con premio reale
 
 ## Problemi noti
+
+- Fase 2: dopo un "Riprendi" a metà missione il timer in corso riparte da capo.
+- Fase 2: le domande dell'Enigma sono nel codice pubblico: chi le cerca nel sito trova le risposte.
+- Fase 2: con 5–6 giocatori c'è un solo Traditore, che da solo non può svuotare il Forziere
+  (servono 2 Piombo). Da valutare dopo la prima serata (`MISSIONS.chest.leadToFail`).
+- Fase 2: le soglie delle Torce (0,45 / 0,65 s) vanno tarate sui telefoni veri, che hanno
+  ritardi di tocco diversi tra iPhone e Android.
+- Fase 2: le domande dell'Enigma sono 42: in più partite di fila cominceranno a ripetersi.
 
 - **Corretto e riprovato su iPhone**: il ritratto da iOS causava "Ritratto non arrivato al master"
   e scollegamenti a ripetizione. Causa: PeerJS chiude il canale con messaggi oltre 16.300 byte e il
@@ -128,6 +179,37 @@ Fase 0 — Prototipo di connessione: **completata il 2026-11-21** (prova con 3 t
   WebRTC non sempre avvisa subito della chiusura.
 - Piano B: da GitHub Pages (https) il server di aggancio personale deve essere raggiungibile in
   https/wss. Un PeerServer su un PC di casa in semplice http non funziona senza un certificato.
+
+## Checklist per la prima serata di prova (Fase 2)
+
+Prima della serata
+1. Push su GitHub Pages; apri il sito sul master (TV o PC collegato alla TV) e controlla che i
+   titoli siano in gotico (se non lo sono, ricarica la pagina con Ctrl+F5).
+2. Tutti sulla rete Wi-Fi principale (non "ospiti"); telefoni carichi, risparmio energetico spento.
+3. Prepara per la Prova Fisica: qualche bicchiere di plastica, una moneta o un tappo.
+
+Durante la partita (5–10 giocatori)
+4. Ingresso dal QR, ritratti facoltativi, "Inizia la partita", ruoli con la carta da tenere premuta.
+5. Dopo la Colazione parte la missione: le regole sullo schermo e "In palio 1.000 monete".
+   Il master preme "Inizia la missione": compare la clessidra su TV e telefoni.
+6. **Forziere**: solo il gruppo estratto vede Oro e Piombo, con conferma; gli altri vedono
+   "Il gruppo sta scegliendo". Sullo schermo solo quanti Piombo, mai chi.
+7. **Enigma**: le domande arrivano su tutti i telefoni; dopo ogni risposta la TV mostra la risposta
+   giusta e quanti hanno scelto ogni opzione, poi passa da sola alla domanda dopo.
+8. **Torce**: toccare quando compare la fiamma. Provate apposta un tocco anticipato
+   ("Troppo presto!"). Annotate la media del gruppo: serve a tarare le soglie.
+9. **Prova Fisica**: la prova sulla TV, il master preme "Fine della prova", poi tutti votano.
+10. Dopo il risultato compare il **tabellone**; il pulsante "Tabellone" lo riapre quando serve.
+11. Tavola Rotonda, Notte e Colazione come in Fase 1; il montepremi resta in alto su TV e telefoni.
+12. A metà missione ricarica il master e premi "Riprendi stanza": stessa missione, timer da capo,
+    telefoni che rientrano da soli.
+13. Finale: Cerimonia delle Polveri, verdetto, montepremi diviso tra i vincitori sopravvissuti;
+    ognuno vede la propria quota sul telefono.
+
+Dopo la serata
+14. Annota: durata della partita, missione più e meno divertente, se il Forziere con 1 solo
+    Traditore è troppo facile, medie delle Torce, domande troppo facili o difficili, testi poco chiari,
+    modelli di telefono e cosa non ha funzionato.
 
 ## Checklist di prova Fase 0 (telefoni veri) — superata
 

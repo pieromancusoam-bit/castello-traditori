@@ -108,6 +108,12 @@ applyAction(state, action) → { state, effects }
 - `effects` = cose che il mondo esterno deve fare: `narrate`, `playSound`, `startTimer`,
   `vibrate`, `save`. Il motore non le esegue: le esegue il master.
 - Nessun `Date.now()` dentro il motore: il tempo entra come azione.
+- Timer (Fase 2): il motore salva solo `phaseData.timer = { key, ms }`. Il master (`Host._syncTimer`)
+  fa girare l'orologio e allo scadere invia `TIMER_EXPIRED { key }`; una chiave vecchia viene rifiutata.
+- Missioni (Fase 2): un modulo per file in `js/engine/missions/`, stessa interfaccia
+  (`setup`, `start`, `input`, `advance`, `result`, `masterView`, `playerView`, descritta in
+  `missions/common.js`). I telefoni mandano `MISSION_INPUT` con i dati della missione; le viste
+  sono allow-list costruite dal modulo. Testi e parametri in `js/config/missions.js`.
 
 ## Viste filtrate (sicurezza dei segreti)
 

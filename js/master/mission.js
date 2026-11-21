@@ -147,5 +147,5 @@ export function prizeHtml(v, nameOf) {
   if (!pr) return '';
   if (!pr.pot) return '<p class="prize muted">Il montepremi è vuoto: si gioca per la gloria.</p>';
   return `<p class="prize">Montepremi <strong>${coins(pr.pot)}</strong> monete:
-    ${pr.winners.length === 1 ? `tutto a ${names(pr.winners, nameOf)}` : `<strong>${coins(pr.share)}</strong> a testa per ${names(pr.winners, nameOf)}`}.</p>`;
+    ${pr.winners.length === 1 ? `tutte per ${names(pr.winners, nameOf)}` : `<strong>${coins(pr.share)}</strong> a testa per ${names(pr.winners, nameOf)}`}.</p>`;
 }
