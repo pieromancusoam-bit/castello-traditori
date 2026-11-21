@@ -4,8 +4,9 @@ Aggiornato da Claude Code alla fine di ogni sessione di lavoro.
 
 ## Fase corrente
 
-**Fase 1 — Scheletro del gioco**: codice completato e provato in locale il 2026-11-21.
-Manca la prova con 5+ telefoni veri (checklist in fondo).
+**Fase 2 — MVP giocabile** (non iniziata)
+
+Fase 1 — Scheletro del gioco: **completata il 2026-11-21** (prova con i telefoni veri superata).
 
 Fase 0 — Prototipo di connessione: **completata il 2026-11-21** (prova con 3 telefoni veri superata).
 
@@ -42,7 +43,7 @@ Fase 0 — Prototipo di connessione: **completata il 2026-11-21** (prova con 3 t
   rivelazioni una alla volta, vittoria dei Traditori, "Nuova partita, stessi giocatori".
   Nessun errore in console.
 
-## Fase 1 — attività
+## Fase 1 — attività (completate)
 
 - [x] Motore puro con test: ruoli, voti, parità, ballottaggio, notte, castello, finale
 - [x] `viewFor` / `viewForMaster` con allow-list e test obbligatorio
@@ -51,7 +52,8 @@ Fase 0 — Prototipo di connessione: **completata il 2026-11-21** (prova con 3 t
 - [x] Ritratti e parete della Colazione (aggiunta su richiesta)
 - [x] Schermate di testo master e telefono
 - [x] Prova in locale con 5 schede
-- [ ] Push su GitHub Pages e partita intera con 5+ telefoni veri
+- [x] Correzioni dopo la prima prova: ritratto su iOS, rimozione dei disconnessi, Cerimonia animata
+- [x] Push su GitHub Pages e prova con i telefoni veri: tutto ok (Piero, 2026-11-21)
 
 ## Fase 0 — attività (completate)
 
@@ -102,7 +104,7 @@ Fase 0 — Prototipo di connessione: **completata il 2026-11-21** (prova con 3 t
 
 ## Problemi noti
 
-- **Corretto, da riprovare su iPhone**: il ritratto da iOS causava "Ritratto non arrivato al master"
+- **Corretto e riprovato su iPhone**: il ritratto da iOS causava "Ritratto non arrivato al master"
   e scollegamenti a ripetizione. Causa: PeerJS chiude il canale con messaggi oltre 16.300 byte e il
   telefono rimandava la foto a ogni rientro. Ora il ritratto viene ridotto finché sta nel limite
   (provato in locale con un'immagine di rumore da 11 MB: 11 KB) e i reinvii automatici sono al massimo 2.
@@ -141,7 +143,7 @@ Fase 0 — Prototipo di connessione: **completata il 2026-11-21** (prova con 3 t
 10. (Facoltativo) Prova su una rete ospiti: deve comparire il messaggio sul Wi-Fi ospiti.
 11. Annota modello di telefono, browser e cosa non ha funzionato.
 
-## Checklist di prova Fase 1 (telefoni veri, dopo il push)
+## Checklist di prova Fase 1 (telefoni veri) — superata
 
 1. Master su TV/PC: "Nuova stanza". Entrano 5–7 telefoni sullo stesso Wi-Fi.
 2. Su almeno 2 telefoni (un iPhone e un Android) "Scatta il tuo ritratto": si apre la fotocamera
