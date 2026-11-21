@@ -176,6 +176,7 @@ Gli oggetti si vincono nelle missioni, all'Asta o al Ponte, e restano segreti fi
 **Finale: la Cerimonia delle Polveri**
 
 1. Con 4 giocatori rimasti, ognuno vota in segreto: "Chiudere la partita" o "Bandire ancora".
+   Quando tutti hanno scelto, dopo una breve attesa lo schermo rivela le scelte una per una: ritratto e nome del giocatore, poi fiamme verdi ("Chiudere") o rosse ("Bandire").
 2. Se tutti scelgono "Chiudere", si rivelano i ruoli dei sopravvissuti.
 3. Se c'è almeno un "Bandire", si fa un'altra votazione e un altro giocatore esce, rivelando il suo ruolo. Poi si torna al punto 1.
    Si può scendere al massimo fino a 2 giocatori: a quel punto non si vota più e i due rivelano uno alla volta il proprio schieramento.

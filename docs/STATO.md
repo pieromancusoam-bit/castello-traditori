@@ -30,7 +30,7 @@ Fase 0 — Prototipo di connessione: **completata il 2026-11-21** (prova con 3 t
   - ritratto del giocatore (foto facoltativa dal telefono) e **parete dei ritratti** alla Colazione:
     X rossa per i banditi con la fazione, vetro incrinato e cornice storta per gli assassinati;
   - schermate di testo per master e telefono, pulsante "Avanti" del master, pannello `?debug=1`.
-- Test: 63 (`npm test`). Il test obbligatorio gioca 150 partite casuali da 5 a 16 giocatori e
+- Test: 67 (`npm test`). Il test obbligatorio gioca 150 partite casuali da 5 a 16 giocatori e
   controlla ogni vista di ogni Leale a ogni passo (oltre 10.000 viste): nessun ruolo nascosto,
   niente chat dei Traditori, niente voti individuali, e la vista non cambia se si rimescolano i
   ruoli nascosti. Stessi controlli sullo schermo del master. Prova di verifica: inserendo apposta
@@ -90,6 +90,9 @@ Fase 0 — Prototipo di connessione: **completata il 2026-11-21** (prova con 3 t
 | 2026-11-21 | Stato del generatore casuale (`rngState`) dentro la partita; salvataggio a ogni azione accettata | Decisione minore di Claude: ripresa identica dopo "Riprendi" |
 | 2026-11-21 | Di notte lo schermo conta chi ha "fatto una scelta" (primo tocco), non chi ha finito | Decisione minore di Claude, imposta dal test: il conteggio non deve dipendere dai ruoli |
 | 2026-11-21 | Fine partita: "Nuova partita, stessi giocatori" riporta alla sala d'attesa | Decisione minore di Claude, utile per le prove |
+| 2026-11-21 | Cerimonia: chiuse le scelte, attesa e poi rivelazione pubblica una per una (ritratto, nome, fiamme verdi = Chiudere, rosse = Bandire), nell'ordine d'ingresso; chi non ha scelto compare come "Chiudere". "Avanti" compare solo a fine animazione; tempi in `GAME.ceremonyReveal` | Decisione di Piero; ordine, astenuti e tempi decisioni minori di Claude |
+| 2026-11-21 | Sala d'attesa: il master può rimuovere i giocatori disconnessi; se rientrano, ricompaiono come nuovi | Richiesta di Piero |
+| 2026-11-21 | Ogni messaggio di rete resta sotto 15.000 byte (`NET.messageMaxBytes`): ritratto ridotto fino a stare in 12.000 caratteri, chat limitata a 30 messaggi e 4.000 byte, test sul caso peggiore (16 giocatori, nomi e chat pieni: circa 9.600 byte) | Correzione del bug iOS: PeerJS (JSON) chiude il canale sopra 16.300 byte |
 
 ## Decisioni aperte
 
@@ -98,6 +101,12 @@ Fase 0 — Prototipo di connessione: **completata il 2026-11-21** (prova con 3 t
 - Montepremi "per la gloria" o con premio reale
 
 ## Problemi noti
+
+- **Corretto, da riprovare su iPhone**: il ritratto da iOS causava "Ritratto non arrivato al master"
+  e scollegamenti a ripetizione. Causa: PeerJS chiude il canale con messaggi oltre 16.300 byte e il
+  telefono rimandava la foto a ogni rientro. Ora il ritratto viene ridotto finché sta nel limite
+  (provato in locale con un'immagine di rumore da 11 MB: 11 KB) e i reinvii automatici sono al massimo 2.
+- Dopo un "Riprendi" durante la rivelazione delle scelte, l'animazione riparte dall'inizio.
 
 - Scatto del ritratto con la fotocamera vera non ancora provato: in locale è stato simulato con
   un file. Va verificato su iPhone e Android dalla versione pubblicata (https).
@@ -153,6 +162,12 @@ Fase 0 — Prototipo di connessione: **completata il 2026-11-21** (prova con 3 t
 10. Ricarica un telefono a metà notte o a metà voto: rientra nello stesso punto.
 11. (Se capita) Banditi tutti i Traditori con più di 4 in gioco: la notte dopo un Leale riceve
     "Il castello ti ha scelto", nessun omicidio, e dalla notte dopo uccide.
-12. Con 4 rimasti parte la Cerimonia delle Polveri: prova almeno un "Bandire ancora", poi
-    rivelazioni una alla volta, verdetto finale e "Hai vinto / Hai perso" sui telefoni.
+12. Con 4 rimasti parte la Cerimonia delle Polveri: quando tutti hanno scelto, lo schermo mostra
+    l'attesa e poi ogni giocatore con ritratto, nome e fiamme verdi o rosse; "Al voto" o "Le ultime
+    maschere" compare solo alla fine. Prova almeno un "Bandire ancora", poi rivelazioni una alla
+    volta, verdetto finale e "Hai vinto / Hai perso" sui telefoni.
+12b. Sala d'attesa: chiudi la pagina su un telefono, aspetta che risulti "disconnesso" e premi
+    "Rimuovi" sul master.
+12c. iPhone: scatta il ritratto. Deve comparire "Il tuo ritratto è appeso nel castello" e il
+    telefono deve restare collegato.
 13. Annota modello di telefono, browser e tutto ciò che non ha funzionato o non era chiaro.
