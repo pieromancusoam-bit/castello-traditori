@@ -91,6 +91,7 @@ Ci sono due fazioni: **Leali** e **Traditori**. I Leali vincono se arrivano al f
 - La partita **non finisce in anticipo**: anche se tutti i Traditori vengono banditi o se i Traditori raggiungono i Leali, si prosegue fino al finale.
 - **Nuovo Traditore scelto dal castello**: se tutti i Traditori sono stati banditi e in gioco restano più di 4 giocatori, la notte successiva il master trasforma in segreto un Leale vivo, scelto a caso, in Traditore. Quella notte non c'è omicidio; il nuovo Traditore lo scopre sul proprio telefono e agisce dalla notte dopo. Perché il colpo di scena funzioni, il numero di Traditori iniziali **non viene annunciato** ai giocatori.
 - In caso di **parità nel voto** si fa un ballottaggio tra i più votati. Se c'è ancora parità, nessuno viene bandito quel giorno.
+- **Sospetto notturno**: di notte ogni Leale indica in segreto di chi sospetta. Alla Colazione il castello annuncia il più sospettato (in parità, tutti i pari merito), senza dire chi l'ha indicato né quanti sospetti ha ricevuto. I Traditori di notte scelgono la vittima e non contribuiscono ai sospetti.
 
 ## Ciclo di gioco
 
@@ -120,10 +121,10 @@ Una partita da 10 giocatori dura di solito 5–6 giorni, cioè circa 60–75 min
 | Missione | Regole della prova, timer, risultato e monete guadagnate | Comandi della missione, scelte segrete di sabotaggio | 5–8 min |
 | Tavola Rotonda | Timer della discussione, poi i voti rivelati uno a uno con suspense | Scelta del giocatore da bandire, eventuale uso di oggetti | 8–12 min |
 | Rivelazione | Il bandito e la sua fazione, con musica dedicata | Il bandito diventa spettatore | 1 min |
-| Notte | Schermo scuro: "Chiudete gli occhi…" | Traditori: chat e voto per la vittima. Ruoli speciali: poteri. Leali: schermata d'attesa identica, per non tradirsi | 2–3 min |
+| Notte | Schermo scuro: "Chiudete gli occhi…" | Traditori: chat e voto per la vittima. Ruoli speciali: poteri. Leali: "Di chi sospetti?" con la stessa griglia di nomi, per non tradirsi | 2–3 min |
 | Finale | Cerimonia delle Polveri, rivelazioni finali, montepremi | Voto "Chiudere la partita" o "Bandire ancora" | 5–10 min |
 
-Di notte tutti i telefoni mostrano un'interfaccia uguale, anche ai Leali, che devono toccare qualcosa. Così nessuno capisce chi sta agendo guardando le dita degli altri.
+Di notte tutti i telefoni mostrano un'interfaccia uguale: una griglia con tutti gli altri giocatori vivi (ai Traditori i complici compaiono disattivati) e una conferma. I Leali indicano il loro sospetto, che alla Colazione diventa l'annuncio del più sospettato. Così nessuno capisce chi sta agendo guardando le dita degli altri.
 
 ## Missioni
 
@@ -211,7 +212,7 @@ Ci sono due interfacce distinte nella stessa app: il master, pensato per essere 
 | Attesa | "Guarda lo schermo principale", con il proprio avatar e gli oggetti in un angolo |
 | Missione | Comandi specifici della missione (scelte, quiz, tasti, cursori) |
 | Voto | Griglia dei giocatori vivi, conferma con doppio tocco, uso di oggetti prima del voto |
-| Notte | Traditori: chat di gruppo e voto per la vittima. Ruoli speciali: il loro potere. Leali: un mini-gioco finto con la stessa grafica |
+| Notte | Traditori: chat di gruppo e voto per la vittima. Ruoli speciali: il loro potere. Leali: sospetto notturno con la stessa griglia |
 | Inventario | Oggetti posseduti e come usarli |
 | Spettatore | Dopo l'eliminazione: segue la partita senza informazioni segrete |
 

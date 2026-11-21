@@ -30,7 +30,7 @@ Fase 0 — Prototipo di connessione: **completata il 2026-11-21** (prova con 3 t
   - ritratto del giocatore (foto facoltativa dal telefono) e **parete dei ritratti** alla Colazione:
     X rossa per i banditi con la fazione, vetro incrinato e cornice storta per gli assassinati;
   - schermate di testo per master e telefono, pulsante "Avanti" del master, pannello `?debug=1`.
-- Test: 59 (`npm test`). Il test obbligatorio gioca 150 partite casuali da 5 a 16 giocatori e
+- Test: 63 (`npm test`). Il test obbligatorio gioca 150 partite casuali da 5 a 16 giocatori e
   controlla ogni vista di ogni Leale a ogni passo (oltre 10.000 viste): nessun ruolo nascosto,
   niente chat dei Traditori, niente voti individuali, e la vista non cambia se si rimescolano i
   ruoli nascosti. Stessi controlli sullo schermo del master. Prova di verifica: inserendo apposta
@@ -82,7 +82,8 @@ Fase 0 — Prototipo di connessione: **completata il 2026-11-21** (prova con 3 t
 | 2026-11-21 | Cerimonia delle Polveri e salvataggio automatico anticipati in Fase 1 | Decisione di Piero: evitare un finale provvisorio da buttare |
 | 2026-11-21 | Cerimonia: chi non sceglie vale "Chiudere"; parità → ballottaggio → se ancora pari nessuno esce e si torna a scegliere; rivelazioni una alla volta anche quando tutti chiudono | Decisione di Piero; "una alla volta" decisione minore di Claude |
 | 2026-11-21 | Omicidio: chat dei Traditori + un pulsante per ogni Leale vivo; servono tutti sullo stesso nome. Con "Avanti" senza accordo vince il più indicato, parità estratta a caso; nessuna indicazione = nessuna vittima | Decisione di Piero; "nessuna indicazione" decisione minore di Claude |
-| 2026-11-21 | Notte uguale per tutti: griglia di nomi e conferma; per i Leali la scelta non ha effetto. La notte finisce da sola quando i Traditori sono d'accordo e tutti hanno scelto | Proposta approvata da Piero |
+| 2026-11-21 | Notte uguale per tutti: griglia con tutti gli altri vivi e conferma (ai Traditori i complici disattivati, così il numero di caselle non rivela nulla). La notte finisce da sola quando i Traditori sono d'accordo e tutti hanno scelto | Proposta approvata da Piero |
+| 2026-11-21 | Sospetto notturno (sostituisce la scelta finta): i Leali indicano "Di chi sospetti?"; alla Colazione il castello annuncia il più sospettato tra i vivi, in parità tutti i pari merito, senza numero di sospetti né autori. Anche il nuovo Traditore scelto dal castello, quella notte, indica un sospetto | Decisione di Piero (opzione B); dettagli (parità, niente conteggio, solo vivi) decisioni minori di Claude: il conteggio rivelerebbe quanti Leali ci sono |
 | 2026-11-21 | Voto: non per sé stessi; al ballottaggio votano tutti, solo tra i candidati; un voto confermato non si cambia; i nomi dei voti solo sul master a votazione chiusa, ai telefoni solo l'esito | Proposta approvata da Piero; "voto non modificabile" decisione minore di Claude |
 | 2026-11-21 | Prima Colazione subito dopo i Ruoli, senza Notte prima | Proposta approvata da Piero |
 | 2026-11-21 | Ritratto facoltativo scattato dal telefono (JPEG 192 px), solo sul master, salvato a parte e cancellato alla chiusura della stanza; senza foto, quadro con le iniziali | Decisione di Piero |
@@ -104,7 +105,7 @@ Fase 0 — Prototipo di connessione: **completata il 2026-11-21** (prova con 3 t
 - Nessun timer in Fase 1: chi è disconnesso durante un voto non viene atteso 60 s; il master
   chiude a mano con "Chiudi la votazione" e chi manca risulta astenuto.
 - Di notte i Traditori vedono in più la chat: la loro schermata è più lunga e chi sbircia
-  può accorgersene. Da rivedere con il mini-gioco finto per i Leali.
+  può accorgersene.
 - Chi è disconnesso quando si preme "Inizia la partita" entra comunque in partita (il master
   chiede conferma). Manca la rimozione di un giocatore che abbandona (pannello di controllo).
 - `.claude/launch.json` ha una seconda configurazione (`castello-alt`, porta 8125) per provare
@@ -142,8 +143,9 @@ Fase 0 — Prototipo di connessione: **completata il 2026-11-21** (prova con 3 t
 5. Tavola Rotonda: votate tutti; serve la conferma e il master mostra i voti solo a votazione
    chiusa. Prova una parità per vedere il ballottaggio.
 6. Rivelazione: il bandito vede "Sei stato bandito", il master mostra la fazione.
-7. Notte: tutti i telefoni mostrano "Chi scegli stanotte?". I Traditori scrivono in chat e si
-   accordano; i Leali toccano un nome. A un Leale non deve arrivare nulla della chat.
+7. Notte: i Leali vedono "Di chi sospetti?", i Traditori "Chi colpire stanotte?" con la stessa
+   griglia (complici disattivati). I Traditori si accordano in chat; a un Leale non arriva nulla.
+   Alla Colazione master e telefoni annunciano il più sospettato, con l'etichetta sul suo quadro.
 8. Colazione dopo l'omicidio: il quadro della vittima si incrina e si storce; la vittima vede
    "Stanotte sei stato assassinato" e diventa spettatore. Un bandito ha la X rossa e la fazione.
 9. A metà partita ricarica il master e premi "Riprendi stanza": stessa fase, stessi ritratti,
