@@ -452,3 +452,21 @@
 .audio-panel { max-width: 40em; font-size: 0.9em; }
 .audio-panel fieldset { margin-bottom: 1em; }
 .audio-panel input[type="range"] { width: 12em; accent-color: var(--gold); }
+/* Suspense: voti uno alla volta, fazione dopo il silenzio */
+.vote-in { animation: vote-in 0.5s both; }
+@keyframes vote-in { from { opacity: 0; transform: translateY(0.4em) scale(0.97); } to { opacity: 1; transform: none; } }
+.reveal { display: flex; flex-direction: column; align-items: center; }
+.reveal .reveal-name { font-family: var(--font-title); font-size: 3.4em; animation: heartbeat 0.95s ease-in-out 0.9s 4; }
+.reveal .reveal-faction { animation: faction-in 1.2s var(--silence, 4.5s) both; }
+@keyframes heartbeat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.08); } 30% { transform: scale(1); } 45% { transform: scale(1.05); } }
+@keyframes faction-in { from { opacity: 0; transform: scale(1.6); filter: blur(10px); } to { opacity: 1; transform: none; filter: none; } }
+.unveil li.is-new { background: rgba(212, 174, 74, 0.12); }
+.unveil li.is-new span { animation: heartbeat 0.95s ease-in-out 3; }
+.unveil li.is-new strong { animation: faction-in 1s var(--silence, 3.5s) both; }
+.winner { animation: faction-in 1.4s both, pulse-glow 2s 1.4s ease-in-out infinite alternate; }
+/* Notte: candela che respira sullo sfondo */
+.phase-night .stage { background: radial-gradient(ellipse at 50% 60%, rgba(120, 70, 20, 0.16), transparent 60%); animation: night-breathe 6s ease-in-out infinite alternate; border-radius: 30px; }
+@keyframes night-breathe { from { background-size: 100% 100%; opacity: 0.85; } to { background-size: 120% 120%; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .vote-in, .reveal .reveal-name, .unveil li.is-new span, .phase-night .stage { animation: none; }
+}

@@ -13,6 +13,7 @@ import { EVENTS, ITEMS } from '../config/game-config.js';
 import { MISSION_IDS } from '../engine/missions/index.js';
 import { openAudioPanel } from './audio-panel.js';
 import { SHOW } from '../config/show-config.js';
+import { voteTimes } from '../show/director.js';
 
 // Solo prove (?debug=1): scelta del prossimo gioco e del prossimo evento
 function debugBarHtml(host) {
@@ -241,29 +242,36 @@ function voteStageHtml(st, nameOf, title) {
   }
   // Nebbia: solo il conteggio, senza chi ha votato
   if (st.fog) {
-    const fogRows = [...st.fogCounts].sort((a, b) => b.count - a.count)
-      .map((c) => `<li><strong>${esc(nameOf(c.targetId))}</strong> ${c.count} ${c.count === 1 ? 'voto' : 'voti'}</li>`).join('');
-    const dag = st.daggerCount ? `<p class="muted">${st.daggerCount === 1 ? 'Un voto contava' : `${st.daggerCount} voti contavano`} doppio (Pugnale).</p>` : '';
+    // Dal meno votato al più votato: la suspense cresce fino all'ultimo
+    const T = voteTimes(st.fogCounts.length);
+    const fogRows = [...st.fogCounts].sort((a, b) => a.count - b.count)
+      .map((c, i) => `<li class="vote-in" style="${delay(T.at(i))}"><strong>${esc(nameOf(c.targetId))}</strong> ${c.count} ${c.count === 1 ? 'voto' : 'voti'}</li>`).join('');
+    const dag = st.daggerCount ? `<p class="muted vote-in" style="${delay(T.outcome)}">${st.daggerCount === 1 ? 'Un voto contava' : `${st.daggerCount} voti contavano`} doppio (Pugnale).</p>` : '';
     return `<h1>I voti nella nebbia</h1><p class="lead">La nebbia nasconde chi ha votato chi.</p>
       <ul class="tally is-fog">${fogRows || '<li class="muted">Nessun voto</li>'}</ul>${dag}
-      <p class="outcome">${outcomeHtml(st.outcome, nameOf)}</p>`;
+      <p class="outcome vote-in" style="${delay(T.outcome)}">${outcomeHtml(st.outcome, nameOf)}</p>`;
   }
   const counts = {};
   for (const v of st.votes) counts[v.targetId] = (counts[v.targetId] || 0) + (v.double ? 2 : 1);
-  const rows = st.votes.map((v) => `<li class="${v.double ? 'is-double' : ''}"><span>${esc(nameOf(v.voterId))}</span><span class="arrow">➜</span><span>${esc(nameOf(v.targetId))}${v.double ? ' <span class="dagger-mark" title="Pugnale">×2</span>' : ''}</span></li>`).join('');
+  // I voti compaiono uno alla volta (tempi uguali ai rintocchi del regista)
+  const T = voteTimes(st.votes.length);
+  const rows = st.votes.map((v, i) => `<li class="vote-in ${v.double ? 'is-double' : ''}" style="${delay(T.at(i))}"><span>${esc(nameOf(v.voterId))}</span><span class="arrow">➜</span><span>${esc(nameOf(v.targetId))}${v.double ? ' <span class="dagger-mark" title="Pugnale">×2</span>' : ''}</span></li>`).join('');
   const tally = Object.entries(counts).sort((a, b) => b[1] - a[1])
     .map(([id, n]) => `<li><strong>${esc(nameOf(id))}</strong> ${n} ${n === 1 ? 'voto' : 'voti'}</li>`).join('');
   return `<h1>I voti</h1>
     <div class="votes-layout">
       <ul class="vote-list">${rows || '<li class="muted">Nessun voto</li>'}</ul>
-      <ul class="tally">${tally}</ul>
+      <ul class="tally vote-in" style="${delay(T.outcome)}">${tally}</ul>
     </div>
-    <p class="outcome">${outcomeHtml(st.outcome, nameOf)}</p>`;
+    <p class="outcome vote-in" style="${delay(T.outcome)}">${outcomeHtml(st.outcome, nameOf)}</p>`;
 }
 
+const delay = (ms) => `animation-delay:${ms}ms`;
+
+// Bandito: il nome pulsa come un cuore nel silenzio, poi arriva la fazione
 function revealStageHtml(st, nameOf) {
-  return `<div class="reveal">
-    <p class="lead">${esc(nameOf(st.playerId))}</p>
+  return `<div class="reveal" style="--silence:${SHOW.revealSilenceMs}ms">
+    <p class="lead reveal-name">${esc(nameOf(st.playerId))}</p>
     <h1 class="reveal-faction faction-${st.faction}">era ${FACTION_A[st.faction]}</h1>
   </div>`;
 }
@@ -351,9 +359,11 @@ function stageHtml(v, nameOf, host) {
           return revealStageHtml(st, nameOf);
         case 'unveil': {
           const live = v.players.filter((p) => p.status === 'alive');
+          // L'ultimo svelato arriva dopo un silenzio
+          const newest = st.revealed.at(-1);
           return `<h1>Le ultime maschere</h1>
-            <ul class="unveil">${live.map((p) => `
-              <li class="${p.faction ? `faction-${p.faction}` : 'is-hidden'}">
+            <ul class="unveil" style="--silence:${SHOW.unveilSilenceMs}ms">${live.map((p) => `
+              <li class="${p.faction ? `faction-${p.faction}` : 'is-hidden'} ${p.id === newest ? 'is-new' : ''}">
                 <span>${esc(p.name)}</span><strong>${p.faction ? FACTION[p.faction] : '?'}</strong>
               </li>`).join('')}</ul>`;
         }
