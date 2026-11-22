@@ -9,10 +9,11 @@ import { createRng } from '../js/engine/rng.js';
 
 export const makePlayers = (n) => Array.from({ length: n }, (_, i) => ({ id: `p${i + 1}`, name: `Giocatore ${i + 1}` }));
 
-// Di base senza missioni: i test delle regole della Fase 1 vanno dalla Colazione
-// direttamente alla Tavola Rotonda. Le missioni hanno test propri (missions: true).
+// Di base le regole "essenziali" della Fase 1: niente missioni, presentazioni, discussione
+// minima e Seduzione; Cerimonia con 4. Le regole nuove hanno test propri che le accendono.
+export const BASIC = Object.freeze({ missions: false, presentations: false, discussion: false, seduction: false, finalThreshold: 4 });
 export function newGame(n, seed = 1, settings = {}) {
-  return createGame({ players: makePlayers(n), seed, settings: { missions: false, ...settings } });
+  return createGame({ players: makePlayers(n), seed, settings: { ...BASIC, ...settings } });
 }
 
 // Forza i ruoli: traitorIds diventano Traditori, gli altri Leali
@@ -96,19 +97,29 @@ function possibleActions(s, r) {
       for (const id of live) {
         const p = s.players[id];
         const killer = pd.mode === 'murder' && p.role === ROLE.TRAITOR;
-        const options = killer ? faithful : live.filter((t) => t !== id);
+        const target = pd.offer && pd.offer.targetId === id;
+        if (target && pd.offer.answer === null) {
+          acts.push({ type: A.SEDUCTION_ANSWER, playerId: id, payload: { accept: r.next() < 0.5 } });
+          continue;
+        }
+        const isKiller = killer && !target;
+        if (isKiller && pd.canSeduce && !pd.offer && r.next() < 0.3) {
+          acts.push({ type: A.NIGHT_PLAN, playerId: id, payload: { plan: pd.plan === 'murder' ? 'seduce' : 'murder' } });
+        }
+        if (isKiller && pd.plan === 'seduce' && pd.offer) continue;
+        const options = isKiller ? faithful.filter((f) => f !== id) : live.filter((t) => t !== id);
         if (options.length) acts.push({ type: A.NIGHT_CHOOSE, playerId: id, payload: { targetId: pick(options) } });
-        if (killer && r.next() < 0.3) acts.push({ type: A.NIGHT_CHAT, playerId: id, payload: { text: `messaggio segreto di ${id}` } });
+        if (isKiller && r.next() < 0.3) acts.push({ type: A.NIGHT_CHAT, playerId: id, payload: { text: `messaggio segreto di ${id}` } });
       }
       break;
     }
     case PHASE.MISSION:
       if (pd.stage === 'play') acts.push(...missionInputs(s, r, live));
-      if (pd.timer && r.next() < 0.05) acts.push({ type: A.TIMER_EXPIRED, payload: { key: pd.timer.key } });
       break;
     default:
       break;
   }
+  if (pd.timer && r.next() < 0.05) acts.push({ type: A.TIMER_EXPIRED, payload: { key: pd.timer.key } });
   return acts;
 }
 
@@ -137,13 +148,15 @@ function missionInputs(s, r, live) {
 
 // Gioca una partita casuale fino alla fine. onState(state) viene chiamata a ogni passo.
 export function playRandomGame({ players, seed, onState = () => {}, maxSteps = 8000 }) {
-  let s = newGame(players, seed, { missions: true });
+  let s = createGame({ players: makePlayers(players), seed }); // tutte le regole accese
   const r = createRng(seed * 7919 + 13);
   onState(s);
   for (let step = 0; step < maxSteps; step++) {
     if (s.phase === PHASE.ENDED) return s;
     const acts = possibleActions(s, r);
-    const action = acts.length && r.next() > 0.08 ? acts[r.int(acts.length)] : { type: A.ADVANCE };
+    let action = acts.length && r.next() > 0.08 ? acts[r.int(acts.length)] : { type: A.ADVANCE };
+    // La discussione della Tavola Rotonda non si salta: finisce solo con il tempo
+    if (action.type === A.ADVANCE && s.phaseData.stage === 'discussion') action = { type: A.TIMER_EXPIRED, payload: { key: s.phaseData.timer.key } };
     s = ok(s, action);
     onState(s);
   }

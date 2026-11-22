@@ -13,6 +13,7 @@ import { createRng } from './rng.js';
 import { voteError } from './votes.js';
 import * as P from './phases.js';
 import { REJECT, Rejection, reject, check } from './errors.js';
+import { clearTimer } from './missions/common.js';
 
 export { REJECT };
 
@@ -82,10 +83,17 @@ const HANDLERS = {
     const target = s.players[targetId];
     check(target && isAlive(target) && targetId !== p.id, REJECT.INVALID_TARGET);
 
-    if (s.phaseData.mode === 'murder' && p.role === ROLE.TRAITOR) {
+    const pd = s.phaseData;
+    if (P.isKiller(s, p) && pd.plan === 'seduce') {
+      // Seduzione: si indica un Leale, che riceve l'offerta. La scelta non si cambia più.
+      check(!pd.offer, REJECT.ALREADY_DONE);
+      check(target.role !== ROLE.TRAITOR, REJECT.INVALID_TARGET);
+      pd.offer = { byId: p.id, targetId, answer: null };
+      pd.picks[p.id] = targetId;
+    } else if (P.isKiller(s, p)) {
       // Vittima: solo un Leale vivo. La scelta si può cambiare finché non c'è accordo.
       check(target.role !== ROLE.TRAITOR, REJECT.INVALID_TARGET);
-      s.phaseData.picks[p.id] = targetId;
+      pd.picks[p.id] = targetId;
     } else {
       // Sospetto notturno (Leali e Traditore appena scelto dal castello): alla Colazione
       // il castello annuncia il più sospettato, senza dire chi lo ha indicato
@@ -97,13 +105,44 @@ const HANDLERS = {
   [A.NIGHT_CHAT](s, action) {
     check(s.phase === PHASE.NIGHT && s.phaseData.mode === 'murder', REJECT.WRONG_PHASE);
     const p = me(s, action);
-    check(isAlive(p) && p.role === ROLE.TRAITOR, REJECT.NOT_ALLOWED);
+    check(isAlive(p) && P.isKiller(s, p), REJECT.NOT_ALLOWED);
     const text = cleanChatText(payload(action).text);
     check(text.length > 0, REJECT.INVALID_PAYLOAD);
     s.phaseData.chat.push({ from: p.id, text });
     // Si tengono solo gli ultimi messaggi: la vista deve stare in un solo messaggio di rete
     const bytes = () => s.phaseData.chat.reduce((n, m) => n + utf8.encode(m.text).byteLength, 0);
     while (s.phaseData.chat.length > GAME.chatMaxMessages || bytes() > GAME.chatMaxBytes) s.phaseData.chat.shift();
+  },
+
+  // Prima notte con un solo Traditore: "Assassinare" o "Sedurre" (finché l'offerta non è partita)
+  [A.NIGHT_PLAN](s, action) {
+    check(s.phase === PHASE.NIGHT, REJECT.WRONG_PHASE);
+    const p = me(s, action);
+    const pd = s.phaseData;
+    check(isAlive(p) && P.isKiller(s, p) && pd.canSeduce, REJECT.NOT_ALLOWED);
+    const { plan } = payload(action);
+    check(plan === 'murder' || plan === 'seduce', REJECT.INVALID_PAYLOAD);
+    check(!pd.offer, REJECT.ALREADY_DONE);
+    if (pd.plan !== plan) delete pd.picks[p.id];
+    pd.plan = plan;
+  },
+
+  // Il Leale sedotto accetta o rifiuta in segreto. Se accetta diventa Traditore subito
+  // (vede il complice) e uccide dalla notte dopo; se rifiuta resta Leale.
+  [A.SEDUCTION_ANSWER](s, action, rng) {
+    check(s.phase === PHASE.NIGHT, REJECT.WRONG_PHASE);
+    const p = me(s, action);
+    const pd = s.phaseData;
+    check(isAlive(p) && pd.offer && pd.offer.targetId === p.id, REJECT.NOT_ALLOWED);
+    check(pd.offer.answer === null, REJECT.ALREADY_DONE);
+    const { accept } = payload(action);
+    check(typeof accept === 'boolean', REJECT.INVALID_PAYLOAD);
+    pd.offer.answer = accept;
+    if (accept) {
+      p.role = ROLE.TRAITOR;
+      p.turnedOnDay = s.day;
+    }
+    if (P.allNightDone(s)) P.resolveNight(s, rng);
   },
 
   [A.FINAL_CHOICE](s, action) {
@@ -127,8 +166,11 @@ const HANDLERS = {
   [A.TIMER_EXPIRED](s, action, rng) {
     const timer = s.phaseData && s.phaseData.timer;
     check(timer && payload(action).key === timer.key, REJECT.STALE);
-    check(s.phase === PHASE.MISSION && s.phaseData.stage === 'play', REJECT.WRONG_PHASE);
-    P.advanceMission(s, rng);
+    if (s.phase === PHASE.MISSION && s.phaseData.stage === 'play') return P.advanceMission(s, rng);
+    // Presentazioni: il tempo è finito, ma si passa al prossimo solo con "Avanti"
+    if (s.phase === PHASE.PRESENTATIONS) return clearTimer(s);
+    if (s.phase === PHASE.ROUNDTABLE && s.phaseData.stage === 'discussion') return P.openVoting(s);
+    return reject(REJECT.WRONG_PHASE);
   },
 
   // "Avanti" del master: chiude ciò che è aperto (chi manca è astenuto) o passa oltre
@@ -138,9 +180,16 @@ const HANDLERS = {
         return P.enterBreakfast(s, null);
       case PHASE.BREAKFAST:
         return P.leaveBreakfast(s, rng);
+      case PHASE.PRESENTATIONS:
+        return P.nextPresentation(s, rng);
       case PHASE.MISSION:
         return P.advanceMission(s, rng);
       case PHASE.ROUNDTABLE:
+        // La discussione minima non si salta (solo con { force: true }, per le prove con ?debug=1)
+        if (s.phaseData.stage === 'discussion') {
+          check(payload(action).force === true, REJECT.WRONG_PHASE);
+          return P.openVoting(s);
+        }
         return s.phaseData.stage === 'voting' ? P.closeVoting(s) : P.leaveResults(s, rng);
       case PHASE.REVEAL:
         return P.afterDay(s, rng);

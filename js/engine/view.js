@@ -4,7 +4,8 @@
 
 import { PHASE, STATUS } from './state.js';
 import { ROLE, factionOf } from './roles.js';
-import { nightConsensus } from './phases.js';
+import { nightConsensus, isKiller } from './phases.js';
+import { PRESENTATION_THEMES } from '../config/presentations.js';
 import { MISSION_MODULES } from './missions/index.js';
 
 const ids = (list) => (list ? [...list] : null);
@@ -61,6 +62,15 @@ function common(s) {
   };
 }
 
+const timerView = (pd) => (pd.timer ? { key: pd.timer.key, ms: pd.timer.ms } : null);
+
+// Presentazioni: chi tocca e con quale tema (pubblico: lo vedono tutti sulla TV)
+function presentationStep(s) {
+  const pd = s.phaseData;
+  const playerId = pd.order[pd.index];
+  return { playerId, theme: PRESENTATION_THEMES[pd.themes[playerId]], index: pd.index, total: pd.order.length, next: pd.order[pd.index + 1] ?? null, timer: timerView(pd) };
+}
+
 // Missione: parte comune + allow-list del modulo della missione (p = null per lo schermo)
 function missionStep(s, p) {
   const pd = s.phaseData;
@@ -68,9 +78,11 @@ function missionStep(s, p) {
   return {
     id: pd.id,
     stage: pd.stage,
+    slot: pd.slot,
+    perDay: pd.perDay,
     value: pd.value,
-    timer: pd.timer ? { key: pd.timer.key, ms: pd.timer.ms } : null,
-    result: pd.result ? { success: pd.result.success, coins: pd.result.coins, detail: { ...pd.result.detail } } : null,
+    timer: timerView(pd),
+    result: pd.result ? { success: pd.result.success, coins: pd.result.coins, detail: structuredClone(pd.result.detail) } : null,
     mission: p ? m.playerView(s, p) : m.masterView(s),
   };
 }
@@ -91,6 +103,7 @@ function masterVote(s) {
     votedCount: live.filter((id) => pd.ballot.votes[id] !== undefined).length,
     voterCount: live.length,
     banishCount: pd.banishCount ?? null,
+    timer: timerView(pd),
     votes: null,
     outcome: null,
   };
@@ -110,6 +123,8 @@ function masterStep(s) {
       return { seenCount: s.order.filter((id) => pd.seen[id]).length, total: s.order.length };
     case PHASE.BREAKFAST:
       return { victimId: pd.victimId, firstDay: pd.firstDay, suspects: [...pd.suspects] };
+    case PHASE.PRESENTATIONS:
+      return presentationStep(s);
     case PHASE.MISSION:
       return missionStep(s, null);
     case PHASE.ROUNDTABLE:
@@ -178,6 +193,7 @@ function playerVote(s, p) {
     canVote: pd.stage === 'voting' && alive && myVote === null,
     options: alive ? pool.filter((id) => id !== p.id) : [],
     myVote,
+    timer: timerView(pd),
     // Solo l'esito: i voti individuali restano sul master
     outcome: pd.stage === 'results' ? publicOutcome(pd.outcome) : null,
   };
@@ -186,7 +202,8 @@ function playerVote(s, p) {
 function playerNight(s, p) {
   const pd = s.phaseData;
   const alive = isAlive(p);
-  const killer = alive && pd.mode === 'murder' && p.role === ROLE.TRAITOR;
+  const killer = alive && isKiller(s, p);
+  const target = Boolean(pd.offer && pd.offer.targetId === p.id);
   const live = aliveIdList(s);
   // Stessa griglia per tutti (tutti gli altri vivi): ai Traditori i complici compaiono disattivati.
   // Così il numero di caselle non rivela nulla.
@@ -199,12 +216,18 @@ function playerNight(s, p) {
     chat: null,
     allyPicks: null,
     consensus: null,
+    // Seduzione: scelta del Traditore (solo a lui) e offerta in arrivo (solo al sedotto, anonima)
+    canSeduce: killer && pd.canSeduce && !pd.offer,
+    plan: killer && pd.canSeduce ? pd.plan : null,
+    offer: null,
   };
+  if (killer && pd.offer) step.offer = { incoming: false, targetId: pd.offer.targetId, answer: pd.offer.answer };
+  if (target) step.offer = { incoming: true, targetId: p.id, answer: pd.offer.answer };
   // Solo per i Traditori che uccidono stanotte
   if (killer) {
     step.chat = pd.chat.map((m) => ({ from: m.from, text: m.text }));
     step.allyPicks = live
-      .filter((id) => s.players[id].role === ROLE.TRAITOR)
+      .filter((id) => isKiller(s, s.players[id]))
       .map((id) => ({ id, targetId: pd.picks[id] ?? null }));
     step.consensus = nightConsensus(s);
   }
@@ -218,7 +241,17 @@ function playerStep(s, p) {
     case PHASE.ROLES:
       return { seen: Boolean(pd.seen[p.id]) };
     case PHASE.BREAKFAST:
-      return { victimId: pd.victimId, firstDay: pd.firstDay, suspects: [...pd.suspects] };
+      return {
+        victimId: pd.victimId,
+        firstDay: pd.firstDay,
+        suspects: [...pd.suspects],
+        // Esito della Seduzione: solo a chi ha sedotto e a chi è stato sedotto
+        seduction: pd.seduction && (pd.seduction.byId === p.id || pd.seduction.targetId === p.id)
+          ? { targetId: pd.seduction.targetId, accepted: pd.seduction.accepted }
+          : null,
+      };
+    case PHASE.PRESENTATIONS:
+      return { ...presentationStep(s), mine: s.phaseData.order[s.phaseData.index] === p.id };
     case PHASE.MISSION:
       return missionStep(s, p);
     case PHASE.ROUNDTABLE:

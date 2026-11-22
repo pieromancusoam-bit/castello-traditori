@@ -11,8 +11,12 @@ export const GAME = Object.freeze({
     Object.freeze({ upTo: 16, traitors: 3 }),
   ]),
 
-  // Il finale (Cerimonia delle Polveri) scatta quando i vivi sono al massimo questi
-  finalThreshold: 4,
+  // Il finale (Cerimonia delle Polveri) scatta quando i vivi sono al massimo `threshold`,
+  // in base ai giocatori a inizio partita (fino a `upTo` compresi)
+  finalThresholdTable: Object.freeze([
+    Object.freeze({ upTo: 7, threshold: 3 }),
+    Object.freeze({ upTo: 16, threshold: 4 }),
+  ]),
   // Nella Cerimonia non si scende sotto questo numero: poi solo rivelazioni
   finalMinPlayers: 2,
 
@@ -22,6 +26,23 @@ export const GAME = Object.freeze({
     portraitMs: 1600, // ritratto e nome, prima delle fiamme
     flameMs: 2600,    // fiamme verdi (chiudere) o rosse (bandire)
   }),
+
+  // Giochi (missioni) per giornata, tra la Colazione e la Tavola Rotonda
+  missionsPerDay: 3,
+
+  // Presentazioni del giorno 1: tempo per ogni giocatore
+  presentationMs: 45000,
+
+  // Tavola Rotonda: discussione minima prima del voto, in base ai giocatori in gioco
+  // (fino a `upTo` compresi). Il voto si apre solo a tempo scaduto.
+  discussionTable: Object.freeze([
+    Object.freeze({ upTo: 9, ms: 5 * 60000 }),
+    Object.freeze({ upTo: 16, ms: 10 * 60000 }),
+  ]),
+
+  // Seduzione: la prima notte, nelle partite iniziate con un solo Traditore,
+  // il Traditore può sedurre un Leale invece di uccidere
+  seductionMaxTraitors: 1,
 
   // Montepremi: valore massimo di una missione il giorno 1, poi cresce ogni giorno
   missionBaseValue: 1000,

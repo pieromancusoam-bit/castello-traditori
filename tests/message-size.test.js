@@ -9,7 +9,7 @@ import { A } from '../js/engine/actions.js';
 import { NET } from '../js/config/net-config.js';
 import { GAME } from '../js/config/game-config.js';
 import { isValidPhoto } from '../js/net/protocol.js';
-import { withRoles, seeRoles, advance, ok } from './helpers.js';
+import { withRoles, seeRoles, advance, ok, BASIC } from './helpers.js';
 
 const bytes = (msg) => new TextEncoder().encode(JSON.stringify(msg)).byteLength;
 
@@ -19,7 +19,7 @@ test('caso peggiore: vista di un Traditore con 16 giocatori, nomi lunghi e chat 
     id: `p_${String(i).padStart(8, '0')}`,
     name: '€'.repeat(NET.nameMaxLength - 2) + String(i).padStart(2, '0'),
   }));
-  let s = createGame({ players, seed: 3, settings: { missions: false } });
+  let s = createGame({ players, seed: 3, settings: BASIC });
   const traitors = players.slice(0, 3).map((p) => p.id);
   s = advance(seeRoles(withRoles(s, traitors)));
   s = advance(advance(s)); // notte

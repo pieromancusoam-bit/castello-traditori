@@ -7,6 +7,7 @@ import { assignRoles, traitorCountFor } from './roles.js';
 export const PHASE = Object.freeze({
   ROLES: 'roles',
   BREAKFAST: 'breakfast',
+  PRESENTATIONS: 'presentations',
   MISSION: 'mission',
   ROUNDTABLE: 'roundtable',
   REVEAL: 'reveal',
@@ -17,16 +18,26 @@ export const PHASE = Object.freeze({
 
 export const STATUS = Object.freeze({ ALIVE: 'alive', BANISHED: 'banished', MURDERED: 'murdered' });
 
+export function finalThresholdFor(playerCount, table = GAME.finalThresholdTable) {
+  const row = table.find((r) => playerCount <= r.upTo) || table[table.length - 1];
+  return row.threshold;
+}
+
 // players: [{ id, name }] nell'ordine d'ingresso; seed: intero; settings: opzionali
 export function createGame({ players, seed, settings = {} }) {
   if (players.length < GAME.minPlayers) throw new Error(`Servono almeno ${GAME.minPlayers} giocatori`);
   const ids = players.map((p) => p.id);
   const fullSettings = {
     traitorCount: settings.traitorCount ?? traitorCountFor(ids.length),
-    finalThreshold: settings.finalThreshold ?? GAME.finalThreshold,
+    finalThreshold: settings.finalThreshold ?? finalThresholdFor(ids.length),
     finalMinPlayers: settings.finalMinPlayers ?? GAME.finalMinPlayers,
-    missions: settings.missions ?? true, // missione del giorno tra Colazione e Tavola Rotonda
+    missions: settings.missions ?? true, // giochi del giorno tra Colazione e Tavola Rotonda
+    missionsPerDay: settings.missionsPerDay ?? GAME.missionsPerDay,
+    presentations: settings.presentations ?? true, // giorno 1: ognuno si presenta con un tema
+    discussion: settings.discussion ?? true, // Tavola Rotonda: discussione minima prima del voto
   };
+  // Seduzione possibile la prima notte solo nelle partite con pochi Traditori
+  fullSettings.seduction = settings.seduction ?? fullSettings.traitorCount <= GAME.seductionMaxTraitors;
   const rng = createRng(seed);
   const roles = assignRoles(ids, fullSettings.traitorCount, rng);
 
@@ -64,6 +75,6 @@ const missionFields = () => ({
 export function upgradeGame(game) {
   if (!game) return game;
   const g = { ...missionFields(), ...game };
-  g.settings = { missions: true, ...g.settings };
+  g.settings = { missions: true, missionsPerDay: 1, presentations: false, discussion: false, seduction: false, ...g.settings };
   return g;
 }

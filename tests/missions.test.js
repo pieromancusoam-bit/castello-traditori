@@ -20,7 +20,7 @@ const expire = (s) => ok(s, { type: A.TIMER_EXPIRED, payload: { key: s.phaseData
 
 // Partita con missioni, alla Colazione del giorno 1; la prossima missione estratta è `id`
 function atBreakfast(n, id, traitors = ['p1']) {
-  const s = seeRoles(withRoles(newGame(n, 1, { missions: true }), traitors));
+  const s = seeRoles(withRoles(newGame(n, 1, { missions: true, missionsPerDay: 1 }), traitors));
   if (id) s.missionBag = [id];
   return s;
 }
@@ -58,7 +58,7 @@ test('montepremi: parte da zero, la missione riuscita aggiunge il suo valore', (
   for (const id of alive(s)) s = input(s, id, { ok: true });
   assert.equal(s.phaseData.stage, 'result');
   assert.equal(s.pot, GAME.missionBaseValue);
-  assert.deepEqual(s.missionLog, [{ day: 1, id: 'trial', coins: GAME.missionBaseValue }]);
+  assert.deepEqual(s.missionLog, [{ day: 1, slot: 1, id: 'trial', coins: GAME.missionBaseValue }]);
   assert.equal(viewForMaster(s).pot, GAME.missionBaseValue);
   assert.equal(viewFor(s, 'p2').pot, GAME.missionBaseValue);
 });
