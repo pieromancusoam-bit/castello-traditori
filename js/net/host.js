@@ -94,6 +94,11 @@ export class Host {
     }));
   }
 
+  avatarOf(playerId) {
+    const p = this.roster.players[playerId];
+    return (p && p.avatar) || null;
+  }
+
   photoOf(playerId) {
     return this.photos.get(playerId) || null;
   }
@@ -289,7 +294,7 @@ export class Host {
     const known = this.connToPlayer.get(conn);
     if (known) return; // già presentato su questo canale
 
-    const res = R.join(this.roster, msg, { newId: `p_${randomHex(4)}`, newToken: randomHex(16), now: Date.now() });
+    const res = R.join(this.roster, msg, { newId: `p_${randomHex(4)}`, newToken: randomHex(16), now: Date.now(), rand: cryptoRandom() });
     if (res.error) {
       safeSend(conn, makeMessage(MSG.ERROR, { code: res.error }));
       return;
@@ -322,6 +327,13 @@ export class Host {
       if (!isValidPhoto(data)) return ack({ ok: false, error: ERR.INVALID_PHOTO });
       this.photos.set(pid, data);
       this._savePhotos();
+      ack({ ok: true });
+      return this._changed();
+    }
+    if (msg.type === ACTIONS.SET_AVATAR) {
+      const res = R.setAvatar(this.roster, pid, msg.payload && msg.payload.avatar);
+      if (res.error) return ack({ ok: false, error: res.error });
+      this.roster = res.roster;
       ack({ ok: true });
       return this._changed();
     }

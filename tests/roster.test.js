@@ -92,5 +92,41 @@ test('elenco pubblico e vista del telefono non contengono token', () => {
     assert.ok(!pub.includes(t), 'token nell\'elenco pubblico');
     assert.ok(!view.includes(t), 'token nella vista del telefono');
   }
-  assert.deepEqual(Object.keys(JSON.parse(view)).sort(), ['connectedCount', 'me', 'playersCount', 'roomCode']);
+  assert.deepEqual(Object.keys(JSON.parse(view)).sort(), ['avatars', 'connectedCount', 'me', 'playersCount', 'roomCode']);
+});
+
+// ---------------- Stemmi (Fase 4) ----------------
+import { AVATAR_IDS } from '../js/config/avatars.js';
+
+test('ogni giocatore entra con uno stemma libero, diverso dagli altri', () => {
+  let roster = R.createRoster();
+  for (let i = 0; i < NET.maxPlayers; i++) roster = R.join(roster, { name: `G${i}` }, { ...ids(), rand: 0.99 }).roster;
+  const avatars = roster.order.map((id) => roster.players[id].avatar);
+  assert.equal(new Set(avatars).size, NET.maxPlayers, 'stemmi doppi');
+  assert.ok(avatars.every((a) => AVATAR_IDS.includes(a)));
+  assert.ok(AVATAR_IDS.length >= NET.maxPlayers, 'servono stemmi per tutti');
+});
+
+test('cambio di stemma: solo libero, valido e in sala d\'attesa', () => {
+  const a = joinOk(R.createRoster(), 'Anna');
+  const b = joinOk(a.roster, 'Bruno');
+  const annaAv = b.roster.players[a.playerId].avatar;
+  assert.equal(R.setAvatar(b.roster, b.playerId, annaAv).error, ERR.AVATAR_TAKEN);
+  assert.equal(R.setAvatar(b.roster, b.playerId, 'drago-inventato').error, ERR.INVALID_AVATAR);
+  const free = R.freeAvatars(b.roster)[0];
+  const ok = R.setAvatar(b.roster, b.playerId, free);
+  assert.equal(ok.error, undefined);
+  assert.equal(ok.roster.players[b.playerId].avatar, free);
+  // Rimettere il proprio stemma non è un errore
+  assert.equal(R.setAvatar(ok.roster, b.playerId, free).error, undefined);
+  assert.equal(R.setAvatar({ ...ok.roster, locked: true }, b.playerId, R.freeAvatars(ok.roster)[0]).error, ERR.GAME_STARTED);
+});
+
+test('la vista del telefono contiene gli stemmi di tutti, mai i token', () => {
+  const a = joinOk(R.createRoster(), 'Anna');
+  const b = joinOk(a.roster, 'Bruno');
+  const v = R.viewForPlayer(b.roster, 'ABCD', a.playerId);
+  assert.deepEqual(Object.keys(v.avatars).sort(), [a.playerId, b.playerId].sort());
+  assert.equal(v.me.avatar, b.roster.players[a.playerId].avatar);
+  assert.ok(!JSON.stringify(v).includes('segreto'));
 });

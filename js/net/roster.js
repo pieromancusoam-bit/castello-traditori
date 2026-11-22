@@ -3,6 +3,7 @@
 
 import { NET } from '../config/net-config.js';
 import { ERR, cleanName } from './protocol.js';
+import { AVATAR_IDS } from '../config/avatars.js';
 
 export function createRoster() {
   return { players: {}, order: [], locked: false };
@@ -15,7 +16,7 @@ const nameTaken = (roster, name) =>
   Object.values(roster.players).some((p) => p.name.toLowerCase() === name.toLowerCase());
 
 // Ingresso o rientro di un telefono.
-// hello: { token?, name? }; ids: { newId, newToken, now }
+// hello: { token?, name? }; ids: { newId, newToken, now, rand? } (rand in [0,1) sceglie lo stemma)
 // Restituisce { roster, playerId, token, rejoined } oppure { roster, error }
 export function join(roster, hello, ids) {
   const known = findByToken(roster, hello.token);
@@ -35,13 +36,31 @@ export function join(roster, hello, ids) {
   if (roster.order.length >= NET.maxPlayers) return { roster, error: ERR.ROOM_FULL };
   if (nameTaken(roster, name)) return { roster, error: ERR.NAME_TAKEN };
 
-  const p = { id: ids.newId, name, token: ids.newToken, connected: true, lastSeen: ids.now, joinedAt: ids.now };
+  const free = freeAvatars(roster);
+  const avatar = free.length ? free[Math.floor((ids.rand || 0) * free.length)] : null;
+  const p = { id: ids.newId, name, token: ids.newToken, avatar, connected: true, lastSeen: ids.now, joinedAt: ids.now };
   return {
     roster: { ...roster, players: { ...roster.players, [p.id]: p }, order: [...roster.order, p.id] },
     playerId: p.id,
     token: p.token,
     rejoined: false,
   };
+}
+
+// Stemmi non ancora presi
+export function freeAvatars(roster) {
+  const taken = new Set(Object.values(roster.players).map((p) => p.avatar));
+  return AVATAR_IDS.filter((a) => !taken.has(a));
+}
+
+// Cambio di stemma dal telefono: solo in sala d'attesa, solo uno libero
+export function setAvatar(roster, id, avatar) {
+  const p = roster.players[id];
+  if (!p) return { roster, error: ERR.NOT_JOINED };
+  if (roster.locked) return { roster, error: ERR.GAME_STARTED };
+  if (!AVATAR_IDS.includes(avatar)) return { roster, error: ERR.INVALID_AVATAR };
+  if (p.avatar !== avatar && !freeAvatars(roster).includes(avatar)) return { roster, error: ERR.AVATAR_TAKEN };
+  return { roster: patch(roster, id, { avatar }) };
 }
 
 function patch(roster, id, fields) {
@@ -84,7 +103,7 @@ export function remove(roster, id) {
 export function publicList(roster) {
   return roster.order.map((id) => {
     const p = roster.players[id];
-    return { id: p.id, name: p.name, connected: p.connected };
+    return { id: p.id, name: p.name, avatar: p.avatar || null, connected: p.connected };
   });
 }
 
@@ -95,7 +114,9 @@ export function viewForPlayer(roster, roomCode, playerId) {
   const list = Object.values(roster.players);
   return {
     roomCode,
-    me: { id: me.id, name: me.name },
+    me: { id: me.id, name: me.name, avatar: me.avatar || null },
+    // Stemmi di tutti (pubblici): per i nomi nelle griglie e per vedere quali sono liberi
+    avatars: Object.fromEntries(roster.order.map((id) => [id, roster.players[id].avatar || null])),
     playersCount: list.length,
     connectedCount: list.filter((p) => p.connected).length,
   };

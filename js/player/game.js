@@ -8,6 +8,11 @@ import { countdownHtml, runCountdown } from '../ui/countdown.js';
 import { coins } from '../ui/format.js';
 import { inventoryButtonHtml, inventoryHtml, itemHintHtml, giftHtml } from './inventory.js';
 import { EVENTS } from '../config/game-config.js';
+import { avatarSvg } from '../ui/heraldry.js';
+
+// Stemmi di tutti i giocatori (pubblici), aggiornati a ogni vista
+let crests = {};
+const crestHtml = (id) => (crests[id] ? avatarSvg(crests[id], 'crest crest-mini') : '');
 
 const FACTION = { faithfuls: 'Leale', traitors: 'Traditore' };
 const FACTION_A = { faithfuls: 'un Leale', traitors: 'un Traditore' };
@@ -246,6 +251,7 @@ export function createGameScreen(root, client) {
       ui.vision = false;
       if (v.phase === 'roles') ui.roleSeenOnce = false; // partita nuova: si guarda di nuovo il ruolo
     }
+    crests = client.view.avatars || {};
     syncTimer(v);
     syncTorch(v);
 
@@ -260,7 +266,7 @@ export function createGameScreen(root, client) {
         <header class="game-top">
           <span>${v.day ? `Giorno ${v.day}` : 'Il castello'}</span>
           <span class="top-pot">${coins(v.pot)} monete</span>
-          <span>${esc(v.me.name)}${v.me.status !== 'alive' ? ' · spettatore' : ''}</span>
+          <span class="top-me">${crestHtml(v.me.id)}${esc(v.me.name)}${v.me.status !== 'alive' ? ' · spettatore' : ''}</span>
           ${night || v.me.status !== 'alive' ? '' : inventoryButtonHtml(v, ui)}
         </header>
         ${countdownHtml('phone-countdown')}
@@ -340,9 +346,9 @@ function confirmHtml(ui, label) {
 
 function pickGrid(options, kind, ui, nameOf, extra = () => '', disabled = []) {
   return `<div class="pick-grid">${options.map((id) => disabled.includes(id)
-    ? `<button class="btn pick is-ally" disabled>${esc(nameOf(id))}<small>complice</small></button>`
+    ? `<button class="btn pick is-ally" disabled>${crestHtml(id)}${esc(nameOf(id))}<small>complice</small></button>`
     : `<button class="btn pick ${ui.pending && ui.pending.value === id ? 'is-pending' : ''}" data-pick="${esc(id)}" data-kind="${kind}">
-      ${esc(nameOf(id))}${extra(id)}
+      ${crestHtml(id)}${esc(nameOf(id))}${extra(id)}
     </button>`).join('')}</div>`;
 }
 

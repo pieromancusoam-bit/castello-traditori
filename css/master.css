@@ -470,3 +470,10 @@
 @media (prefers-reduced-motion: reduce) {
   .vote-in, .reveal .reveal-name, .unveil li.is-new span, .phase-night .stage { animation: none; }
 }
+/* Stemmi araldici */
+.crest-canvas { width: 100%; height: 100%; display: grid; place-items: center; padding: 8%; }
+.crest-canvas .crest { width: 100%; height: 100%; }
+.crest-badge { position: absolute; right: 4%; bottom: 4%; width: 28%; filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.7)); }
+.crest-badge .crest { width: 100%; height: auto; display: block; }
+.player .thumb .crest { width: 100%; height: 100%; display: block; }
+.player .thumb:has(.crest) { background: none; }

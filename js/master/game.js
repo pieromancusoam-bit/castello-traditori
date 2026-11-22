@@ -299,12 +299,12 @@ function stageHtml(v, nameOf, host) {
         ${suspects}
         ${eventHtml(v)}
         ${cursesHtml(v, nameOf)}
-        ${portraitWallHtml(v.players, { photoOf: (id) => host.photoOf(id), breakingId: st.victimId, suspects: st.suspects })}`;
+        ${portraitWallHtml(v.players, { photoOf: (id) => host.photoOf(id), avatarOf: (id) => host.avatarOf(id), breakingId: st.victimId, suspects: st.suspects })}`;
     }
     case 'mission':
       return missionStageHtml(v, nameOf);
     case 'presentations':
-      return presentationHtml(v, nameOf, (id) => portraitFrameHtml(v.players.find((p) => p.id === id), host.photoOf(id)));
+      return presentationHtml(v, nameOf, (id) => portraitFrameHtml(v.players.find((p) => p.id === id), host.photoOf(id), host.avatarOf(id)));
     case 'roundtable':
       if (st.stage === 'discussion') {
         return `<h1>Tavola Rotonda</h1>
@@ -326,7 +326,7 @@ function stageHtml(v, nameOf, host) {
         : st.reason === 'gone' ? 'Al tramonto il pugnale cerca la sua vittima… ma ha già lasciato il castello.'
         : 'Al tramonto nessuno è caduto: il Traditore non ha colpito.';
       return `<h1>Il tramonto</h1><p class="lead ${st.victimId ? 'after-break' : ''}">${text}</p>
-        ${portraitWallHtml(v.players, { photoOf: (id) => host.photoOf(id), breakingId: st.victimId, suspects: [] })}`;
+        ${portraitWallHtml(v.players, { photoOf: (id) => host.photoOf(id), avatarOf: (id) => host.avatarOf(id), breakingId: st.victimId, suspects: [] })}`;
     }
     case 'night': {
       const rest = v.event && !v.event.cancelled && (v.event.id === 'banquet' || v.event.id === 'daylightMurder')
@@ -414,7 +414,7 @@ function playCeremony(stage, v, nameOf, host, timers, show, onDone) {
       spot.className = 'cer-spot';
       spot.innerHTML = `
         <div class="cer-portrait">
-          ${portraitFrameHtml(playerOf(r.playerId), host.photoOf(r.playerId))}
+          ${portraitFrameHtml(playerOf(r.playerId), host.photoOf(r.playerId), host.avatarOf(r.playerId))}
           <div class="cer-flame-slot"></div>
         </div>
         <p class="cer-name">${esc(nameOf(r.playerId))}</p>
@@ -438,7 +438,7 @@ function playCeremony(stage, v, nameOf, host, timers, show, onDone) {
       <h1>${banish ? 'Si bandisce ancora' : 'Tutti chiudono la partita'}</h1>
       <div class="cer-row">${list.map((r) => `
         <figure class="cer-mini is-${r.choice}">
-          ${portraitFrameHtml(playerOf(r.playerId), host.photoOf(r.playerId))}
+          ${portraitFrameHtml(playerOf(r.playerId), host.photoOf(r.playerId), host.avatarOf(r.playerId))}
           ${flamesHtml(r.choice)}
           <figcaption>${esc(nameOf(r.playerId))}</figcaption>
         </figure>`).join('')}</div>

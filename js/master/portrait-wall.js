@@ -3,6 +3,7 @@
 // Tutto disegnato in CSS/SVG, nessuna immagine esterna.
 
 import { esc } from '../ui/dom.js';
+import { avatarSvg } from '../ui/heraldry.js';
 
 const FACTION_LABEL = { faithfuls: 'Leale', traitors: 'Traditore' };
 
@@ -40,14 +41,19 @@ const CRACK = `
     </g>
   </svg>`;
 
+// Dentro la cornice: la foto (con lo stemma in un angolo), altrimenti lo stemma, altrimenti le iniziali
+function canvasHtml(p, photo, avatar) {
+  const crest = avatar ? avatarSvg(avatar) : null;
+  if (photo) return `<img src="${esc(photo)}" alt="">${crest ? `<span class="crest-badge">${crest}</span>` : ''}`;
+  if (crest) return `<span class="crest-canvas">${crest}</span>`;
+  return `<span class="initials">${esc(initials(p.name))}</span>`;
+}
+
 // players: elenco pubblico [{ id, name, status, faction }]
-// opts: { photoOf(id) -> dataURL|null, breakingId: id del quadro che si rompe ora }
-export function portraitWallHtml(players, { photoOf, breakingId = null, suspects = [] }) {
+// opts: { photoOf(id) -> dataURL|null, avatarOf(id) -> stemma|null, breakingId: id del quadro che si rompe ora }
+export function portraitWallHtml(players, { photoOf, avatarOf = () => null, breakingId = null, suspects = [] }) {
   const frames = players.map((p) => {
-    const photo = photoOf(p.id);
-    const canvas = photo
-      ? `<img src="${esc(photo)}" alt="">`
-      : `<span class="initials">${esc(initials(p.name))}</span>`;
+    const canvas = canvasHtml(p, photoOf(p.id), avatarOf(p.id));
     const cls = [
       'portrait',
       `is-${p.status}`,
@@ -70,9 +76,6 @@ export function portraitWallHtml(players, { photoOf, breakingId = null, suspects
 }
 
 // Un solo quadro, senza segni (per la Cerimonia delle Polveri)
-export function portraitFrameHtml(p, photo) {
-  const canvas = photo
-    ? `<img src="${esc(photo)}" alt="">`
-    : `<span class="initials">${esc(initials(p.name))}</span>`;
-  return `<div class="frame"><div class="canvas">${canvas}</div></div>`;
+export function portraitFrameHtml(p, photo, avatar = null) {
+  return `<div class="frame"><div class="canvas">${canvasHtml(p, photo, avatar)}</div></div>`;
 }

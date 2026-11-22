@@ -12,6 +12,8 @@ import { fileToPortrait } from './photo.js';
 import { NET } from '../config/net-config.js';
 import { isValidPhoto } from '../net/protocol.js';
 import { createGameScreen } from './game.js';
+import { avatarSvg, avatarName } from '../ui/heraldry.js';
+import { AVATAR_IDS } from '../config/avatars.js';
 
 const NAME_ERRORS = new Set(['NAME_REQUIRED', 'NAME_TAKEN']);
 
@@ -34,6 +36,7 @@ export function startPlayer(root, { roomCode, peerServer, newIdentity }) {
     store.remove(KEYS.myPhoto);
   }
   let photoState = { sending: false, rejected: false, msg: '', autoTries: 0 };
+  let crestPicker = false; // griglia degli stemmi aperta
 
   const saveIdentity = (id) => store.set(KEYS.player, { roomCode, token: id.token, name: id.name });
 
@@ -64,7 +67,7 @@ export function startPlayer(root, { roomCode, peerServer, newIdentity }) {
         return gameRender();
       }
       autoSendPhoto();
-      return renderWaiting(root, client, myPhoto, photoState.msg);
+      return renderWaiting(root, client, myPhoto, photoState.msg, crestPicker);
     }
     return renderConnecting(root, client);
   }
@@ -78,6 +81,17 @@ export function startPlayer(root, { roomCode, peerServer, newIdentity }) {
     setTimeout(() => render(), 1500);
   });
   on(root, '[data-act="retry"]', 'click', () => client && client.retryNow());
+  // Stemma: si sceglie tra quelli liberi
+  on(root, '[data-act="crest-open"]', 'click', () => {
+    crestPicker = !crestPicker;
+    render();
+  });
+  on(root, '[data-crest]', 'click', async (e, btn) => {
+    btn.disabled = true;
+    const res = await client.sendAction(ACTIONS.SET_AVATAR, { avatar: btn.dataset.crest });
+    if (res.ok) crestPicker = false;
+    render();
+  });
 
   // Ritratto: scatto (o scelta) -> piccolo JPEG -> master
   root.addEventListener('change', async (e) => {
@@ -170,8 +184,14 @@ function renderConnecting(root, client) {
     </section>`;
 }
 
-function renderWaiting(root, client, myPhoto, photoMsg) {
+function renderWaiting(root, client, myPhoto, photoMsg, crestPicker) {
   const v = client.view;
+  const mine = v.me.avatar;
+  const taken = new Set(Object.entries(v.avatars || {}).filter(([id]) => id !== v.me.id).map(([, a]) => a));
+  const picker = crestPicker ? `<div class="crest-grid">${AVATAR_IDS.map((a) => `
+      <button class="crest-choice ${a === mine ? 'is-mine' : ''}" data-crest="${a}" ${taken.has(a) ? 'disabled' : ''} aria-label="${esc(avatarName(a))}">
+        ${avatarSvg(a)}<small>${esc(avatarName(a))}</small>
+      </button>`).join('')}</div>` : '';
   const wl = wakeLockStatus();
   const initials = v.me.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
   root.innerHTML = `
@@ -181,12 +201,17 @@ function renderWaiting(root, client, myPhoto, photoMsg) {
       <p class="big">Guarda lo schermo principale</p>
       <p class="muted">${v.connectedCount} ${v.connectedCount === 1 ? 'giocatore collegato' : 'giocatori collegati'}</p>
       <div class="my-portrait">
-        <div class="mini-frame">${myPhoto ? `<img src="${esc(myPhoto)}" alt="Il tuo ritratto">` : `<span>${esc(initials)}</span>`}</div>
+        <div class="mini-frame">${myPhoto ? `<img src="${esc(myPhoto)}" alt="Il tuo ritratto">` : mine ? avatarSvg(mine) : `<span>${esc(initials)}</span>`}</div>
         <label class="btn btn-secondary btn-block">${myPhoto ? 'Cambia ritratto' : 'Scatta il tuo ritratto'}
           <input type="file" accept="image/*" capture="user" data-act="photo-input" hidden>
         </label>
         <p class="muted small">${esc(photoMsg || 'Facoltativo. La foto va solo allo schermo principale.')}</p>
       </div>
+      <div class="my-crest">
+        ${mine ? `<span class="crest-now">${avatarSvg(mine)}</span><span>Il tuo stemma: <strong>${esc(avatarName(mine))}</strong></span>` : ''}
+        <button class="btn btn-ghost btn-small" data-act="crest-open">${crestPicker ? 'Chiudi' : 'Cambia stemma'}</button>
+      </div>
+      ${picker}
       <button class="btn btn-ghost btn-block" data-act="wave">Saluta il master</button>
       <footer class="conn-footer">
         <span class="dot on" aria-hidden="true"></span> Collegato

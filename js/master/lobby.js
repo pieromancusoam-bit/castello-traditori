@@ -8,6 +8,7 @@ import { GAME } from '../config/game-config.js';
 import { loadChoices, saveChoices, resetChoices, settingsPanelHtml, readSettingsForm, settingsSummary } from './settings.js';
 import { choicesToSettings } from './settings-map.js';
 import { openAudioPanel } from './audio-panel.js';
+import { avatarSvg } from '../ui/heraldry.js';
 
 const STATUS_LABEL = {
   opening: 'Apro il castello…',
@@ -111,7 +112,7 @@ export function mountLobby(root, host, { debug, onClose, show }) {
     el('.players').innerHTML = players.map((p) => `
       <li class="player ${p.connected ? 'is-on' : 'is-off'} ${p.wavedRecently ? 'is-waving' : ''}">
         <span class="dot" aria-hidden="true"></span>
-        <span class="thumb">${host.photoOf(p.id) ? `<img src="${esc(host.photoOf(p.id))}" alt="">` : ''}</span>
+        <span class="thumb">${host.photoOf(p.id) ? `<img src="${esc(host.photoOf(p.id))}" alt="">` : avatarSvg(p.avatar) || ''}</span>
         <span class="name">${esc(p.name)}</span>
         <span class="state">${p.wavedRecently ? 'saluta!' : p.connected ? 'collegato' : 'disconnesso'}</span>
         ${p.connected ? '' : `<button class="btn btn-small btn-ghost btn-remove" data-act="remove" data-id="${esc(p.id)}">Rimuovi</button>`}

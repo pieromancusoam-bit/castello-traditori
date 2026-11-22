@@ -189,3 +189,21 @@
 .event-box p { margin: 0.2rem 0; }
 .trial-card.is-fake { border-color: var(--bad); }
 .letter-seal { width: 3.5em; height: 3.5em; margin: 0.3em auto; border-radius: 50%; background: radial-gradient(circle at 35% 35%, var(--velvet-hi), var(--velvet) 60%, #4a0d18); }
+
+/* ---------- Stemmi (Fase 4) ---------- */
+.mini-frame > .crest { width: 100%; height: 100%; background: #241f29; padding: 0.5rem; }
+.my-crest { display: flex; align-items: center; justify-content: center; gap: 0.6rem; margin-top: 0.8rem; flex-wrap: wrap; }
+.crest-now .crest { width: 2.2rem; height: auto; display: block; }
+.crest-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-top: 0.6rem; }
+.crest-choice {
+  background: var(--stone-800, #1d181b); border: 2px solid var(--stone-600, #4a3f45); border-radius: 10px;
+  padding: 0.4rem 0.2rem; color: var(--text); font: inherit; display: flex; flex-direction: column; align-items: center; gap: 0.15rem;
+}
+.crest-choice .crest { width: 100%; max-width: 3.4rem; height: auto; }
+.crest-choice small { font-size: 0.7rem; }
+.crest-choice.is-mine { border-color: var(--gold); background: rgba(212, 174, 74, 0.15); }
+.crest-choice:disabled { opacity: 0.25; }
+.crest-mini { width: 1.5rem; height: auto; flex: none; }
+.pick .crest-mini { width: 1.9rem; align-self: center; }
+.top-me { display: inline-flex; align-items: center; gap: 0.35rem; }
+.top-me .crest-mini { width: 1.2rem; }

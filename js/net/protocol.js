@@ -26,12 +26,15 @@ export const ERR = Object.freeze({
   UNKNOWN_ACTION: 'UNKNOWN_ACTION',
   NO_GAME: 'NO_GAME',
   INVALID_PHOTO: 'INVALID_PHOTO',
+  INVALID_AVATAR: 'INVALID_AVATAR',
+  AVATAR_TAKEN: 'AVATAR_TAKEN',
 });
 
 // Azioni gestite dal master fuori dal motore di gioco
 export const ACTIONS = Object.freeze({
   WAVE: 'WAVE',           // "Saluta il master": prova del canale telefono -> master
   SET_PHOTO: 'SET_PHOTO', // { data: 'data:image/jpeg;base64,...' } ritratto del giocatore
+  SET_AVATAR: 'SET_AVATAR', // { avatar: 'torre' } stemma del giocatore (solo in sala d'attesa)
 });
 
 // Azioni di gioco: passano al motore, che le valida
