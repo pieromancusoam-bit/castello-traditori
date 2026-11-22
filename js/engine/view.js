@@ -3,7 +3,7 @@
 // mai copiare lo stato e togliere pezzi.
 
 import { PHASE, STATUS } from './state.js';
-import { ROLE, factionOf } from './roles.js';
+import { ROLE, factionOf, isTraitorRole } from './roles.js';
 import { nightConsensus, isKiller } from './phases.js';
 import { PRESENTATION_THEMES } from '../config/presentations.js';
 import { MISSION_MODULES } from './missions/index.js';
@@ -161,7 +161,7 @@ function masterStep(s) {
 export function viewFor(s, playerId) {
   const p = s.players[playerId];
   if (!p) return null;
-  const traitor = p.role === ROLE.TRAITOR;
+  const traitor = isTraitorRole(p.role);
   return {
     ...common(s),
     me: {
@@ -173,12 +173,16 @@ export function viewFor(s, playerId) {
       // Diventato Traditore per scelta del castello in questa notte
       justTurned: s.phase === PHASE.NIGHT && p.turnedOnDay === s.day,
     },
-    // Solo i Traditori conoscono i complici
-    allies: traitor
-      ? s.order.filter((id) => id !== p.id && s.players[id].role === ROLE.TRAITOR).map((id) => ({ id, name: s.players[id].name, status: s.players[id].status }))
-      : null,
+    // Solo i Traditori conoscono i complici (il Traditore Segreto li conosce tutti, gli altri non conoscono lui)
+    allies: traitor ? alliesOf(s, p).map((id) => ({ id, name: s.players[id].name, status: s.players[id].status })) : null,
     step: playerStep(s, p),
   };
+}
+
+// Complici noti a un Traditore: i Traditori "normali"; al Traditore Segreto tutti
+export function alliesOf(s, p) {
+  const known = p.role === ROLE.SECRET_TRAITOR ? (r) => isTraitorRole(r) : (r) => r === ROLE.TRAITOR;
+  return s.order.filter((id) => id !== p.id && known(s.players[id].role));
 }
 
 function playerVote(s, p) {

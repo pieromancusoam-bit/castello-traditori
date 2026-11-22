@@ -11,7 +11,12 @@ export const makePlayers = (n) => Array.from({ length: n }, (_, i) => ({ id: `p$
 
 // Di base le regole "essenziali" della Fase 1: niente missioni, presentazioni, discussione
 // minima e Seduzione; Cerimonia con 4. Le regole nuove hanno test propri che le accendono.
-export const BASIC = Object.freeze({ missions: false, presentations: false, discussion: false, seduction: false, finalThreshold: 4 });
+// Fase 3: niente ruoli speciali, eventi e Ultimatum nelle regole "essenziali".
+export const BASIC = Object.freeze({
+  missions: false, presentations: false, discussion: false, seduction: false, finalThreshold: 4,
+  ultimatum: false, roles: { seer: false, knight: false, secretTraitor: false },
+  events: { fog: false, doubleStakes: false, banquet: false, daylightMurder: false },
+});
 export function newGame(n, seed = 1, settings = {}) {
   return createGame({ players: makePlayers(n), seed, settings: { ...BASIC, ...settings } });
 }

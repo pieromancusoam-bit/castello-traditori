@@ -2,7 +2,7 @@
 // (una copia privata dello stato), mai lo stato originale.
 
 import { PHASE, STATUS } from './state.js';
-import { ROLE, factionOf, alivePlayers, aliveTraitors, aliveFaithfuls, winnerOf } from './roles.js';
+import { ROLE, factionOf, isTraitorRole, alivePlayers, aliveTraitors, aliveFaithfuls, winnerOf } from './roles.js';
 import { openBallot, outcomeOf, tally } from './votes.js';
 import { FINAL_CHOICES } from './actions.js';
 import { MISSION_MODULES, drawMission, missionValue } from './missions/index.js';
@@ -44,7 +44,7 @@ export function enterPresentations(s, rng) {
   order.forEach((id, i) => { themes[id] = pool[i % pool.length]; });
   s.phase = PHASE.PRESENTATIONS;
   s.phaseData = { order, themes, index: 0, timer: null };
-  setTimer(s, GAME.presentationMs);
+  setTimer(s, s.settings.presentationMs);
 }
 
 // "Avanti": il prossimo che si presenta; dopo l'ultimo, i giochi del giorno
@@ -52,7 +52,7 @@ export function nextPresentation(s, rng) {
   const pd = s.phaseData;
   if (pd.index + 1 < pd.order.length) {
     pd.index += 1;
-    setTimer(s, GAME.presentationMs);
+    setTimer(s, s.settings.presentationMs);
   } else startDayGames(s, rng);
 }
 
@@ -107,7 +107,7 @@ export function enterRoundtable(s) {
   s.phaseData = { stage: 'voting', ballot: openBallot(), outcome: null, timer: null };
   if (s.settings.discussion) {
     s.phaseData.stage = 'discussion';
-    setTimer(s, discussionMs(alivePlayers(s).length));
+    setTimer(s, s.settings.discussionMs ?? discussionMs(alivePlayers(s).length));
   }
 }
 
@@ -292,7 +292,7 @@ function enterUnveil(s) {
 // Prima i Leali, poi i Traditori: un Traditore viene sempre svelato per ultimo
 export function unveilNext(s) {
   const live = aliveIds(s);
-  const isTraitor = (id) => s.players[id].role === ROLE.TRAITOR;
+  const isTraitor = (id) => isTraitorRole(s.players[id].role);
   const ordered = [...live.filter((id) => !isTraitor(id)), ...live.filter(isTraitor)];
   const next = ordered.find((id) => !s.phaseData.revealed.includes(id));
   if (next) s.phaseData.revealed.push(next);

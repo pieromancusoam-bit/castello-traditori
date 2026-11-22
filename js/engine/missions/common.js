@@ -17,9 +17,11 @@ export const aliveIdList = (s) => s.order.filter((id) => s.players[id].status ==
 
 // Timer: il motore non conosce il tempo. Salva solo durata e chiave; il master avvia il
 // conto alla rovescia e, allo scadere, manda TIMER_EXPIRED con la stessa chiave.
+// Durante i giochi la durata segue il moltiplicatore delle impostazioni (missionTimeScale).
 export function setTimer(s, ms) {
   s.timerSeq = (s.timerSeq || 0) + 1;
-  s.phaseData.timer = { key: s.timerSeq, ms };
+  const scale = s.phase === 'mission' ? (s.settings && s.settings.missionTimeScale) || 1 : 1;
+  s.phaseData.timer = { key: s.timerSeq, ms: Math.round(ms * scale) };
 }
 
 export function clearTimer(s) {

@@ -54,4 +54,56 @@ export const GAME = Object.freeze({
   chatMaxMessages: 30,
   // Tetto ai byte (UTF-8) di tutti i testi della chat insieme: si tolgono i messaggi più vecchi
   chatMaxBytes: 4000,
+
+  // ---- Fase 3 ----
+
+  // Ruoli speciali (modalità avanzata). Con "Automatico" si accendono da questi giocatori in su.
+  // Il Traditore Segreto è uno degli N Traditori e serve almeno `secretTraitorMinTraitors` Traditori.
+  specialRoles: Object.freeze({
+    seerAutoFrom: 7,
+    knightAutoFrom: 7,
+    secretTraitorAutoFrom: 14,
+    secretTraitorMinTraitors: 2,
+  }),
+
+  // Eventi: dal giorno `eventMinDay`, ogni giorno con probabilità `eventChance`;
+  // dopo un evento ne servono `eventGapDays` prima del prossimo (al massimo uno ogni due giorni)
+  eventChance: 0.5,
+  eventMinDay: 2,
+  eventGapDays: 2,
+
+  // Omicidio a vista: durata della "scena" in cui il Traditore tocca la vittima
+  sceneMs: 20000,
+
+  // Timer dei giochi: moltiplicatore di base (si cambia nelle impostazioni partita)
+  missionTimeScale: 1,
 });
+
+// Oggetti: nome, descrizione e peso nell'estrazione del premio di una missione riuscita
+export const ITEMS = Object.freeze({
+  shield: Object.freeze({ name: 'Scudo', text: 'Ti protegge da un omicidio notturno. Funziona da solo e si consuma quando ti salva.', weight: 3 }),
+  dagger: Object.freeze({ name: 'Pugnale', text: 'Alla Tavola Rotonda il tuo voto conta doppio. Tutti lo vedranno alla rivelazione dei voti.', weight: 2 }),
+  curse: Object.freeze({ name: 'Maledizione', text: 'Dopo i giochi del giorno: chi scegli non vota alla prossima Tavola Rotonda. Il castello annuncia il maledetto, non chi l\'ha lanciata.', weight: 2 }),
+  seal: Object.freeze({ name: 'Sigillo', text: 'Annulla una Maledizione lanciata contro di te. Tutti lo vedranno.', weight: 2 }),
+  mirror: Object.freeze({ name: 'Specchio', text: 'Ti mostra in segreto chi ha votato contro di te all\'ultima Tavola Rotonda.', weight: 1 }),
+});
+export const ITEM_IDS = Object.freeze(Object.keys(ITEMS));
+
+// Eventi del castello (si accendono o spengono dalle impostazioni)
+export const EVENTS = Object.freeze({
+  fog: Object.freeze({ name: 'Nebbia', text: 'Alla Tavola Rotonda di oggi i voti si vedranno solo come conteggio, senza nomi.' }),
+  doubleStakes: Object.freeze({ name: 'Doppia posta', text: 'Un gioco di oggi vale il doppio. Ma se fallisce, il montepremi perde monete.' }),
+  banquet: Object.freeze({ name: 'Banchetto', text: 'Stanotte nessuno morirà. Ma domani si bandiranno due giocatori.' }),
+  daylightMurder: Object.freeze({ name: 'Omicidio a vista', text: 'Oggi un Traditore ucciderà alla luce del giorno. La vittima si scoprirà al tramonto.' }),
+});
+export const EVENT_IDS = Object.freeze(Object.keys(EVENTS));
+
+// Scene dell'Omicidio a vista: il master le mostra mentre tutti toccano il telefono
+export const SCENES = Object.freeze([
+  'Il castello brinda: alzate i calici e guardatevi negli occhi.',
+  'Si spengono le candele del salone: restate immobili.',
+  'Il giullare entra e fa un inchino a ognuno di voi.',
+  'Un corvo attraversa la sala: seguitelo con lo sguardo.',
+  'Il ritratto del vecchio re vi osserva: nessuno parli.',
+  'Suona la campana della torre: contate i rintocchi in silenzio.',
+]);
