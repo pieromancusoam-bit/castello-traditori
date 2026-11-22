@@ -151,3 +151,22 @@ test('i numeri si leggono per esteso, anche con il punto delle migliaia', () => 
   assert.equal(spokenText('In palio ci sono 1.250 monete, gioco 2 di 3.'), 'In palio ci sono milleduecentocinquanta monete, gioco due di tre.');
   assert.equal(spokenText('Il montepremi è di 12.000 monete.'), 'Il montepremi è di dodicimila monete.');
 });
+
+// ---------------- Spiegazione delle regole ----------------
+import { rulesSlides } from '../js/config/rules-intro.js';
+import { resolveSettings } from '../js/engine/state.js';
+
+test('le regole a inizio partita seguono le impostazioni e non dicono quanti sono i Traditori', () => {
+  for (const n of [5, 8, 12, 16]) {
+    const all = rulesSlides(resolveSettings(n, { roles: { seer: true, knight: true, secretTraitor: true } }));
+    const text = JSON.stringify(all);
+    assert.ok(all.some((s) => s.items && s.items.length === 5), 'manca la diapositiva degli oggetti');
+    assert.ok(text.includes('Veggente'));
+    if (n >= 8) assert.ok(text.includes('Traditore Segreto'));
+    assert.ok(!/\b(un|uno|due|tre|quattro|\d+) Traditori?\b/i.test(text.replace(/un Traditore\./g, '')), `numero di Traditori nelle regole (${n})`);
+    for (const s of all) assert.ok(s.title && s.lines.length && s.say.length > 20);
+  }
+  const bare = rulesSlides(resolveSettings(6, { missions: false, roles: { seer: false, knight: false, secretTraitor: false }, events: { fog: false, doubleStakes: false, banquet: false, daylightMurder: false } }));
+  assert.ok(!JSON.stringify(bare).includes('Veggente'));
+  assert.ok(!bare.some((s) => s.items), 'senza giochi niente oggetti');
+});

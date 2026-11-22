@@ -108,6 +108,13 @@ export function createShow() {
       notify();
     },
     sound: (id) => playSound(id),
+    // Una frase fuori dalla partita (spiegazione delle regole): zittisce la precedente
+    speak(text) {
+      clearTimeline();
+      stopSpeech();
+      say(text);
+      notify();
+    },
     // Una sola schermata alla volta: la nuova sostituisce la vecchia
     watch(fn) {
       screen = fn;

@@ -9,6 +9,8 @@ import { loadChoices, saveChoices, resetChoices, settingsPanelHtml, readSettings
 import { choicesToSettings } from './settings-map.js';
 import { openAudioPanel } from './audio-panel.js';
 import { avatarSvg } from '../ui/heraldry.js';
+import { openRulesIntro } from './rules-intro.js';
+import { resolveSettings } from '../engine/state.js';
 
 const STATUS_LABEL = {
   opening: 'Apro il castello…',
@@ -83,7 +85,11 @@ export function mountLobby(root, host, { debug, onClose, show }) {
   on(root, '[data-act="start"]', 'click', () => {
     const off = host.publicPlayers().filter((p) => !p.connected).length;
     if (off && !confirm(`${off} giocatori risultano disconnessi. Iniziare lo stesso?`)) return;
-    host.startGame(choicesToSettings(choices));
+    // Prima la spiegazione delle regole (si può saltare), poi la partita
+    const settings = choicesToSettings(choices);
+    openRulesIntro(show, resolveSettings(Math.max(GAME.minPlayers, host.publicPlayers().length), settings), () => {
+      if (host.canStart) host.startGame(settings);
+    });
   });
   on(root, '[data-act="close"]', 'click', () => {
     if (confirm('Chiudere la stanza? I telefoni collegati verranno scollegati.')) onClose();
