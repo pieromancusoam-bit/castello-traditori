@@ -154,6 +154,12 @@ function banish(s, playerId) {
   p.status = STATUS.BANISHED;
   const faction = factionOf(p.role);
   s.history.push({ day: s.day, type: 'banished', playerId, faction });
+  // Primo Traditore bandito (una sola volta per partita): la notte dopo l'Ultimatum.
+  // Nella Cerimonia non c'è una notte dopo.
+  if (isTraitorRole(p.role) && !s.ultimatum.done) {
+    s.ultimatum.done = true;
+    s.ultimatum.next = s.phase !== PHASE.FINAL && s.settings.ultimatum;
+  }
   return faction;
 }
 
