@@ -4,6 +4,9 @@ Aggiornato da Claude Code alla fine di ogni sessione di lavoro.
 
 ## Fase corrente
 
+**Fase 4 — Spettacolo**: codice completo e provato in locale il 2026-11-22 (non ancora pubblicato).
+Si prova con i telefoni veri insieme a Fase 2b e Fase 3 nella seconda serata (checklist in fondo).
+
 **Fase 3 — Profondità**: codice completo e provato in locale il 2026-11-22 (non ancora pubblicato);
 la seconda serata con il gruppo proverà insieme Fase 2b e Fase 3 (checklist in fondo).
 
@@ -120,6 +123,56 @@ Fase 0 — Prototipo di connessione: **completata il 2026-11-21** (prova con 3 t
   (scena e tramonto), Catena della Memoria in partita, Nebbia, Cerimonia e ruoli svelati alla fine,
   "Riprendi" del master durante la discussione (da 2:46 riparte a 2:38) e telefono ricaricato (2:07).
   Banchetto e Doppia posta provati solo con i test. Nessun errore in console.
+
+- Fase 4, codice:
+  - **regista** puro (`js/show/director.js`): confronta due schermate del master e decide frasi,
+    effetti e musica. Usa solo `viewForMaster`, quindi non può dire segreti;
+  - **narratore** con la sintesi vocale del browser: voce italiana maschile scelta da sola (Diego,
+    Cosimo, Luca…), tono 0,75 e velocità 0,88 (`js/config/show-config.js`), frasi lunghe spezzate,
+    coda; 54 momenti con 4–5 frasi originali ciascuno in `js/config/narrator-lines.js`; la prima
+    volta in partita spiega la regola (Tavola Rotonda, voto, notte, scena, Cerimonia) e legge le
+    regole di ogni gioco una volta sola; mai la stessa frase due volte di fila; dopo "Riprendi"
+    nessuna frase ripetuta;
+  - **"Avanti" aspetta il narratore** (scritta "Il narratore parla…"); tenendolo premuto si salta
+    e le animazioni arrivano subito alla fine;
+  - **musica ed effetti** generati dal vivo con Web Audio (nessun file, nessuna licenza): quattro
+    sottofondi (giorno, notte, Tavola Rotonda, finale) con dissolvenza e volume che si abbassa
+    quando parla il narratore; campana della colazione, rintocco del voto, gong, porta che si
+    chiude al bando, cuore, vetro che si rompe, monete, fallimento, maledizione, sigillo, notte,
+    fanfara, fiamme della Cerimonia. File veri facoltativi in `js/config/sounds.js`;
+  - **pannello Audio** sul master (sala d'attesa e partita): voce sì/no, scelta della voce con
+    "Prova voce", volumi di voce, musica ed effetti; salvato nel browser del master;
+  - **suspense**: voti che compaiono uno alla volta con un rintocco (dal meno al più votato nella
+    Nebbia), esito alla fine; bandito con il nome che pulsa e la fazione dopo 4,5 s di silenzio;
+    ultime maschere con silenzio prima di ogni fazione; vincitori con bagliore; notte che respira;
+  - **stemmi araldici**: 20 stemmi originali in SVG (`js/ui/heraldry.js`); il master ne assegna
+    uno libero a ogni giocatore, il telefono lo cambia nella sala d'attesa tra quelli liberi.
+    Sul master al posto delle iniziali (o in un angolo della foto), sul telefono accanto al nome
+    e nelle griglie di voto e di notte (uguali per tutti);
+  - **vibrazioni**: cambio di fase, inizio di voto/scelta/gioco, 10 s alla fine dei timer lunghi;
+    decise solo da fase e momento pubblici; su iPhone (niente vibrazione) un lampo dello schermo.
+- Test: 190 (`npm test`). Nuovi: frasi complete (4–5 per momento, variabili note, ogni momento del
+  regista esiste), narratore senza ripetizioni e con "prima volta", 60 partite casuali in cui ogni
+  frase è completa e una schermata uguale non produce segnali; stemmi (unici, solo liberi, solo in
+  sala d'attesa); **obbligatorio**: in 60 partite casuali ogni telefono vibra negli stessi momenti.
+- Prova in locale (master con `?debug=1` + 5 schede): voce Microsoft Cosimo scelta da sola,
+  frasi spezzate e in coda, "Avanti" bloccato e salto tenendo premuto, regole del Forziere lette,
+  presentazioni, "Riprendi" senza frasi ripetute, voti con esito, bando con silenzio e fazione,
+  prima notte con la spiegazione, stemmi (scelta, stemma preso disattivato, parete della
+  Colazione), vibrazione e lampo al cambio di fase. Nessun errore in console. **Non ascoltati**:
+  musica ed effetti (il browser di prova è muto); Cerimonia e finale visti solo con i test.
+
+## Fase 4 — attività
+
+- [x] Regista e frasi del narratore
+- [x] Voce, musica ed effetti sintetizzati, pannello Audio
+- [x] Suspense nelle rivelazioni
+- [x] Stemmi araldici
+- [x] Vibrazioni (e lampo su iPhone)
+- [x] Prova in locale
+- [ ] Ascoltare voce, musica ed effetti sulla TV vera e regolare volumi e tempi
+- [ ] Facoltativo: file audio registrati (CC0) al posto dei suoni sintetizzati
+- [ ] Push su GitHub Pages e seconda serata con il gruppo
 
 ## Fase 3 — attività
 
@@ -239,12 +292,32 @@ Fase 0 — Prototipo di connessione: **completata il 2026-11-21** (prova con 3 t
 | 2026-11-22 | Di notte il pulsante "Oggetti" non compare: la schermata notturna resta uguale per tutti | Decisione minore di Claude |
 | 2026-11-22 | Riepilogo della sala d'attesa: "Traditori automatico / scelti a mano", mai il numero | Decisione minore di Claude: lo schermo lo vedono tutti |
 
+| 2026-11-22 | Fase 4: piano accettato con le risposte consigliate (stemma scelto in sala d'attesa, al posto delle iniziali e piccolo sulla foto; vibrazioni solo pubbliche e uguali per tutti; lampo su iPhone; il narratore legge le regole la prima volta; "Avanti" bloccato con tocco lungo per saltare; una traccia per momento; musica CC BY ammessa con crediti; frasi scritte da Claude) | Decisione di Piero ("Sì, procedi") |
+| 2026-11-22 | Musica ed effetti generati dal browser (Web Audio) invece di file scaricati; i file restano possibili in `js/config/sounds.js` | Decisione minore di Claude: costo zero, nessuna licenza, nessun download da approvare; si scaricano file veri solo se il suono sintetizzato non piace |
+| 2026-11-22 | Narratore, suoni e musica fuori dal motore: un regista puro confronta le schermate del master (invece degli effetti `narrate`/`playSound` del motore previsti in ARCHITETTURA) | Decisione minore di Claude: non può rivelare segreti per costruzione e non tocca il motore |
+| 2026-11-22 | Dopo "Riprendi" il narratore tace fino al momento successivo (solo la musica riparte); la memoria delle regole già spiegate è salvata per stanza e si azzera a ogni partita nuova | Decisione minore di Claude |
+| 2026-11-22 | Nella Nebbia i conteggi compaiono dal meno al più votato | Decisione minore di Claude: suspense fino all'ultimo |
+| 2026-11-22 | Vibrazione del tempo quasi scaduto solo per timer da 30 s in su (non per le domande lampo dell'Enigma) | Decisione minore di Claude |
+| 2026-11-22 | Il lampo al posto della vibrazione è tenue di notte | Decisione minore di Claude: la luce non deve farsi notare |
+
 ## Decisioni aperte
 
 - Nome definitivo del gioco (provvisorio: Il Castello dei Traditori)
 - Montepremi "per la gloria" o con premio reale
 
 ## Problemi noti
+
+- Fase 4: **cache del browser**: dopo un aggiornamento alcuni browser tengono i file vecchi per un po'
+  (GitHub Pages: 10 minuti). Sul master Ctrl+F5; sui telefoni ricaricare la pagina e, se serve,
+  chiudere e riaprire la scheda.
+- Fase 4: le voci dipendono dal browser. Chrome su Windows: Cosimo (maschile) ed Elsa; Edge ha
+  voci "naturali" più belle (Diego, Giuseppe) che però ignorano in parte il tono. Un browser senza
+  voce italiana (alcune TV) resta muto: il pannello Audio lo dice e si gioca con il testo.
+- Fase 4: musica ed effetti mai ascoltati davvero (il browser di prova è muto): volumi, tempi e
+  gusto vanno regolati sulla TV (`js/config/show-config.js`, `js/platform/audio.js`).
+- Fase 4: Android vibra solo dopo il primo tocco sulla pagina (regola del browser); su iPhone c'è
+  il lampo. Chi ha la vibrazione spenta non sente nulla.
+- Fase 4: le partite salvate prima della Fase 4 riprendono con le iniziali al posto degli stemmi.
 
 - Fase 3: Banchetto e Doppia posta non sono ancora stati visti sullo schermo (solo test del motore):
   da guardare nella seconda serata o forzandoli con `?debug=1`.
@@ -297,6 +370,37 @@ Fase 0 — Prototipo di connessione: **completata il 2026-11-21** (prova con 3 t
   WebRTC non sempre avvisa subito della chiusura.
 - Piano B: da GitHub Pages (https) il server di aggancio personale deve essere raggiungibile in
   https/wss. Un PeerServer su un PC di casa in semplice http non funziona senza un certificato.
+
+## Checklist Fase 4 (spettacolo) — da fare prima o durante la seconda serata
+
+Prima della serata
+1. Push su GitHub Pages. Sul master **Ctrl+F5**; sui telefoni già usati ricaricate la pagina.
+2. Master collegato alla TV con l'audio della TV (o una cassa). Aprite **Audio**: controllate che
+   la voce sia italiana e maschile, premete "Prova voce" e "Prova effetto", regolate i volumi.
+   Se la voce non piace, provate le altre dell'elenco (con Edge ci sono le voci "naturali").
+
+Durante la partita
+3. Sala d'attesa: ogni telefono ha uno stemma; "Cambia stemma" mostra quelli liberi, quelli presi
+   sono spenti. Sul master lo stemma compare nell'elenco.
+4. "Inizia la partita": il narratore spiega come guardare il ruolo; la musica parte.
+5. Mentre parla, "Avanti" dice "Il narratore parla…": tenetelo premuto per saltare.
+6. Primo gioco: il narratore legge le regole; le volte dopo no. Risultato con monete o
+   fallimento (suono diverso).
+7. Tavola Rotonda: rintocco, spiegazione la prima volta; alla chiusura i voti compaiono uno alla
+   volta con un rintocco ciascuno, poi l'esito detto a voce.
+8. Bando: porta che si chiude, cuore, silenzio, poi la fazione (a voce e sullo schermo).
+9. Notte: musica scura, spiegazione la prima volta. Alla Colazione campana e quadro che si rompe.
+10. Telefoni: vibrano (Android) o lampeggiano (iPhone) a ogni cambio di fase e all'inizio di ogni
+    voto; nessuno deve vibrare da solo (chat dei Traditori, oggetti, offerte non vibrano).
+11. Stemmi accanto ai nomi nelle griglie di voto e di notte.
+12. Cerimonia: fiamme con il loro suono; ultime maschere con silenzio prima di ogni fazione;
+    vittoria con fanfara e montepremi detto a voce.
+13. A metà partita ricaricate il master e "Riprendi": torna la musica, il narratore non ripete.
+
+Dopo la serata
+14. Annotate: il gruppo ha seguito il narratore senza leggere? Voce troppo lenta o veloce? Frasi
+    da cambiare? Musica e volumi? Suspense troppo lunga (tempi in `show-config.js`)? Vibrazioni
+    fastidiose? Se i suoni sintetizzati non piacciono, si scaricano file registrati (CC0).
 
 ## Checklist per la seconda serata (Fase 2b + Fase 3)
 

@@ -28,7 +28,10 @@ flowchart LR
 /js/config/
     game-config.js       soglie, timer, Traditori per numero di giocatori, valori monete
     missions.js          catalogo missioni (testi + parametri)
-    narrator-lines.js    frasi del narratore, 3–5 varianti per momento
+    narrator-lines.js    frasi del narratore, 4–5 varianti per momento (+ versione "prima volta")
+    show-config.js       voce, volumi, tempi della suspense, vibrazioni (Fase 4)
+    sounds.js            file audio facoltativi; senza file il master sintetizza (Fase 4)
+    avatars.js           stemmi dei giocatori: campo e figura (Fase 4)
 /js/engine/              MOTORE PURO: niente DOM, niente rete, niente timer reali
     state.js             createGame(), forma dello stato
     actions.js           costanti dei tipi di azione
@@ -45,9 +48,15 @@ flowchart LR
     protocol.js          tipi di messaggio + validazione
     host.js              lato master: PeerJS, connessioni, invio viste
     client.js            lato telefono: connessione, riconnessione, invio azioni
+/js/show/                SPETTACOLO PURO (Fase 4), testato con node --test
+    director.js          cuesFor(schermataPrima, schermataDopo) → frasi, suoni, musica
+    narrator.js          lineFor(segnale, memoria, caso) → frase da dire
+    phone-cues.js        phoneBuzz(vistaPrima, vistaDopo) → vibrazione del telefono
 /js/master/              schermate del master (una funzione render per schermata)
+                         show.js esegue i segnali del regista; audio-panel.js = pannello Audio
 /js/player/              schermate del telefono
-/js/ui/                  componenti condivisi (pulsanti, timer, avatar, dialog di conferma)
+/js/ui/                  componenti condivisi (pulsanti, timer, dialog di conferma)
+                         heraldry.js = stemmi araldici disegnati in SVG (Fase 4)
 /js/platform/            wake-lock.js, storage.js, speech.js, audio.js, vibrate.js
 /vendor/                 peerjs.min.js, libreria QR — versione fissata, scaricate una volta
 /assets/                 audio/, img/, fonts/ (solo materiale con licenza libera)
@@ -106,8 +115,12 @@ applyAction(state, action) → { state, effects }
   o dal master stesso (es. `TIMER_EXPIRED`, `ADVANCE_PHASE`).
 - Il motore **valida** ogni azione: un'azione non permessa in quella fase o da quel giocatore
   viene rifiutata (nessun cambiamento di stato, effetto `rejected`).
-- `effects` = cose che il mondo esterno deve fare: `narrate`, `playSound`, `startTimer`,
-  `vibrate`, `save`. Il motore non le esegue: le esegue il master.
+- `effects` = cose che il mondo esterno deve fare (oggi `save`, `phase`, `rejected`).
+  Il motore non le esegue: le esegue il master.
+- Fase 4: narratore, suoni e musica **non** passano dal motore. Il regista (`js/show/director.js`)
+  confronta due `viewForMaster` consecutive e decide frasi, effetti e musica: lavorando solo
+  sullo schermo condiviso non può dire nulla di segreto. Le vibrazioni dei telefoni dipendono
+  solo da fase, giorno e momento della fase (test: stesso risultato su ogni telefono).
 - Nessun `Date.now()` dentro il motore: il tempo entra come azione.
 - Fase 3: il master salva anche `{ key, endsAt }` del timer in corso accanto alla partita; dopo
   "Riprendi" il timer riparte dal tempo rimasto, e ai telefoni arriva `timerLeft` con la vista
@@ -140,10 +153,10 @@ lo stato è piccolo e così la riconnessione è banale.
 
 | Direzione | `t` | Contenuto |
 | --- | --- | --- |
-| telefono → master | `hello` | `{ token?, name?, avatar? }` — primo messaggio; con token = riconnessione |
+| telefono → master | `hello` | `{ token?, name? }` — primo messaggio; con token = riconnessione. Lo stemma lo assegna il master (uno libero a caso) |
 | master → telefono | `welcome` | `{ playerId, token }` |
-| master → telefono | `view` | `{ view }` — la vista filtrata, a ogni cambio di stato |
-| telefono → master | `action` | `{ type, payload, nonce }` — azioni di gioco, `SET_PHOTO` (ritratto JPEG), `WAVE` |
+| master → telefono | `view` | `{ view }` — la vista filtrata, a ogni cambio di stato; contiene anche gli stemmi di tutti (`avatars`, pubblici) |
+| telefono → master | `action` | `{ type, payload, nonce }` — azioni di gioco, `SET_PHOTO` (ritratto JPEG), `SET_AVATAR` (stemma, solo in sala d'attesa), `WAVE` |
 | master → telefono | `ack` | `{ nonce, ok, error? }` |
 | entrambi | `ping` / `pong` | battito ogni 5 s; 3 mancati = disconnesso |
 | master → telefono | `error` | `{ code, message }` — es. stanza piena, partita già iniziata |
