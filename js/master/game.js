@@ -11,6 +11,8 @@ import { coins } from '../ui/format.js';
 import { MISSIONS } from '../config/missions.js';
 import { EVENTS, ITEMS } from '../config/game-config.js';
 import { MISSION_IDS } from '../engine/missions/index.js';
+import { openAudioPanel } from './audio-panel.js';
+import { SHOW } from '../config/show-config.js';
 
 // Solo prove (?debug=1): scelta del prossimo gioco e del prossimo evento
 function debugBarHtml(host) {
@@ -28,7 +30,7 @@ const FACTION_A = { faithfuls: 'un Leale', traitors: 'un Traditore' };
 const FACTION = { faithfuls: 'Leale', traitors: 'Traditore' };
 const SPECIAL_NAME = { seer: 'Veggente', knight: 'Cavaliere', secret_traitor: 'Traditore Segreto' };
 
-export function mountGame(root, host, { debug, onClose }) {
+export function mountGame(root, host, { debug, onClose, show }) {
   root.innerHTML = `
     <section class="master-game">
       <header class="game-bar"></header>
@@ -38,6 +40,7 @@ export function mountGame(root, host, { debug, onClose }) {
       <footer class="game-footer">
         <span class="conn"></span>
         <button class="btn btn-small btn-ghost" data-act="close">Chiudi stanza</button>
+        <button class="btn btn-small btn-ghost" data-act="audio">Audio</button>
         <button class="btn btn-small btn-secondary" data-act="board">Tabellone</button>
         <button class="btn btn-small btn-ghost" data-act="lobby" hidden>Nuova partita, stessi giocatori</button>
         <button class="btn btn-primary btn-advance" data-act="advance"></button>
@@ -51,7 +54,30 @@ export function mountGame(root, host, { debug, onClose }) {
   const timers = [];
 
   let boardOpen = false;
-  on(root, '[data-act="advance"]', 'click', () => {
+  on(root, '[data-act="audio"]', 'click', () => openAudioPanel(show));
+  // Mentre il narratore parla "Avanti" aspetta: tenendolo premuto si salta
+  let holdTimer = null;
+  on(root, '[data-act="advance"]', 'pointerdown', (e, btn) => {
+    if (!btn.classList.contains('is-waiting')) return;
+    btn.classList.add('is-holding');
+    holdTimer = setTimeout(() => {
+      btn.classList.remove('is-holding');
+      el('.stage').classList.add('is-skipped');
+      show.skip();
+    }, SHOW.skipHoldMs);
+  });
+  const cancelHold = () => {
+    clearTimeout(holdTimer);
+    const b = el('[data-act="advance"]');
+    if (b) b.classList.remove('is-holding');
+  };
+  root.addEventListener('pointerup', cancelHold);
+  root.addEventListener('pointerleave', cancelHold);
+  root.addEventListener('pointercancel', cancelHold);
+  show.watch(() => update());
+
+  on(root, '[data-act="advance"]', 'click', (e, btn) => {
+    if (btn.classList.contains('is-waiting')) return;
     // Solo per le prove (?debug=1): salta la discussione minima della Tavola Rotonda
     const v = host.masterView();
     const skip = debug && v && v.phase === 'roundtable' && v.step.stage === 'discussion';
@@ -115,12 +141,14 @@ export function mountGame(root, host, { debug, onClose }) {
     const stageKey = JSON.stringify(v);
     if (stageKey !== shownStage) {
       shownStage = stageKey;
+      show.update(v);
+      el('.stage').classList.remove('is-skipped');
       el('.stage').innerHTML = stageHtml(v, nameOf, host);
       timers.splice(0).forEach(clearTimeout);
       busy = false;
       if (v.phase === 'final' && v.step.stage === 'choice-reveal') {
         busy = true;
-        playCeremony(el('.stage'), v, nameOf, host, timers, () => {
+        playCeremony(el('.stage'), v, nameOf, host, timers, show, () => {
           busy = false;
           update();
         });
@@ -129,8 +157,11 @@ export function mountGame(root, host, { debug, onClose }) {
 
     let label = advanceLabel(v);
     if (!label && debug && v.phase === 'roundtable' && v.step.stage === 'discussion') label = 'Salta la discussione (prova)';
-    el('[data-act="advance"]').hidden = !label || busy;
-    el('[data-act="advance"]').textContent = label || '';
+    const adv = el('[data-act="advance"]');
+    const waiting = Boolean(label) && !busy && show.busy();
+    adv.hidden = !label || busy;
+    adv.classList.toggle('is-waiting', waiting);
+    adv.textContent = waiting ? 'Il narratore parla… (tieni premuto per saltare)' : label || '';
     el('[data-act="lobby"]').hidden = v.phase !== 'ended';
 
     const off = host.publicPlayers().filter((p) => !p.connected).map((p) => p.name);
@@ -353,7 +384,7 @@ function flamesHtml(choice) {
 }
 
 // Attesa, poi per ogni giocatore: ritratto e nome, poi le fiamme. Infine il riepilogo.
-function playCeremony(stage, v, nameOf, host, timers, onDone) {
+function playCeremony(stage, v, nameOf, host, timers, show, onDone) {
   const T = GAME.ceremonyReveal;
   const intro = stage.querySelector('.cer-intro');
   const spot = stage.querySelector('.cer-spot');
@@ -381,6 +412,7 @@ function playCeremony(stage, v, nameOf, host, timers, onDone) {
     });
     t += T.portraitMs;
     later(t, () => {
+      show.sound('flame');
       spot.classList.add(`is-${r.choice}`);
       spot.querySelector('.cer-flame-slot').innerHTML = flamesHtml(r.choice);
       spot.querySelector('.cer-choice').textContent = CHOICE_LABEL[r.choice];

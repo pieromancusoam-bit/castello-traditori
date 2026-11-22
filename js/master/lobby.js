@@ -7,6 +7,7 @@ import { wakeLockStatus } from '../platform/wake-lock.js';
 import { GAME } from '../config/game-config.js';
 import { loadChoices, saveChoices, resetChoices, settingsPanelHtml, readSettingsForm, settingsSummary } from './settings.js';
 import { choicesToSettings } from './settings-map.js';
+import { openAudioPanel } from './audio-panel.js';
 
 const STATUS_LABEL = {
   opening: 'Apro il castello…',
@@ -17,7 +18,8 @@ const STATUS_LABEL = {
 };
 
 // Monta la schermata e restituisce la funzione che la aggiorna
-export function mountLobby(root, host, { debug, onClose }) {
+export function mountLobby(root, host, { debug, onClose, show }) {
+  show.toLobby();
   root.innerHTML = `
     <section class="master-lobby">
       <div class="lobby-join">
@@ -38,6 +40,7 @@ export function mountLobby(root, host, { debug, onClose }) {
         <div class="lobby-footer">
           <span class="wake"></span>
           <button class="btn btn-small btn-ghost" data-act="retry" hidden>Riprova</button>
+          <button class="btn btn-small btn-ghost" data-act="audio">Audio</button>
           <button class="btn btn-small btn-ghost" data-act="close">Chiudi stanza</button>
         </div>
       </div>
@@ -71,6 +74,7 @@ export function mountLobby(root, host, { debug, onClose }) {
   });
 
   on(root, '[data-act="retry"]', 'click', () => host.retryNow());
+  on(root, '[data-act="audio"]', 'click', () => openAudioPanel(show));
   on(root, '[data-act="remove"]', 'click', (e, btn) => {
     const p = host.publicPlayers().find((x) => x.id === btn.dataset.id);
     if (p && confirm(`Togliere ${p.name} dalla stanza?`)) host.removePlayer(p.id);

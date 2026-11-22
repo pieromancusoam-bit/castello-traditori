@@ -8,6 +8,7 @@ import { keepAwake, onWakeLockChange } from '../platform/wake-lock.js';
 import { renderHome } from './home.js';
 import { mountLobby } from './lobby.js';
 import { mountGame } from './game.js';
+import { createShow } from './show.js';
 import { errorText } from '../ui/messages.js';
 import { esc } from '../ui/dom.js';
 
@@ -16,6 +17,9 @@ export function startMaster(root, { debug }) {
 
   let host = null;
   let update = () => {};
+  const show = createShow();
+  // Voce e audio si sbloccano solo dentro un tocco (Safari, Chrome)
+  root.addEventListener('pointerdown', () => show.unlock());
 
   function showHome() {
     renderHome(root, {
@@ -38,6 +42,7 @@ export function startMaster(root, { debug }) {
 
   function openRoom(saved) {
     keepAwake(); // dentro il tocco dell'utente
+    show.unlock();
     if (saved) {
       host = new Host({
         roomCode: saved.roomCode,
@@ -54,9 +59,12 @@ export function startMaster(root, { debug }) {
       if (prev) local.remove(KEYS.room(prev.roomCode));
       host = new Host({ peerServer: local.get(KEYS.peerServer), onChange: () => update() });
     }
+    show.setRoom(host.roomCode);
     const opts = {
       debug,
+      show,
       onClose: () => {
+        show.stop();
         host.close({ forget: true });
         host = null;
         update = () => {};
