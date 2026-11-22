@@ -74,11 +74,36 @@ Aspetta il mio ok prima di scrivere codice.
 ## Prompt 4 — Fase 3 (profondità)
 
 ```
-Leggi docs/STATO.md e le note delle partite di prova. Proponimi il piano per la FASE 3:
-oggetti (Scudo, Pugnale, Maledizione, Specchio, Sigillo), ruoli speciali attivabili
-(Traditore Segreto, Veggente, Cavaliere), Ultimatum di reclutamento, eventi, le altre
-8 missioni, schermata Impostazioni partita. Ogni oggetto, ruolo ed evento con i suoi test.
-Aspetta il mio ok prima di scrivere codice.
+Leggi CLAUDE.md, docs/STATO.md (soprattutto la Fase 2b: decisioni prese e problemi noti)
+e docs/PROGETTO.md. La seconda serata di prova si farà solo a sviluppo completato: in questa
+fase non ci fermiamo per provare con il gruppo, ma ogni parte va provata con i test e in
+locale (master con ?debug=1 e più schede).
+
+Proponimi il piano per la FASE 3 (profondità), a blocchi, un commit per funzione:
+1. Oggetti: Scudo, Pugnale, Maledizione, Specchio, Sigillo, con inventario sul telefono.
+   Nessun oggetto né il suo uso deve arrivare agli altri telefoni oltre a quanto prevede
+   PROGETTO.md.
+2. Ruoli speciali attivabili: Traditore Segreto, Veggente, Cavaliere. Devono convivere
+   con la Seduzione della prima notte e con il nuovo Traditore scelto dal castello.
+3. Ultimatum di reclutamento (al bando del primo Traditore): spiegami come convive con
+   la Seduzione prima di scriverlo.
+4. Eventi: Omicidio a vista, Banchetto, Nebbia, Doppia posta (al massimo uno ogni due
+   giorni, attivabili dalle impostazioni).
+5. Le 4 missioni che restano nel catalogo: Il Codice della Cripta, Il Ponte, L'Asta,
+   La Lettera Sigillata (ora esistono gli oggetti), con le tracce del sabotaggio a gioco
+   chiuso come le altre.
+6. Schermata Impostazioni partita sul master, prima di "Inizia la partita": numero di
+   Traditori, ruoli speciali, eventi sì/no, giochi al giorno, durata della discussione,
+   presentazioni sì/no, Seduzione sì/no, soglia della Cerimonia, durata dei timer.
+   I valori di partenza restano quelli di js/config/.
+7. I problemi noti di STATO.md che si possono chiudere ora (per esempio la Catena della
+   Memoria mai uscita in partita, i timer che ripartono da capo dopo "Riprendi").
+
+Ogni oggetto, ruolo, evento e missione ha i suoi test; le partite casuali del test
+obbligatorio sui segreti devono tenerli tutti accesi.
+Se una regola di PROGETTO.md è ambigua, raccogli tutte le domande all'inizio e chiedimele
+insieme. Aspetta il mio ok prima di scrivere codice. Alla fine aggiorna STATO.md e la
+checklist della seconda serata, che proverà insieme Fase 2b e Fase 3.
 ```
 
 ## Prompt 5 — Fase 4 (spettacolo)
