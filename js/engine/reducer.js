@@ -285,7 +285,7 @@ const HANDLERS = {
       case PHASE.MISSION:
         return P.advanceMission(s, rng);
       case PHASE.ROUNDTABLE:
-        // La discussione minima non si salta (solo con { force: true }, per le prove con ?debug=1)
+        // La discussione minima finisce col tempo, oppure prima con { force: true } ("Apri il voto ora" del master)
         if (s.phaseData.stage === 'discussion') {
           check(payload(action).force === true, REJECT.WRONG_PHASE);
           return P.openVoting(s);

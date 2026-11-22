@@ -16,7 +16,7 @@ export const A = Object.freeze({
   SCENE_TOUCH: 'SCENE_TOUCH',   // { targetId } Omicidio a vista: tutti toccano un nome
 
   // Dal master
-  ADVANCE: 'ADVANCE',           // "Avanti": chiude la fase o la fa proseguire ({ force } solo per le prove)
+  ADVANCE: 'ADVANCE',           // "Avanti": chiude la fase o la fa proseguire ({ force }: apre il voto prima della fine della discussione)
   TIMER_EXPIRED: 'TIMER_EXPIRED', // { key } tempo scaduto (il master tiene l'orologio)
   DEBUG_NEXT: 'DEBUG_NEXT',     // { mission?, event? } solo prove (?debug=1): prossimo gioco o evento
 });

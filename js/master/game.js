@@ -79,10 +79,11 @@ export function mountGame(root, host, { debug, onClose, show }) {
 
   on(root, '[data-act="advance"]', 'click', (e, btn) => {
     if (btn.classList.contains('is-waiting')) return;
-    // Solo per le prove (?debug=1): salta la discussione minima della Tavola Rotonda
+    // Tavola Rotonda: il voto si può aprire prima che la clessidra sia vuota (con conferma)
     const v = host.masterView();
-    const skip = debug && v && v.phase === 'roundtable' && v.step.stage === 'discussion';
-    host.dispatch(skip ? { type: A.ADVANCE, payload: { force: true } } : { type: A.ADVANCE });
+    const early = v && v.phase === 'roundtable' && v.step.stage === 'discussion';
+    if (early && !debug && !confirm('Aprire il voto prima che la clessidra sia vuota?')) return;
+    host.dispatch(early ? { type: A.ADVANCE, payload: { force: true } } : { type: A.ADVANCE });
   });
   on(root, '[data-act="board"]', 'click', () => {
     boardOpen = !boardOpen;
@@ -157,7 +158,6 @@ export function mountGame(root, host, { debug, onClose, show }) {
     }
 
     let label = advanceLabel(v);
-    if (!label && debug && v.phase === 'roundtable' && v.step.stage === 'discussion') label = 'Salta la discussione (prova)';
     const adv = el('[data-act="advance"]');
     const waiting = Boolean(label) && !busy && show.busy();
     adv.hidden = !label || busy;
@@ -186,7 +186,7 @@ function advanceLabel(v) {
     case 'mission': return missionAdvanceLabel(st);
     case 'presentations': return presentationAdvanceLabel(st);
     case 'roundtable':
-      if (st.stage === 'discussion') return null; // la discussione minima non si salta
+      if (st.stage === 'discussion') return 'Apri il voto ora';
       return st.stage === 'voting' ? 'Chiudi la votazione' : st.outcome.kind === 'runoff' ? 'Al ballottaggio' : st.outcome.kind === 'banish' ? 'Rivela la fazione' : 'Prosegui';
     case 'reveal': return 'Prosegui';
     case 'scene': return 'Fine della scena';
