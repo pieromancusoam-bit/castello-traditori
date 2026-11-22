@@ -3,6 +3,7 @@
 // Su iPhone e Safari parla solo dopo un tocco: unlockSpeech() va chiamata dentro un tocco.
 
 import { SHOW } from '../config/show-config.js';
+import { spokenText } from '../show/spoken.js';
 
 const synth = typeof window !== 'undefined' ? window.speechSynthesis : null;
 let voices = [];
@@ -27,15 +28,19 @@ if (synth) {
 
 // Voci italiane disponibili, con quella scelta automaticamente
 export const italianVoices = () => voices.map((v) => v.name);
-export function autoVoice() {
-  const pref = SHOW.voice.preferred;
-  const rank = (v) => {
-    const i = pref.findIndex((n) => v.name.includes(n));
-    // Prima le voci maschili note; a parità le voci "naturali" (più belle)
-    return (i === -1 ? 100 : i) - (/natural|neural/i.test(v.name) ? 0.5 : 0);
-  };
-  return [...voices].sort((a, b) => rank(a) - rank(b))[0] || null;
+export const isNatural = (v) => Boolean(v) && /natural|neural|online|premium|enhanced/i.test(v.name);
+// Prima le voci naturali maschili, poi le classiche maschili, poi le altre, per ultime le femminili
+export function voiceRank(v) {
+  const male = SHOW.voice.preferred.findIndex((n) => v.name.includes(n));
+  const female = SHOW.voice.female.some((n) => v.name.includes(n));
+  const base = male !== -1 ? male : female ? 200 : 100;
+  return base - (isNatural(v) ? 50 : 0);
 }
+export function autoVoice() {
+  return [...voices].sort((a, b) => voiceRank(a) - voiceRank(b))[0] || null;
+}
+// C'è una voce naturale maschile? (altrimenti il pannello consiglia Edge)
+export const hasNaturalMale = () => voices.some((v) => isNatural(v) && SHOW.voice.preferred.some((n) => v.name.includes(n)));
 const currentVoice = () => voices.find((v) => v.name === voiceName) || autoVoice();
 export const currentVoiceName = () => currentVoice()?.name || null;
 
@@ -78,7 +83,7 @@ export function chunks(text, max = SHOW.voice.chunkMaxChars) {
 export function say(text) {
   if (!enabled || !speechSupported() || !text) return Promise.resolve();
   return new Promise((resolve) => {
-    const parts = chunks(text);
+    const parts = chunks(spokenText(text));
     parts.forEach((p, i) => queue.push({ text: p, done: i === parts.length - 1 ? resolve : null }));
     pump();
   });
@@ -94,8 +99,9 @@ function pump() {
   const v = currentVoice();
   if (v) u.voice = v;
   u.lang = v ? v.lang : 'it-IT';
-  u.pitch = SHOW.voice.pitch;
-  u.rate = SHOW.voice.rate;
+  const tune = isNatural(v) ? SHOW.voice.natural : SHOW.voice.classic;
+  u.pitch = tune.pitch;
+  u.rate = tune.rate;
   u.volume = volume;
   let finished = false;
   const end = () => {

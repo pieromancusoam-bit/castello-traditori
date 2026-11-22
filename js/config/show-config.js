@@ -5,10 +5,14 @@ export const SHOW = Object.freeze({
   // Voce del narratore (sintesi vocale del browser)
   voice: Object.freeze({
     lang: 'it',
-    pitch: 0.75,          // più basso = voce più profonda (0–2)
-    rate: 0.88,           // più basso = più lento (0.1–10)
+    // Voci "naturali" (neurali, es. Microsoft Edge): già realistiche, si toccano poco
+    natural: Object.freeze({ pitch: 0.92, rate: 0.9 }),
+    // Voci classiche (es. Cosimo in Chrome): abbassare troppo il tono le rende metalliche
+    classic: Object.freeze({ pitch: 0.85, rate: 0.86 }),
     // Voci italiane maschili preferite, in ordine (il nome della voce le contiene)
-    preferred: Object.freeze(['Diego', 'Cosimo', 'Giuseppe', 'Benigno', 'Luca', 'Paolo', 'Roberto', 'Carlo', 'Giorgio', 'Federico', 'Marco', 'Andrea']),
+    preferred: Object.freeze(['Diego', 'Giuseppe', 'Benigno', 'Cosimo', 'Luca', 'Paolo', 'Roberto', 'Carlo', 'Giorgio', 'Federico', 'Marco', 'Andrea']),
+    // Voci femminili note: solo se non c'è altro
+    female: Object.freeze(['Elsa', 'Isabella', 'Alice', 'Federica', 'Paola', 'Fiamma', 'Google italiano']),
     chunkMaxChars: 180,   // le frasi lunghe si spezzano (Chrome si blocca sopra i ~15 secondi)
     gapMs: 250,           // pausa tra due frasi
   }),

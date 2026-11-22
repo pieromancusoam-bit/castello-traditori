@@ -2,7 +2,7 @@
 // Le scelte restano nel browser del master, fuori dalla partita.
 
 import { esc } from '../ui/dom.js';
-import { italianVoices, currentVoiceName } from '../platform/speech.js';
+import { italianVoices, currentVoiceName, hasNaturalMale } from '../platform/speech.js';
 import { defaultAudioSettings } from './show.js';
 
 const pct = (v) => Math.round(v * 100);
@@ -25,6 +25,7 @@ function panelHtml(s, show) {
       <div class="set-row"><span class="set-label">Voce</span><span class="set-control">${voiceSelect}</span></div>
       <div class="set-row"><span class="set-label">Volume</span><span class="set-control">${slider('voiceVolume', s.voiceVolume, s.voiceOn)}</span></div>
       <div class="set-row"><button type="button" class="btn btn-small btn-secondary" data-audio="test">Prova voce</button></div>
+      ${hasNaturalMale() ? '' : '<p class="muted small">Per una voce più realistica aprite il master con <strong>Microsoft Edge</strong>: ha le voci italiane "naturali" (Diego, Giuseppe), gratuite.</p>'}
     </fieldset>
     <fieldset><legend>Musica ed effetti</legend>
       <div class="set-row"><label class="set-check"><input type="checkbox" name="musicOn" ${s.musicOn ? 'checked' : ''}> Musica</label><span class="set-control">${slider('music', s.music, s.musicOn)}</span></div>

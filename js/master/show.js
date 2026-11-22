@@ -121,7 +121,7 @@ export function createShow() {
     },
     testVoice() {
       stopSpeech();
-      say('Benvenuti al castello. Tra voi si nascondono i Traditori.');
+      say('Benvenuti al castello. Io sono il custode di queste mura… e stanotte, qualcuno di voi mentirà.');
     },
     speechSupported,
   };
