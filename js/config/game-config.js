@@ -89,6 +89,11 @@ export const ITEMS = Object.freeze({
 });
 export const ITEM_IDS = Object.freeze(Object.keys(ITEMS));
 
+// Chi riceve l'oggetto di un gioco riuscito: estratto a caso, ma ogni oggetto già ricevuto dal
+// castello riduce la probabilità (peso 1 / (1 + penalità × ricevuti)). Mai "a turno": si capirebbe
+// chi riceve l'ultimo.
+export const GIFT_REPEAT_PENALTY = 2;
+
 // Eventi del castello (si accendono o spengono dalle impostazioni)
 export const EVENTS = Object.freeze({
   fog: Object.freeze({ name: 'Nebbia', text: 'Alla Tavola Rotonda di oggi i voti si vedranno solo come conteggio, senza nomi.' }),

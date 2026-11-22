@@ -9,7 +9,7 @@ import { MISSION_MODULES, drawMission, missionValue } from './missions/index.js'
 import { clearTimer, setTimer } from './missions/common.js';
 import { GAME } from '../config/game-config.js';
 import { PRESENTATION_THEMES } from '../config/presentations.js';
-import { ITEM, hasItem, takeItem, giveItem, drawItem } from './items.js';
+import { ITEM, hasItem, takeItem, giveItem, drawItem, drawGiftReceiver } from './items.js';
 import { drawEvent, todayEvent, scenePending, sceneSetup, daylightCanKill } from './events.js';
 
 export const aliveIds = (s) => alivePlayers(s).map((p) => p.id);
@@ -139,7 +139,8 @@ export function finishMission(s, rng) {
     s.phaseData.gift = result.gift;
     delete result.gift;
   } else if (result.coins > 0 && mission.dropsItem !== false) {
-    const playerId = rng.pick(aliveIds(s));
+    const playerId = drawGiftReceiver(s, aliveIds(s), rng);
+    s.players[playerId].gifts = (s.players[playerId].gifts || 0) + 1;
     const item = drawItem(rng);
     giveItem(s.players[playerId], item);
     s.phaseData.gift = { playerId, item };

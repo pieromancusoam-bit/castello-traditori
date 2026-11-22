@@ -161,3 +161,40 @@ test('missione fallita: nessun oggetto', () => {
   assert.equal(s.phaseData.gift, undefined);
   assert.equal(viewForMaster(s).step.result.itemGiven, false);
 });
+
+// ---------------- Oggetti distribuiti in modo equo (Fase 4) ----------------
+import { drawGiftReceiver } from '../js/engine/items.js';
+import { createRng } from '../js/engine/rng.js';
+
+test('chi ha già ricevuto oggetti dal castello ha meno probabilità di riceverne altri', () => {
+  // 8 giocatori, 6 oggetti di fila: quante volte qualcuno ne riceve 3 o più?
+  const runs = 4000;
+  const trial = (fair, seed) => {
+    const rng = createRng(seed);
+    const s = newGame(8);
+    const counts = {};
+    for (let i = 0; i < 6; i++) {
+      const id = fair ? drawGiftReceiver(s, s.order, rng) : rng.pick(s.order);
+      s.players[id].gifts = (s.players[id].gifts || 0) + 1;
+      counts[id] = (counts[id] || 0) + 1;
+    }
+    return { max: Math.max(...Object.values(counts)), distinct: Object.keys(counts).length };
+  };
+  let fairTriple = 0, plainTriple = 0, fairDistinct = 0, plainDistinct = 0;
+  for (let i = 1; i <= runs; i++) {
+    const f = trial(true, i), p = trial(false, i + runs);
+    if (f.max >= 3) fairTriple++;
+    if (p.max >= 3) plainTriple++;
+    fairDistinct += f.distinct;
+    plainDistinct += p.distinct;
+  }
+  assert.ok(fairTriple < plainTriple / 3, `tre oggetti alla stessa persona: ${fairTriple} contro ${plainTriple}`);
+  assert.ok(fairDistinct > plainDistinct, 'più giocatori diversi ricevono oggetti');
+  // Resta casuale: anche chi ne ha già uno a volte ne riceve un altro
+  const rng = createRng(9);
+  const s = newGame(5);
+  s.players.p1.gifts = 1;
+  let p1 = 0;
+  for (let i = 0; i < 3000; i++) if (drawGiftReceiver(s, s.order, rng) === 'p1') p1++;
+  assert.ok(p1 > 100 && p1 < 400, `p1 estratto ${p1} volte su 3000`);
+});

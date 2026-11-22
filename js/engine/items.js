@@ -1,7 +1,7 @@
 // Oggetti: Scudo, Pugnale, Maledizione, Sigillo, Specchio.
 // Restano segreti finché non si usano: l'inventario è solo nella vista del proprietario.
 
-import { ITEMS, ITEM_IDS } from '../config/game-config.js';
+import { ITEMS, ITEM_IDS, GIFT_REPEAT_PENALTY } from '../config/game-config.js';
 import { PHASE, STATUS } from './state.js';
 
 export const ITEM = Object.freeze({ SHIELD: 'shield', DAGGER: 'dagger', CURSE: 'curse', SEAL: 'seal', MIRROR: 'mirror' });
@@ -15,6 +15,18 @@ export function takeItem(p, item) {
 }
 
 export const giveItem = (p, item) => { p.items.push(item); };
+
+// Chi riceve l'oggetto del castello: a caso, con meno probabilità per chi ne ha già ricevuti
+export function drawGiftReceiver(s, ids, rng) {
+  const weight = (id) => 1 / (1 + GIFT_REPEAT_PENALTY * (s.players[id].gifts || 0));
+  const total = ids.reduce((n, id) => n + weight(id), 0);
+  let r = rng.next() * total;
+  for (const id of ids) {
+    r -= weight(id);
+    if (r < 0) return id;
+  }
+  return ids[ids.length - 1];
+}
 
 // Oggetto a caso, secondo i pesi di js/config/
 export function drawItem(rng) {
