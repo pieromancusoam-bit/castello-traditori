@@ -4,7 +4,8 @@
 
 import { PHASE, STATUS } from './state.js';
 import { ROLE, factionOf, isTraitorRole } from './roles.js';
-import { nightConsensus, isKiller } from './phases.js';
+import { nightConsensus, isKiller, voterIds } from './phases.js';
+import { itemActions } from './items.js';
 import { PRESENTATION_THEMES } from '../config/presentations.js';
 import { MISSION_MODULES } from './missions/index.js';
 
@@ -59,6 +60,9 @@ function common(s) {
     history: publicHistory(s),
     winner: s.phase === PHASE.ENDED ? s.winner : null,
     prize: prizeOf(s),
+    // Maledetti per la Tavola Rotonda di oggi e chi si è liberato con il Sigillo (mai chi ha maledetto)
+    curses: [...(s.curses || [])],
+    sealed: [...(s.sealed || [])],
   };
 }
 
@@ -82,7 +86,9 @@ function missionStep(s, p) {
     perDay: pd.perDay,
     value: pd.value,
     timer: timerView(pd),
-    result: pd.result ? { success: pd.result.success, coins: pd.result.coins, detail: structuredClone(pd.result.detail) } : null,
+    result: pd.result ? { success: pd.result.success, coins: pd.result.coins, detail: structuredClone(pd.result.detail), itemGiven: Boolean(pd.gift) } : null,
+    // Oggetto vinto: solo a chi l'ha ricevuto
+    myGift: p && pd.gift && pd.gift.playerId === p.id ? pd.gift.item : null,
     mission: p ? m.playerView(s, p) : m.masterView(s),
   };
 }
@@ -95,7 +101,7 @@ export function viewForMaster(s) {
 
 function masterVote(s) {
   const pd = s.phaseData;
-  const live = aliveIdList(s);
+  const live = voterIds(s);
   const v = {
     stage: pd.stage,
     round: pd.ballot.round,
@@ -109,7 +115,10 @@ function masterVote(s) {
   };
   // I voti con i nomi compaiono sullo schermo solo a votazione chiusa
   if (pd.stage === 'results') {
-    v.votes = s.order.filter((id) => pd.ballot.votes[id] !== undefined).map((id) => ({ voterId: id, targetId: pd.ballot.votes[id] }));
+    // Pugnale: si vede alla rivelazione dei voti ("conta doppio")
+    const daggers = pd.ballot.daggers || {};
+    v.votes = s.order.filter((id) => pd.ballot.votes[id] !== undefined)
+      .map((id) => ({ voterId: id, targetId: pd.ballot.votes[id], double: Boolean(daggers[id]) }));
     v.outcome = publicOutcome(pd.outcome);
   }
   return v;
@@ -122,7 +131,7 @@ function masterStep(s) {
     case PHASE.ROLES:
       return { seenCount: s.order.filter((id) => pd.seen[id]).length, total: s.order.length };
     case PHASE.BREAKFAST:
-      return { victimId: pd.victimId, firstDay: pd.firstDay, suspects: [...pd.suspects] };
+      return { victimId: pd.victimId, firstDay: pd.firstDay, suspects: [...pd.suspects], failed: Boolean(pd.failed) };
     case PHASE.PRESENTATIONS:
       return presentationStep(s);
     case PHASE.MISSION:
@@ -172,6 +181,10 @@ export function viewFor(s, playerId) {
       faction: factionOf(p.role),
       // Diventato Traditore per scelta del castello in questa notte
       justTurned: s.phase === PHASE.NIGHT && p.turnedOnDay === s.day,
+      // Inventario segreto e oggetti usabili adesso
+      items: [...p.items],
+      itemActions: itemActions(s, p),
+      mirror: p.mirror ? { day: p.mirror.day, voters: [...p.mirror.voters] } : null,
     },
     // Solo i Traditori conoscono i complici (il Traditore Segreto li conosce tutti, gli altri non conoscono lui)
     allies: traitor ? alliesOf(s, p).map((id) => ({ id, name: s.players[id].name, status: s.players[id].status })) : null,
@@ -190,11 +203,14 @@ function playerVote(s, p) {
   const alive = isAlive(p);
   const myVote = pd.ballot.votes[p.id] ?? null;
   const pool = pd.ballot.candidates || aliveIdList(s);
+  const cursed = s.phase === PHASE.ROUNDTABLE && s.curses.includes(p.id);
   return {
     stage: pd.stage,
     round: pd.ballot.round,
     candidates: ids(pd.ballot.candidates),
-    canVote: pd.stage === 'voting' && alive && myVote === null,
+    canVote: pd.stage === 'voting' && alive && myVote === null && !cursed,
+    cursed,
+    dagger: Boolean(pd.ballot.daggers && pd.ballot.daggers[p.id]),
     options: alive ? pool.filter((id) => id !== p.id) : [],
     myVote,
     timer: timerView(pd),
@@ -249,6 +265,7 @@ function playerStep(s, p) {
         victimId: pd.victimId,
         firstDay: pd.firstDay,
         suspects: [...pd.suspects],
+        failed: Boolean(pd.failed),
         // Esito della Seduzione: solo a chi ha sedotto e a chi è stato sedotto
         seduction: pd.seduction && (pd.seduction.byId === p.id || pd.seduction.targetId === p.id)
           ? { targetId: pd.seduction.targetId, accepted: pd.seduction.accepted }

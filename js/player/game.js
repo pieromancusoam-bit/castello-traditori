@@ -6,6 +6,7 @@ import { esc, on } from '../ui/dom.js';
 import { missionHtml } from './mission.js';
 import { countdownHtml, runCountdown } from '../ui/countdown.js';
 import { coins } from '../ui/format.js';
+import { inventoryButtonHtml, inventoryHtml, itemHintHtml, giftHtml } from './inventory.js';
 
 const FACTION = { faithfuls: 'Leale', traitors: 'Traditore' };
 const FACTION_A = { faithfuls: 'un Leale', traitors: 'un Traditore' };
@@ -21,6 +22,7 @@ export function createGameScreen(root, client) {
     busy: false,
     timer: null,         // { key, ms, start }: conto alla rovescia locale del timer del master
     torch: null,         // Le Torce: { key, round, phase: 'wait'|'lit'|'done', litAt, result, timers }
+    inventory: false,    // pannello degli oggetti aperto
   };
 
   const view = () => client.view && client.view.game;
@@ -145,6 +147,11 @@ export function createGameScreen(root, client) {
     ui.error = '';
     render();
   });
+  on(root, '[data-act="inventory"]', 'click', () => {
+    ui.inventory = !ui.inventory;
+    ui.pending = null;
+    render();
+  });
   on(root, '[data-act="cancel"]', 'click', () => {
     ui.pending = null;
     render();
@@ -160,6 +167,13 @@ export function createGameScreen(root, client) {
     if (p.kind === 'chrono') send(A.MISSION_INPUT, { position: Number(p.value) });
     if (p.kind === 'messenger') send(A.MISSION_INPUT, { choice: Number(p.value) });
     if (p.kind === 'offer') send(A.SEDUCTION_ANSWER, { accept: p.value === 'yes' });
+    if (p.kind === 'item') send(A.USE_ITEM, { item: p.value });
+    if (p.kind === 'curse') send(A.USE_ITEM, { item: 'curse', targetId: p.value }).then((res) => {
+      if (res.ok) {
+        ui.inventory = false;
+        render();
+      }
+    });
   });
   // Catena della Memoria: il simbolo parte subito (c'è poco tempo)
   on(root, '[data-symbol]', 'click', (e, btn) => {
@@ -219,9 +233,10 @@ export function createGameScreen(root, client) {
           <span>${v.day ? `Giorno ${v.day}` : 'Il castello'}</span>
           <span class="top-pot">${coins(v.pot)} monete</span>
           <span>${esc(v.me.name)}${v.me.status !== 'alive' ? ' · spettatore' : ''}</span>
+          ${night || v.me.status !== 'alive' ? '' : inventoryButtonHtml(v, ui)}
         </header>
         ${countdownHtml('phone-countdown')}
-        <div class="game-main">${mainHtml(v, ui, nameOf)}</div>
+        <div class="game-main">${ui.inventory && !night ? inventoryHtml(v, ui, nameOf, confirmHtml) : withItems(v, ui, mainHtml(v, ui, nameOf))}</div>
         ${ui.error ? `<p class="form-error" role="alert">${esc(ui.error)}</p>` : ''}
         ${v.phase === 'roles' ? '' : roleCardHtml(v, ui, true)}
       </section>`;
@@ -239,6 +254,25 @@ export function createGameScreen(root, client) {
 }
 
 // ---------------- Pezzi di schermata ----------------
+
+// Oggetti nelle schermate di gioco: avviso se ce n'è uno da usare adesso, oggetto vinto
+function withItems(v, ui, html) {
+  if (v.phase === 'night' || v.phase === 'roles' || v.me.status !== 'alive') return html;
+  const gift = v.phase === 'mission' ? giftHtml(v.step.myGift) : '';
+  const p = ui.pending;
+  const confirm = p && p.kind === 'item'
+    ? confirmHtml(ui, `Usare <strong>${p.value === 'dagger' ? 'il Pugnale' : p.value === 'seal' ? 'il Sigillo' : 'lo Specchio'}</strong>? Non tornerà indietro.`)
+    : '';
+  return gift + itemHintHtml(v) + html + confirm;
+}
+
+// Maledetti di oggi e Sigilli usati (pubblici)
+function cursesText(v, nameOf) {
+  const out = [];
+  for (const id of v.curses) out.push(id === v.me.id ? '<p class="curse-line">Sei <strong>maledetto</strong>: alla Tavola Rotonda di oggi non voti.</p>' : `<p class="curse-line"><strong>${esc(nameOf(id))}</strong> è maledetto: oggi non vota.</p>`);
+  for (const id of v.sealed) out.push(`<p class="curse-line muted">${id === v.me.id ? 'Hai' : `<strong>${esc(nameOf(id))}</strong> ha`} spezzato la Maledizione con il Sigillo.</p>`);
+  return out.join('');
+}
 
 function roleCardHtml(v, ui, small = false) {
   const traitor = v.me.faction === 'traitors';
@@ -290,18 +324,20 @@ function outcomeText(o, nameOf) {
 
 function voteHtml(v, ui, nameOf, title) {
   const st = v.step;
+  const curses = v.phase === 'roundtable' ? cursesText(v, nameOf) : '';
   if (st.stage === 'discussion') {
-    return `<h1>${title}</h1><p class="big">Discutete: chi sono i Traditori?</p><p class="muted">Il voto si apre quando la clessidra è vuota.</p>`;
+    return `<h1>${title}</h1>${curses}<p class="big">Discutete: chi sono i Traditori?</p><p class="muted">Il voto si apre quando la clessidra è vuota.</p>`;
   }
   if (st.stage === 'results') {
     return `<h1>${title}</h1><p class="big">${outcomeText(st.outcome, nameOf)}</p><p class="muted">Guarda lo schermo principale.</p>`;
   }
-  const head = `<h1>${st.round === 2 ? 'Ballottaggio' : title}</h1>`;
+  const head = `<h1>${st.round === 2 ? 'Ballottaggio' : title}</h1>${curses}`;
   if (v.me.status !== 'alive') return head + spectator();
-  if (!st.canVote) return `${head}<p class="big">Hai votato ${esc(nameOf(st.myVote))}.</p><p class="muted">In attesa degli altri…</p>`;
+  if (st.cursed) return `${head}<p class="muted">Gli altri stanno votando…</p>`;
+  if (!st.canVote) return `${head}<p class="big">Hai votato ${esc(nameOf(st.myVote))}${st.dagger ? ', con il Pugnale' : ''}.</p><p class="muted">In attesa degli altri…</p>`;
   const intro = st.round === 2 ? '<p>Si vota solo tra i giocatori in parità.</p>' : '<p>Chi vuoi bandire dal castello?</p>';
   return head + intro + pickGrid(st.options, 'vote', ui, nameOf) +
-    (ui.pending ? confirmHtml(ui, `Votare <strong>${esc(nameOf(ui.pending.value))}</strong>?`) : '');
+    (ui.pending && ui.pending.kind === 'vote' ? confirmHtml(ui, `Votare <strong>${esc(nameOf(ui.pending.value))}</strong>?`) : '');
 }
 
 function nightHtml(v, ui, nameOf) {
@@ -438,7 +474,7 @@ function mainHtml(v, ui, nameOf) {
       if (st.victimId === v.me.id) {
         return `<h1>Colazione</h1><p class="big">Stanotte sei stato assassinato.</p>${spectator()}`;
       }
-      return `<h1>Colazione</h1><p class="big">Guarda lo schermo principale.</p>${seductionText(v, nameOf)}${suspectsText(st.suspects, nameOf)}`;
+      return `<h1>Colazione</h1><p class="big">Guarda lo schermo principale.</p>${st.failed ? '<p class="turned">Stanotte i Traditori hanno colpito… ma l\'omicidio è fallito.</p>' : ''}${seductionText(v, nameOf)}${suspectsText(st.suspects, nameOf)}${cursesText(v, nameOf)}`;
     case 'presentations':
       return st.mine
         ? `<p class="kicker">Presentazioni</p><h1>Tocca a te!</h1><div class="trial-card"><h2>${esc(st.theme)}</h2></div><p class="muted">Hai il tempo della clessidra.</p>`

@@ -14,6 +14,7 @@ import { voteError } from './votes.js';
 import * as P from './phases.js';
 import { REJECT, Rejection, reject, check } from './errors.js';
 import { clearTimer } from './missions/common.js';
+import { ITEM, hasItem, takeItem, itemActions, votersAgainst } from './items.js';
 
 export { REJECT };
 
@@ -66,6 +67,8 @@ const HANDLERS = {
     check(inVote, REJECT.WRONG_PHASE);
     const { targetId } = payload(action);
     check(typeof targetId === 'string', REJECT.INVALID_PAYLOAD);
+    // Maledetto: alla Tavola Rotonda non vota
+    check(s.phase !== PHASE.ROUNDTABLE || !s.curses.includes(action.playerId), REJECT.NOT_ALLOWED);
     const err = voteError(s.phaseData.ballot, action.playerId, targetId, P.aliveIds(s));
     if (err === 'NOT_ALIVE') reject(REJECT.NOT_ALIVE);
     if (err === 'ALREADY_VOTED') reject(REJECT.ALREADY_DONE);
@@ -159,7 +162,44 @@ const HANDLERS = {
     check(s.phase === PHASE.MISSION && s.phaseData.stage === 'play', REJECT.WRONG_PHASE);
     const p = me(s, action);
     check(isAlive(p), REJECT.NOT_ALIVE);
-    if (P.currentMission(s).input(s, p, payload(action), rng)) P.finishMission(s);
+    if (P.currentMission(s).input(s, p, payload(action), rng)) P.finishMission(s, rng);
+  },
+
+  // Oggetti: ognuno ha il suo momento (vedi js/engine/items.js)
+  [A.USE_ITEM](s, action) {
+    const p = me(s, action);
+    check(isAlive(p), REJECT.NOT_ALIVE);
+    const { item, targetId } = payload(action);
+    check(Object.values(ITEM).includes(item) && item !== ITEM.SHIELD, REJECT.INVALID_PAYLOAD);
+    check(hasItem(p, item), REJECT.NOT_ALLOWED);
+    const can = itemActions(s, p);
+    switch (item) {
+      case ITEM.DAGGER: {
+        check(can.dagger, REJECT.WRONG_PHASE);
+        const ballot = s.phaseData.ballot;
+        ballot.daggers = { ...(ballot.daggers || {}), [p.id]: true };
+        break;
+      }
+      case ITEM.CURSE:
+        check(can.curse, REJECT.WRONG_PHASE);
+        check(typeof targetId === 'string' && can.curse.includes(targetId), REJECT.INVALID_TARGET);
+        s.curses.push(targetId);
+        break;
+      case ITEM.SEAL:
+        check(can.seal, REJECT.WRONG_PHASE);
+        s.curses = s.curses.filter((id) => id !== p.id);
+        s.sealed.push(p.id);
+        break;
+      case ITEM.MIRROR:
+        check(can.mirror, REJECT.WRONG_PHASE);
+        p.mirror = { day: s.lastBallot.day, voters: votersAgainst(s, p.id) };
+        break;
+      default:
+        reject(REJECT.INVALID_PAYLOAD);
+    }
+    takeItem(p, item);
+    // Un maledetto che si libera può votare; se mancava solo lui, la votazione si chiude
+    if (s.phase === PHASE.ROUNDTABLE && s.phaseData.stage === 'voting' && P.allVoted(s)) P.closeVoting(s);
   },
 
   // Il tempo è scaduto: vale solo per il timer ancora in corso (la chiave lo identifica)

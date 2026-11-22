@@ -9,6 +9,7 @@ import { MISSION_MODULES, drawMission, missionValue } from './missions/index.js'
 import { clearTimer, setTimer } from './missions/common.js';
 import { GAME } from '../config/game-config.js';
 import { PRESENTATION_THEMES } from '../config/presentations.js';
+import { ITEM, hasItem, takeItem, giveItem, drawItem } from './items.js';
 
 export const aliveIds = (s) => alivePlayers(s).map((p) => p.id);
 
@@ -16,10 +17,11 @@ export const aliveIds = (s) => alivePlayers(s).map((p) => p.id);
 
 // suspects: i più sospettati della notte (vivi), annunciati senza dire chi li ha indicati.
 // seduction: esito segreto della Seduzione della notte (lo vedono solo i due interessati)
-export function enterBreakfast(s, victimId, suspects = [], seduction = null) {
+// failed: i Traditori hanno colpito uno scudato ("l'omicidio è fallito", senza nome)
+export function enterBreakfast(s, victimId, suspects = [], seduction = null, failed = false) {
   s.day += 1;
   s.phase = PHASE.BREAKFAST;
-  s.phaseData = { victimId, firstDay: s.day === 1, suspects, seduction };
+  s.phaseData = { victimId, firstDay: s.day === 1, suspects, seduction, failed };
 }
 
 // Dopo la Colazione: finale se restano pochi giocatori; il giorno 1 le presentazioni;
@@ -74,14 +76,27 @@ export function startMission(s, rng) {
   currentMission(s).start(s, rng);
 }
 
-// Fine del gioco: monete al montepremi
-export function finishMission(s) {
-  const result = currentMission(s).result(s);
+// Fine del gioco: monete al montepremi. Un gioco riuscito dà anche un oggetto, in segreto,
+// a un partecipante estratto a caso (le missioni con oggetti propri non ne danno altri).
+export function finishMission(s, rng) {
+  const mission = currentMission(s);
+  const result = mission.result(s, rng);
   clearTimer(s);
   s.phaseData.stage = 'result';
   s.phaseData.result = result;
-  s.pot += result.coins;
+  s.pot = Math.max(0, s.pot + result.coins);
   s.missionLog.push({ day: s.day, slot: s.phaseData.slot, id: s.phaseData.id, coins: result.coins });
+  if (result.gift) {
+    // Oggetto della missione stessa (Ponte, Asta, Lettera): { playerId, item }
+    giveItem(s.players[result.gift.playerId], result.gift.item);
+    s.phaseData.gift = result.gift;
+    delete result.gift;
+  } else if (result.coins > 0 && mission.dropsItem !== false) {
+    const playerId = rng.pick(aliveIds(s));
+    const item = drawItem(rng);
+    giveItem(s.players[playerId], item);
+    s.phaseData.gift = { playerId, item };
+  }
 }
 
 // "Avanti" (o timer scaduto) durante la missione
@@ -89,7 +104,7 @@ export function advanceMission(s, rng) {
   const pd = s.phaseData;
   switch (pd.stage) {
     case 'intro': return startMission(s, rng);
-    case 'play': if (currentMission(s).advance(s, rng)) finishMission(s); return undefined;
+    case 'play': if (currentMission(s).advance(s, rng)) finishMission(s, rng); return undefined;
     // Dopo il risultato: il gioco successivo oppure, dopo l'ultimo del giorno, il tabellone
     case 'result':
       if (pd.slot < pd.perDay) return enterMission(s, rng, pd.slot + 1);
@@ -121,13 +136,18 @@ export function openVoting(s) {
   clearTimer(s);
 }
 
-// Chiude la votazione in corso (in Tavola Rotonda o nella Cerimonia): si passa ai risultati
+// Chiude la votazione in corso (in Tavola Rotonda o nella Cerimonia): si passa ai risultati.
+// L'ultimo turno della Tavola Rotonda resta per lo Specchio.
 export function closeVoting(s) {
   s.phaseData.stage = 'results';
   s.phaseData.outcome = outcomeOf(s.phaseData.ballot, s.order);
+  if (s.phase === PHASE.ROUNDTABLE) s.lastBallot = { day: s.day, votes: { ...s.phaseData.ballot.votes } };
 }
 
-export const allVoted = (s) => aliveIds(s).every((id) => s.phaseData.ballot.votes[id] !== undefined);
+// Chi può votare: i vivi, tranne i maledetti alla Tavola Rotonda
+export const voterIds = (s) => aliveIds(s).filter((id) => s.phase !== PHASE.ROUNDTABLE || !s.curses.includes(id));
+
+export const allVoted = (s) => voterIds(s).every((id) => s.phaseData.ballot.votes[id] !== undefined);
 
 function banish(s, playerId) {
   const p = s.players[playerId];
@@ -170,6 +190,9 @@ export function afterDay(s, rng) {
 
 export function enterNight(s, rng) {
   s.phase = PHASE.NIGHT;
+  // La Maledizione vale solo per la Tavola Rotonda del giorno
+  s.curses = [];
+  s.sealed = [];
   const data = { mode: 'murder', newTraitorId: null, picks: {}, suspicions: {}, chat: [], canSeduce: false, plan: 'murder', offer: null };
   // Tutti i Traditori banditi: il castello ne sceglie uno nuovo, e stanotte niente omicidio
   if (aliveTraitors(s).length === 0) {
@@ -230,13 +253,20 @@ export function resolveNight(s, rng) {
     const { leaders } = tally(picks, s.order);
     if (leaders.length) victimId = leaders.length === 1 ? leaders[0] : rng.pick(leaders);
   }
+  // Scudo: l'omicidio fallisce e lo Scudo si consuma (si sa che è fallito, non su chi)
+  let failed = false;
+  if (victimId && hasItem(s.players[victimId], ITEM.SHIELD)) {
+    takeItem(s.players[victimId], ITEM.SHIELD);
+    victimId = null;
+    failed = true;
+  }
   if (victimId) {
     s.players[victimId].status = STATUS.MURDERED;
     s.history.push({ day: s.day, type: 'murdered', playerId: victimId });
   } else {
-    s.history.push({ day: s.day, type: 'no-murder' });
+    s.history.push({ day: s.day, type: failed ? 'murder-failed' : 'no-murder' });
   }
-  enterBreakfast(s, victimId, nightSuspects(s), seduction);
+  enterBreakfast(s, victimId, nightSuspects(s), seduction, failed);
 }
 
 // Il più sospettato tra i vivi (dopo l'omicidio); in parità tutti i pari merito
@@ -253,6 +283,7 @@ export function nightSuspects(s) {
 
 export function enterFinal(s) {
   s.phase = PHASE.FINAL;
+  s.curses = []; // nella Cerimonia la Maledizione non vale
   if (alivePlayers(s).length <= s.settings.finalMinPlayers) enterUnveil(s);
   else enterFinalChoice(s);
 }

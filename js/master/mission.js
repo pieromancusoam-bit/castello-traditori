@@ -181,15 +181,19 @@ function resultHtml(st, nameOf) {
     ? `<p class="coins-won">+${coins(r.coins)} <span>monete</span></p>`
     : `<p class="coins-lost">${st.id === 'chest' ? 'Il forziere resta vuoto' : 'Nessuna moneta'}</p>`;
   const chestNote = st.id === 'chest' && d.leadCount > 0 ? '<p class="muted">Chi ha messo il piombo? Il castello non lo dirà mai.</p>' : '';
+  const gift = r.itemGiven && !OWN_ITEMS.has(st.id) ? '<p class="gift-line">Il castello ha dato <strong>in segreto</strong> un oggetto a uno di voi.</p>' : '';
   return `<div class="mission-result ${r.coins > 0 ? 'is-won' : 'is-lost'}">
       ${verdict}
       <p class="lead">${esc(lines[st.id] ? lines[st.id]() : '')}</p>
-      ${chestNote}
+      ${chestNote}${gift}
       <div class="trace">${traceHtml(st, nameOf)}</div>
     </div>`;
 }
 
 // ---------------- Tabellone ----------------
+
+// Missioni che assegnano oggetti a modo loro (lo dicono nel proprio risultato)
+const OWN_ITEMS = new Set(['bridge', 'auction', 'letter']);
 
 export function boardHtml(v, nameOf) {
   const alive = v.players.filter((p) => p.status === 'alive');
@@ -210,7 +214,14 @@ export function boardHtml(v, nameOf) {
       ${col('Assassinati', murdered, (p) => `<li>${esc(p.name)}</li>`)}
       <section class="board-col"><h2>Giochi</h2><ul class="board-missions">${missions || '<li class="muted">Ancora nessuno</li>'}</ul></section>
     </div>
+    ${v.phase === 'mission' ? '<p class="muted board-note">Chi ha una Maledizione può lanciarla adesso dal telefono.</p>' : ''}
+    ${boardCurses(v, nameOf)}
   </div>`;
+}
+
+function boardCurses(v, nameOf) {
+  return v.curses.map((id) => `<p class="curse-line"><strong>${esc(nameOf(id))}</strong> è stato maledetto: alla Tavola Rotonda non vota.</p>`).join('')
+    + v.sealed.map((id) => `<p class="curse-line is-sealed"><strong>${esc(nameOf(id))}</strong> ha spezzato la Maledizione con il Sigillo.</p>`).join('');
 }
 
 export function prizeHtml(v, nameOf) {

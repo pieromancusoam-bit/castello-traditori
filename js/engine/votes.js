@@ -17,12 +17,20 @@ export function voteError(ballot, voterId, targetId, aliveIds) {
 }
 
 // Conteggio: { counts, leaders, max }. I leader seguono l'ordine dei giocatori.
-export function tally(votes, order) {
+// weights: { [voterId]: peso } (Pugnale: 2); chi non c'è vale 1
+export function tally(votes, order, weights = {}) {
   const counts = {};
-  for (const target of Object.values(votes)) counts[target] = (counts[target] || 0) + 1;
+  for (const [voter, target] of Object.entries(votes)) counts[target] = (counts[target] || 0) + (weights[voter] || 1);
   const max = Math.max(0, ...Object.values(counts));
   const leaders = max > 0 ? order.filter((id) => counts[id] === max) : [];
   return { counts, leaders, max };
+}
+
+// Pesi dei voti: chi ha usato il Pugnale vale doppio
+export function ballotWeights(ballot) {
+  const w = {};
+  for (const id of Object.keys(ballot.daggers || {})) w[id] = 2;
+  return w;
 }
 
 // Esito di una votazione chiusa:
@@ -30,7 +38,7 @@ export function tally(votes, order) {
 //   { kind: 'runoff', candidates }    parità al primo turno -> ballottaggio
 //   { kind: 'none', reason }          parità al ballottaggio, o nessun voto
 export function outcomeOf(ballot, order) {
-  const { leaders } = tally(ballot.votes, order);
+  const { leaders } = tally(ballot.votes, order, ballotWeights(ballot));
   if (leaders.length === 0) return { kind: 'none', reason: 'no-votes' };
   if (leaders.length === 1) return { kind: 'banish', playerId: leaders[0] };
   if (ballot.round === 1) return { kind: 'runoff', candidates: leaders };

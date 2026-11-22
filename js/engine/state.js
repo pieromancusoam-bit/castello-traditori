@@ -114,6 +114,7 @@ const missionFields = () => ({
 // Oggetti, eventi e reclutamento (Fase 3)
 const phase3Fields = () => ({
   curses: [], // maledetti per la prossima Tavola Rotonda (pubblico; mai chi ha lanciato)
+  sealed: [], // chi ha spezzato la Maledizione con il Sigillo oggi (pubblico)
   lastBallot: null, // ultimo turno della Tavola Rotonda più recente, per lo Specchio: { day, votes }
   ultimatum: { done: false, next: false }, // Ultimatum di reclutamento: una sola volta per partita
   dayEvent: null, // evento del giorno: { day, id, slot?, killerId?, victimId?, touched? }

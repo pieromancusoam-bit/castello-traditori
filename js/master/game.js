@@ -164,6 +164,13 @@ function outcomeHtml(o, nameOf) {
   return o.reason === 'tie' ? 'Ancora parità: oggi nessuno lascia il castello.' : 'Nessun voto: oggi nessuno lascia il castello.';
 }
 
+// Maledetti di oggi (mai chi ha lanciato la Maledizione) e Sigilli usati
+export function cursesHtml(v, nameOf) {
+  const out = v.curses.map((id) => `<p class="curse-line"><strong>${esc(nameOf(id))}</strong> è stato maledetto: alla Tavola Rotonda non vota.</p>`);
+  out.push(...v.sealed.map((id) => `<p class="curse-line is-sealed"><strong>${esc(nameOf(id))}</strong> ha spezzato la Maledizione con il Sigillo.</p>`));
+  return out.join('');
+}
+
 function voteStageHtml(st, nameOf, title) {
   if (st.stage === 'voting') {
     const runoff = st.round === 2
@@ -173,8 +180,8 @@ function voteStageHtml(st, nameOf, title) {
     return `<h1>${st.round === 2 ? 'Ballottaggio' : title}</h1>${banish}${runoff}${progress(st.votedCount, st.voterCount, 'hanno votato')}`;
   }
   const counts = {};
-  for (const v of st.votes) counts[v.targetId] = (counts[v.targetId] || 0) + 1;
-  const rows = st.votes.map((v) => `<li><span>${esc(nameOf(v.voterId))}</span><span class="arrow">➜</span><span>${esc(nameOf(v.targetId))}</span></li>`).join('');
+  for (const v of st.votes) counts[v.targetId] = (counts[v.targetId] || 0) + (v.double ? 2 : 1);
+  const rows = st.votes.map((v) => `<li class="${v.double ? 'is-double' : ''}"><span>${esc(nameOf(v.voterId))}</span><span class="arrow">➜</span><span>${esc(nameOf(v.targetId))}</span>${v.double ? '<span class="dagger-mark" title="Pugnale">×2</span>' : ''}</li>`).join('');
   const tally = Object.entries(counts).sort((a, b) => b[1] - a[1])
     .map(([id, n]) => `<li><strong>${esc(nameOf(id))}</strong> ${n} ${n === 1 ? 'voto' : 'voti'}</li>`).join('');
   return `<h1>I voti</h1>
@@ -203,6 +210,7 @@ function stageHtml(v, nameOf, host) {
       let msg;
       if (st.firstDay) msg = 'Il castello si sveglia. Tutti sono scesi a colazione… per ora.';
       else if (st.victimId) msg = `Stanotte i Traditori hanno colpito: <strong>${esc(nameOf(st.victimId))}</strong> non scenderà più a colazione.`;
+      else if (st.failed) msg = 'Stanotte i Traditori hanno colpito… ma <strong>l\'omicidio è fallito</strong>. Qualcuno era protetto da uno Scudo.';
       else msg = 'Stanotte nessuno è stato assassinato.';
       // I più sospettati della notte, senza dire chi li ha indicati
       const names = st.suspects.map((id) => `<strong>${esc(nameOf(id))}</strong>`);
@@ -212,6 +220,7 @@ function stageHtml(v, nameOf, host) {
       return `<h1>Colazione</h1>
         <p class="lead ${st.victimId ? 'after-break' : ''}">${msg}</p>
         ${suspects}
+        ${cursesHtml(v, nameOf)}
         ${portraitWallHtml(v.players, { photoOf: (id) => host.photoOf(id), breakingId: st.victimId, suspects: st.suspects })}`;
     }
     case 'mission':
@@ -221,10 +230,11 @@ function stageHtml(v, nameOf, host) {
     case 'roundtable':
       if (st.stage === 'discussion') {
         return `<h1>Tavola Rotonda</h1>
+          ${cursesHtml(v, nameOf)}
           <p class="lead">Discutete: chi sono i Traditori? Il voto si apre quando la clessidra è vuota.</p>
           <div class="discussion-clock" aria-hidden="true"></div>`;
       }
-      return voteStageHtml(st, nameOf, 'Tavola Rotonda');
+      return (st.stage === 'voting' ? cursesHtml(v, nameOf) : '') + voteStageHtml(st, nameOf, 'Tavola Rotonda');
     case 'reveal':
       return revealStageHtml(st, nameOf);
     case 'night':

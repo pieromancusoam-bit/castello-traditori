@@ -163,3 +163,19 @@
 .symbol-btn span { font-size: 0.85rem; }
 .pos-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
 .pos-grid .pick { font-size: 1.3rem; padding: 0.8em 0; }
+
+/* ---------- Fase 3: oggetti, ruoli speciali, eventi, missioni nuove ---------- */
+.inv-btn { padding: 0.3em 0.7em; font-size: 0.75rem; letter-spacing: 0.04em; text-transform: none; border-color: var(--gold-dim); }
+.inv-btn.is-ready { background: var(--velvet); border-color: var(--gold); animation: inv-pulse 1.6s infinite; }
+@keyframes inv-pulse { 50% { box-shadow: 0 0 0 4px rgba(212, 174, 74, 0.35); } }
+.inventory { text-align: left; display: flex; flex-direction: column; gap: 0.6rem; }
+.inv-top { display: flex; justify-content: space-between; align-items: center; }
+.inv-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.6rem; }
+.inv-item { border: 1px solid var(--gold-dim); border-radius: var(--radius); padding: 0.7rem 0.9rem; background: var(--stone-800); }
+.inv-item p { margin: 0.3rem 0 0.5rem; color: var(--muted); }
+.inv-head strong { color: var(--gold); font-family: var(--font-title); font-size: 1.3rem; font-weight: 400; }
+.item-hint, .gift { border: 1px dashed var(--gold-dim); border-radius: var(--radius); padding: 0.6rem 0.8rem; margin: 0.2rem 0; font-size: 0.95rem; }
+.item-hint .btn { margin-top: 0.4rem; }
+.gift strong, .item-hint strong { color: var(--gold); }
+.curse-line { margin: 0.2rem 0; color: var(--warn); }
+.mirror-result { border-top: 1px solid var(--stone-600); padding-top: 0.6rem; }

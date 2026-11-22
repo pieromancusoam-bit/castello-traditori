@@ -32,12 +32,16 @@ function assertNoHiddenRoles(view, hidden, label) {
   walk(view);
 }
 
-// Stesso stato ma con i ruoli dei giocatori nascosti rimescolati tra loro
+// Stesso stato ma con i ruoli (e gli oggetti) dei giocatori nascosti rimescolati tra loro
 function permuteHiddenRoles(s, hidden, rng) {
   const list = [...hidden];
   const roles = rng.shuffle(list.map((id) => s.players[id].role));
+  const items = rng.shuffle(list.map((id) => s.players[id].items));
   const copy = structuredClone(s);
-  list.forEach((id, i) => { copy.players[id].role = roles[i]; });
+  list.forEach((id, i) => {
+    copy.players[id].role = roles[i];
+    copy.players[id].items = structuredClone(items[i]);
+  });
   return copy;
 }
 

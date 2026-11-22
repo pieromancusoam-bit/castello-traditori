@@ -424,3 +424,9 @@
 .settings-panel select { font: inherit; font-size: 0.95em; padding: 0.25em 0.4em; background: #1b1416; color: var(--text); border: 1px solid #5a4630; border-radius: 6px; }
 .set-check input { width: 1.2em; height: 1.2em; vertical-align: middle; }
 .settings-actions { display: flex; justify-content: flex-end; gap: 1em; }
+.curse-line { font-size: 1.3em; color: var(--warn); margin: 0.2em 0; animation: fade-in 0.8s both; }
+.curse-line.is-sealed { color: var(--gold); }
+.gift-line { font-size: 1.2em; color: var(--gold); margin: 0.3em 0; }
+.board-note { margin-top: 1em; }
+.vote-list li.is-double { color: var(--gold); }
+.dagger-mark { margin-left: 0.6em; padding: 0 0.4em; border: 2px solid var(--gold); border-radius: 8px; color: var(--gold); font-weight: 700; }
