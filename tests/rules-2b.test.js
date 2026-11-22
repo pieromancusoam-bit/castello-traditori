@@ -187,7 +187,7 @@ test('Seduzione accettata: il sedotto diventa Traditore, nessuna vittima, esito 
   assert.equal(rejected(s, { type: A.NIGHT_PLAN, playerId: 'p1', payload: { plan: 'murder' } }), REJECT.ALREADY_DONE);
   // L'offerta arriva al sedotto, anonima; gli altri non vedono nulla
   const offer = viewFor(s, 'p3').step.offer;
-  assert.deepEqual(offer, { incoming: true, targetId: 'p3', answer: null });
+  assert.deepEqual(offer, { kind: 'seduce', incoming: true, targetId: 'p3', answer: null });
   assert.ok(!JSON.stringify(viewFor(s, 'p3')).includes('"byId"'));
   assert.equal(viewFor(s, 'p4').step.offer, null);
   assert.equal(rejected(s, { type: A.SEDUCTION_ANSWER, playerId: 'p4', payload: { accept: true } }), REJECT.NOT_ALLOWED);
@@ -198,8 +198,8 @@ test('Seduzione accettata: il sedotto diventa Traditore, nessuna vittima, esito 
   s = suspectAll(s, ['p3']);
   assert.equal(s.phase, PHASE.BREAKFAST, 'notte finita: tutti hanno agito');
   assert.equal(s.phaseData.victimId, null);
-  assert.deepEqual(viewFor(s, 'p1').step.seduction, { targetId: 'p3', accepted: true });
-  assert.deepEqual(viewFor(s, 'p3').step.seduction, { targetId: 'p3', accepted: true });
+  assert.deepEqual(viewFor(s, 'p1').step.seduction, { kind: 'seduce', targetId: 'p3', accepted: true });
+  assert.deepEqual(viewFor(s, 'p3').step.seduction, { kind: 'seduce', targetId: 'p3', accepted: true });
   assert.equal(viewFor(s, 'p2').step.seduction, null);
   assert.ok(!JSON.stringify(viewForMaster(s)).includes('seduction'));
   // La notte dopo uccidono insieme: serve l'accordo di entrambi
@@ -218,7 +218,7 @@ test('Seduzione rifiutata (o senza risposta): resta Leale e nessuno muore', () =
   assert.equal(s.phase, PHASE.BREAKFAST);
   assert.equal(s.players.p3.role, ROLE.FAITHFUL);
   assert.equal(s.phaseData.victimId, null);
-  assert.deepEqual(viewFor(s, 'p1').step.seduction, { targetId: 'p3', accepted: false });
+  assert.deepEqual(viewFor(s, 'p1').step.seduction, { kind: 'seduce', targetId: 'p3', accepted: false });
   assert.equal(viewFor(s, 'p3').allies, null);
 
   let t = choose(plan(firstNight(), 'seduce'), 'p1', 'p3');
@@ -226,7 +226,7 @@ test('Seduzione rifiutata (o senza risposta): resta Leale e nessuno muore', () =
   assert.equal(t.phase, PHASE.NIGHT, 'si aspetta la risposta del sedotto');
   t = advance(t);
   assert.equal(t.players.p3.role, ROLE.FAITHFUL);
-  assert.deepEqual(viewFor(t, 'p1').step.seduction, { targetId: 'p3', accepted: false });
+  assert.deepEqual(viewFor(t, 'p1').step.seduction, { kind: 'seduce', targetId: 'p3', accepted: false });
 });
 
 test('Seduzione: il Traditore può tornare ad "Assassinare" finché non ha scelto', () => {

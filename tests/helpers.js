@@ -4,7 +4,9 @@ import assert from 'node:assert/strict';
 import { createGame, PHASE } from '../js/engine/state.js';
 import { applyAction } from '../js/engine/reducer.js';
 import { A, FINAL_CHOICES } from '../js/engine/actions.js';
-import { ROLE } from '../js/engine/roles.js';
+import { ROLE, isTraitorRole } from '../js/engine/roles.js';
+import { isKiller, canKill, secretCanSwap, nightConsensus } from '../js/engine/phases.js';
+import { itemActions } from '../js/engine/items.js';
 import { createRng } from '../js/engine/rng.js';
 
 export const makePlayers = (n) => Array.from({ length: n }, (_, i) => ({ id: `p${i + 1}`, name: `Giocatore ${i + 1}` }));
@@ -86,6 +88,7 @@ function possibleActions(s, r) {
       if (pd.stage === 'voting') {
         for (const id of live) {
           if (pd.ballot.votes[id] !== undefined) continue;
+          if (s.phase === PHASE.ROUNDTABLE && s.curses.includes(id)) continue; // maledetto
           const options = (pd.ballot.candidates || live).filter((t) => t !== id);
           if (options.length) acts.push({ type: A.VOTE, playerId: id, payload: { targetId: pick(options) } });
         }
@@ -98,23 +101,29 @@ function possibleActions(s, r) {
       }
       break;
     case PHASE.NIGHT: {
-      const faithful = live.filter((id) => s.players[id].role !== ROLE.TRAITOR);
       for (const id of live) {
         const p = s.players[id];
-        const killer = pd.mode === 'murder' && p.role === ROLE.TRAITOR;
         const target = pd.offer && pd.offer.targetId === id;
         if (target && pd.offer.answer === null) {
           acts.push({ type: A.SEDUCTION_ANSWER, playerId: id, payload: { accept: r.next() < 0.5 } });
           continue;
         }
-        const isKiller = killer && !target;
-        if (isKiller && pd.canSeduce && !pd.offer && r.next() < 0.3) {
-          acts.push({ type: A.NIGHT_PLAN, playerId: id, payload: { plan: pd.plan === 'murder' ? 'seduce' : 'murder' } });
+        if (isKiller(s, p)) {
+          if (pd.offer) continue;
+          const plans = ['murder', ...(pd.canSeduce ? ['seduce'] : []), ...(pd.canUltimatum ? ['ultimatum'] : [])];
+          if (plans.length > 1 && r.next() < 0.3) acts.push({ type: A.NIGHT_PLAN, playerId: id, payload: { plan: pick(plans) } });
+          const options = live.filter((t) => canKill(s, p, t));
+          if (options.length) acts.push({ type: A.NIGHT_CHOOSE, playerId: id, payload: { targetId: pick(options) } });
+          if (r.next() < 0.3) acts.push({ type: A.NIGHT_CHAT, playerId: id, payload: { text: `messaggio segreto di ${id}` } });
+          continue;
         }
-        if (isKiller && pd.plan === 'seduce' && pd.offer) continue;
-        const options = isKiller ? faithful.filter((f) => f !== id) : live.filter((t) => t !== id);
-        if (options.length) acts.push({ type: A.NIGHT_CHOOSE, playerId: id, payload: { targetId: pick(options) } });
-        if (isKiller && r.next() < 0.3) acts.push({ type: A.NIGHT_CHAT, playerId: id, payload: { text: `messaggio segreto di ${id}` } });
+        const others = live.filter((t) => t !== id);
+        if (p.role === ROLE.SEER && !p.vision && r.next() < 0.5) acts.push({ type: A.NIGHT_VISION, playerId: id, payload: { targetId: pick(others) } });
+        if (secretCanSwap(s, p) && !pd.swapDecided && nightConsensus(s)) {
+          const swapTo = others.filter((t) => !isTraitorRole(s.players[t].role));
+          acts.push({ type: A.NIGHT_SWAP, playerId: id, payload: { targetId: swapTo.length && r.next() < 0.5 ? pick(swapTo) : null } });
+        }
+        if (others.length) acts.push({ type: A.NIGHT_CHOOSE, playerId: id, payload: { targetId: pick(others) } });
       }
       break;
     }
@@ -123,6 +132,14 @@ function possibleActions(s, r) {
       break;
     default:
       break;
+  }
+  for (const id of live) {
+    const a = itemActions(s, s.players[id]);
+    const use = (item, targetId) => acts.push({ type: A.USE_ITEM, playerId: id, payload: targetId ? { item, targetId } : { item } });
+    if (a.dagger) use('dagger');
+    if (a.seal) use('seal');
+    if (a.mirror && r.next() < 0.3) use('mirror');
+    if (a.curse && a.curse.length) use('curse', pick(a.curse));
   }
   if (pd.timer && r.next() < 0.05) acts.push({ type: A.TIMER_EXPIRED, payload: { key: pd.timer.key } });
   return acts;
@@ -163,8 +180,12 @@ function missionInputs(s, r, live) {
 
 // Gioca una partita casuale fino alla fine. onState(state) viene chiamata a ogni passo.
 export function playRandomGame({ players, seed, onState = () => {}, maxSteps = 8000 }) {
-  let s = createGame({ players: makePlayers(players), seed }); // tutte le regole accese
+  // Tutte le regole accese: ruoli speciali, eventi (sempre, quando possibili), Ultimatum
+  const settings = { roles: { seer: true, knight: true, secretTraitor: true }, eventChance: 1, ultimatum: true };
+  let s = createGame({ players: makePlayers(players), seed, settings });
   const r = createRng(seed * 7919 + 13);
+  // Oggetti in mano fin dall'inizio, per provarli tutti
+  for (const id of s.order) s.players[id].items.push(...['dagger', 'curse', 'seal', 'mirror', 'shield'].filter(() => r.next() < 0.25));
   onState(s);
   for (let step = 0; step < maxSteps; step++) {
     if (s.phase === PHASE.ENDED) return s;

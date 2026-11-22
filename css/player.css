@@ -179,3 +179,9 @@
 .gift strong, .item-hint strong { color: var(--gold); }
 .curse-line { margin: 0.2rem 0; color: var(--warn); }
 .mirror-result { border-top: 1px solid var(--stone-600); padding-top: 0.6rem; }
+.role-power { display: block; font-size: 0.85rem; color: var(--muted); margin-top: 0.3rem; }
+.seer-box { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; }
+.secret-box { border: 1px solid var(--velvet-hi); border-radius: var(--radius); padding: 0.6rem 0.8rem; text-align: left; margin-top: 0.6rem; }
+.secret-box h2 { font-size: 1.2rem; margin: 0; }
+.ally-picks { margin: 0.3rem 0; padding-left: 1.1rem; }
+.offer.is-ultimatum { border-color: var(--bad); }

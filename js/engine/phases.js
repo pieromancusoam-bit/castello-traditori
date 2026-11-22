@@ -193,14 +193,43 @@ export function enterNight(s, rng) {
   // La Maledizione vale solo per la Tavola Rotonda del giorno
   s.curses = [];
   s.sealed = [];
-  const data = { mode: 'murder', newTraitorId: null, picks: {}, suspicions: {}, chat: [], canSeduce: false, plan: 'murder', offer: null };
-  // Tutti i Traditori banditi: il castello ne sceglie uno nuovo, e stanotte niente omicidio
+  const data = {
+    mode: 'murder', // 'murder' | 'castle' (nuovo Traditore scelto dal castello) | 'rest' (notte senza omicidio)
+    restReason: null, // 'banquet' | 'daylight'
+    newTraitorId: null,
+    picks: {},
+    suspicions: {},
+    chat: [],
+    canSeduce: false,
+    canUltimatum: false,
+    plan: 'murder', // 'murder' | 'seduce' | 'ultimatum'
+    offer: null, // { kind: 'seduce' | 'ultimatum', byIds, targetId, answer }
+    swap: null, // Traditore Segreto: nuova vittima
+    swapDecided: false,
+  };
+  const ev = s.dayEvent && s.dayEvent.day === s.day ? s.dayEvent : null;
   if (aliveTraitors(s).length === 0) {
+    // Tutti i Traditori banditi: il castello ne sceglie uno nuovo, e stanotte niente omicidio.
+    // L'Ultimatum, se era in attesa, va perso; il Banchetto salta.
     const chosen = rng.pick(aliveFaithfuls(s));
     chosen.role = ROLE.TRAITOR;
     chosen.turnedOnDay = s.day;
     data.mode = 'castle';
     data.newTraitorId = chosen.id;
+    s.ultimatum.next = false;
+    cancelBanquet(s);
+  } else if (ev && ev.id === 'daylightMurder') {
+    // Dopo l'Omicidio a vista la notte è tranquilla (l'Ultimatum aspetta la notte dopo)
+    data.mode = 'rest';
+    data.restReason = 'daylight';
+  } else if (s.ultimatum.next && s.settings.ultimatum) {
+    // Bandito il primo Traditore: i Traditori rimasti possono offrire l'Ultimatum
+    s.ultimatum.next = false;
+    data.canUltimatum = true;
+    cancelBanquet(s);
+  } else if (ev && ev.id === 'banquet') {
+    data.mode = 'rest';
+    data.restReason = 'banquet';
   } else if (s.settings.seduction && s.day === 1 && aliveTraitors(s).length === 1) {
     // Prima notte con un solo Traditore: può sedurre un Leale invece di uccidere
     data.canSeduce = true;
@@ -208,54 +237,94 @@ export function enterNight(s, rng) {
   s.phaseData = data;
 }
 
-// Il Leale che riceve (o ha accettato) l'offerta di Seduzione non uccide stanotte
+// Il Banchetto non si fa (notte del castello o dell'Ultimatum): niente doppio bando domani
+function cancelBanquet(s) {
+  if (s.dayEvent && s.dayEvent.day === s.day && s.dayEvent.id === 'banquet') s.dayEvent.cancelled = true;
+  if (s.banquetDay === s.day + 1) s.banquetDay = null;
+}
+
+// Chi riceve (o ha accettato) l'offerta di Seduzione o l'Ultimatum non uccide stanotte
 const isOfferTarget = (s, p) => Boolean(s.phaseData.offer && s.phaseData.offer.targetId === p.id);
 
-// Chi sceglie la vittima stanotte: i Traditori vivi, tranne chi è appena stato sedotto
-export const nightKillers = (s) => (s.phaseData.mode === 'murder' ? aliveTraitors(s).filter((p) => !isOfferTarget(s, p)) : []);
+// Chi sceglie la vittima stanotte: i Traditori vivi, tranne chi ha appena ricevuto l'offerta.
+// Il Traditore Segreto uccide solo se non resta nessun altro Traditore.
+export function nightKillers(s) {
+  if (s.phaseData.mode !== 'murder') return [];
+  const free = alivePlayers(s).filter((p) => !isOfferTarget(s, p));
+  const regular = free.filter((p) => p.role === ROLE.TRAITOR);
+  return regular.length ? regular : free.filter((p) => p.role === ROLE.SECRET_TRAITOR);
+}
 
-// Accordo dei Traditori: tutti i vivi hanno indicato la stessa vittima
+export const isKiller = (s, p) => nightKillers(s).some((k) => k.id === p.id);
+
+// Bersaglio valido per chi uccide: vivo, non sé stesso, non un complice che conosce.
+// (I Traditori non conoscono il Traditore Segreto: possono sceglierlo.)
+export function canKill(s, killer, targetId) {
+  const t = s.players[targetId];
+  if (!t || t.status !== STATUS.ALIVE || targetId === killer.id) return false;
+  if (killer.role === ROLE.SECRET_TRAITOR) return !isTraitorRole(t.role);
+  return t.role !== ROLE.TRAITOR;
+}
+
+// Accordo dei Traditori: tutti quelli che uccidono hanno indicato la stessa vittima
 export function nightConsensus(s) {
   const traitors = nightKillers(s);
-  if (s.phaseData.mode !== 'murder' || traitors.length === 0) return null;
+  if (traitors.length === 0) return null;
   const first = s.phaseData.picks[traitors[0].id];
   if (!first) return null;
   return traitors.every((t) => s.phaseData.picks[t.id] === first) ? first : null;
 }
 
-// Chi agisce di notte con l'omicidio: i Traditori vivi (non il nuovo del castello, non il sedotto)
-export const isKiller = (s, p) => s.phaseData.mode === 'murder' && p.role === ROLE.TRAITOR && !isOfferTarget(s, p);
+// Traditore Segreto: stanotte può cambiare la vittima (una volta per partita, a accordo raggiunto)
+export function secretCanSwap(s, p) {
+  const pd = s.phaseData;
+  return p.role === ROLE.SECRET_TRAITOR && p.status === STATUS.ALIVE && !p.swapUsed && pd.mode === 'murder'
+    && pd.plan === 'murder' && !isKiller(s, p) && !isOfferTarget(s, p) && nightKillers(s).length > 0;
+}
 
 export function nightDone(s, p) {
   const pd = s.phaseData;
   if (isOfferTarget(s, p)) return pd.offer.answer !== null;
-  if (isKiller(s, p)) return pd.plan === 'seduce' ? pd.offer !== null : nightConsensus(s) !== null;
+  if (isKiller(s, p)) return pd.plan === 'murder' ? nightConsensus(s) !== null : pd.offer !== null;
+  // Il Traditore Segreto, ad accordo raggiunto, decide se cambiare la vittima
+  if (secretCanSwap(s, p)) return pd.suspicions[p.id] !== undefined && pd.swapDecided;
   return pd.suspicions[p.id] !== undefined;
 }
 
 export const allNightDone = (s) => alivePlayers(s).every((p) => nightDone(s, p));
 
 // Fine della notte: senza accordo vince la vittima più indicata, la parità si estrae a caso.
-// Con la Seduzione nessun omicidio; un'offerta senza risposta vale come rifiutata.
+// Seduzione: nessun omicidio; un'offerta senza risposta vale come rifiutata.
+// Ultimatum: chi accetta diventa Traditore (nessun omicidio); chi rifiuta (o non risponde)
+// è la vittima della notte, e lo Scudo non lo salva.
 export function resolveNight(s, rng) {
   let victimId = null;
-  let seduction = null;
+  let offerResult = null;
+  let shieldable = true;
   const pd = s.phaseData;
-  if (pd.mode === 'murder' && pd.plan === 'seduce') {
-    if (pd.offer) seduction = { byId: pd.offer.byId, targetId: pd.offer.targetId, accepted: pd.offer.answer === true };
+  if (pd.mode === 'murder' && pd.plan !== 'murder') {
+    if (pd.offer) {
+      const accepted = pd.offer.answer === true;
+      offerResult = { kind: pd.offer.kind, byIds: [...pd.offer.byIds], targetId: pd.offer.targetId, accepted };
+      if (pd.offer.kind === 'ultimatum' && !accepted) {
+        victimId = pd.offer.targetId;
+        shieldable = false;
+      }
+    }
   } else if (pd.mode === 'murder') {
-    const valid = new Set(aliveFaithfuls(s).map((p) => p.id));
     const picks = {};
     for (const t of nightKillers(s)) {
-      const target = s.phaseData.picks[t.id];
-      if (valid.has(target)) picks[t.id] = target;
+      const target = pd.picks[t.id];
+      if (target && canKill(s, t, target)) picks[t.id] = target;
     }
     const { leaders } = tally(picks, s.order);
     if (leaders.length) victimId = leaders.length === 1 ? leaders[0] : rng.pick(leaders);
+    // Il Traditore Segreto ha cambiato la vittima
+    if (victimId && pd.swap && s.players[pd.swap].status === STATUS.ALIVE) victimId = pd.swap;
   }
   // Scudo: l'omicidio fallisce e lo Scudo si consuma (si sa che è fallito, non su chi)
   let failed = false;
-  if (victimId && hasItem(s.players[victimId], ITEM.SHIELD)) {
+  if (victimId && shieldable && hasItem(s.players[victimId], ITEM.SHIELD)) {
     takeItem(s.players[victimId], ITEM.SHIELD);
     victimId = null;
     failed = true;
@@ -266,7 +335,7 @@ export function resolveNight(s, rng) {
   } else {
     s.history.push({ day: s.day, type: failed ? 'murder-failed' : 'no-murder' });
   }
-  enterBreakfast(s, victimId, nightSuspects(s), seduction, failed);
+  enterBreakfast(s, victimId, nightSuspects(s), offerResult, failed);
 }
 
 // Il più sospettato tra i vivi (dopo l'omicidio); in parità tutti i pari merito

@@ -23,6 +23,7 @@ function debugBarHtml() {
 
 const FACTION_A = { faithfuls: 'un Leale', traitors: 'un Traditore' };
 const FACTION = { faithfuls: 'Leale', traitors: 'Traditore' };
+const SPECIAL_NAME = { seer: 'Veggente', knight: 'Cavaliere', secret_traitor: 'Traditore Segreto' };
 
 export function mountGame(root, host, { debug, onClose }) {
   root.innerHTML = `
@@ -279,7 +280,7 @@ function stageHtml(v, nameOf, host) {
         <ul class="unveil">${v.players.map((p) => `
           <li class="faction-${p.faction} ${p.status !== 'alive' ? 'is-out' : ''}">
             <span>${esc(p.name)}${p.status === 'banished' ? ' · bandito' : p.status === 'murdered' ? ' · assassinato' : ''}</span>
-            <strong>${FACTION[p.faction]}</strong>
+            <strong>${SPECIAL_NAME[p.role] || FACTION[p.faction]}</strong>
           </li>`).join('')}</ul>`;
     default:
       return '';

@@ -4,7 +4,7 @@
 
 import { PHASE, STATUS } from './state.js';
 import { ROLE, factionOf, isTraitorRole } from './roles.js';
-import { nightConsensus, isKiller, voterIds } from './phases.js';
+import { nightConsensus, nightKillers, isKiller, canKill, secretCanSwap, voterIds } from './phases.js';
 import { itemActions } from './items.js';
 import { PRESENTATION_THEMES } from '../config/presentations.js';
 import { MISSION_MODULES } from './missions/index.js';
@@ -23,7 +23,10 @@ function isRevealed(s, id) {
 function publicPlayers(s) {
   return s.order.map((id) => {
     const p = s.players[id];
-    return { id: p.id, name: p.name, status: p.status, faction: isRevealed(s, id) ? factionOf(p.role) : null };
+    const e = { id: p.id, name: p.name, status: p.status, faction: isRevealed(s, id) ? factionOf(p.role) : null };
+    // A fine partita si scoprono anche i ruoli speciali
+    if (s.phase === PHASE.ENDED) e.role = p.role;
+    return e;
   });
 }
 
@@ -185,6 +188,9 @@ export function viewFor(s, playerId) {
       items: [...p.items],
       itemActions: itemActions(s, p),
       mirror: p.mirror ? { day: p.mirror.day, voters: [...p.mirror.voters] } : null,
+      // Veggente: la visione (fazione di un giocatore), solo a lui
+      vision: p.vision ? { day: p.vision.day, targetId: p.vision.targetId, faction: p.vision.faction } : null,
+      swapUsed: p.role === ROLE.SECRET_TRAITOR ? p.swapUsed : null,
     },
     // Solo i Traditori conoscono i complici (il Traditore Segreto li conosce tutti, gli altri non conoscono lui)
     allies: traitor ? alliesOf(s, p).map((id) => ({ id, name: s.players[id].name, status: s.players[id].status })) : null,
@@ -225,31 +231,47 @@ function playerNight(s, p) {
   const killer = alive && isKiller(s, p);
   const target = Boolean(pd.offer && pd.offer.targetId === p.id);
   const live = aliveIdList(s);
-  // Stessa griglia per tutti (tutti gli altri vivi): ai Traditori i complici compaiono disattivati.
-  // Così il numero di caselle non rivela nulla.
+  const secret = alive && p.role === ROLE.SECRET_TRAITOR && !killer;
+  // Stessa griglia per tutti (tutti gli altri vivi): a chi uccide i complici che conosce
+  // compaiono disattivati. Così il numero di caselle non rivela nulla.
   const step = {
     canAct: alive,
     options: alive ? live.filter((id) => id !== p.id) : [],
-    disabled: killer ? live.filter((id) => id !== p.id && s.players[id].role === ROLE.TRAITOR) : [],
+    disabled: killer ? live.filter((id) => id !== p.id && !canKill(s, p, id)) : [],
     myChoice: (killer ? pd.picks[p.id] : pd.suspicions[p.id]) ?? null,
     killer,
+    rest: pd.mode === 'rest' ? pd.restReason : null,
     chat: null,
     allyPicks: null,
     consensus: null,
-    // Seduzione: scelta del Traditore (solo a lui) e offerta in arrivo (solo al sedotto, anonima)
+    // Seduzione / Ultimatum: scelta dei Traditori (solo a loro) e offerta in arrivo (solo al bersaglio, anonima)
     canSeduce: killer && pd.canSeduce && !pd.offer,
-    plan: killer && pd.canSeduce ? pd.plan : null,
+    canUltimatum: killer && pd.canUltimatum && !pd.offer,
+    plan: killer && (pd.canSeduce || pd.canUltimatum) ? pd.plan : null,
     offer: null,
+    // Veggente: visione ancora da usare
+    canVision: alive && p.role === ROLE.SEER && !p.vision,
+    // Traditore Segreto: vede chat e scelte dei Traditori e può cambiare la vittima
+    secret: null,
   };
-  if (killer && pd.offer) step.offer = { incoming: false, targetId: pd.offer.targetId, answer: pd.offer.answer };
-  if (target) step.offer = { incoming: true, targetId: p.id, answer: pd.offer.answer };
-  // Solo per i Traditori che uccidono stanotte
-  if (killer) {
+  if (killer && pd.offer) step.offer = { kind: pd.offer.kind, incoming: false, targetId: pd.offer.targetId, answer: pd.offer.answer };
+  if (target) step.offer = { kind: pd.offer.kind, incoming: true, targetId: p.id, answer: pd.offer.answer };
+  const killerIds = nightKillers(s).map((k) => k.id);
+  // Solo per i Traditori che uccidono stanotte (e per il Traditore Segreto, che li osserva)
+  if (killer || (secret && killerIds.length)) {
     step.chat = pd.chat.map((m) => ({ from: m.from, text: m.text }));
-    step.allyPicks = live
-      .filter((id) => isKiller(s, s.players[id]))
-      .map((id) => ({ id, targetId: pd.picks[id] ?? null }));
+    step.allyPicks = killerIds.map((id) => ({ id, targetId: pd.picks[id] ?? null }));
     step.consensus = nightConsensus(s);
+  }
+  if (secret) {
+    step.secret = {
+      canSwap: secretCanSwap(s, p) && !pd.swapDecided,
+      swapUsed: p.swapUsed,
+      swap: pd.swap,
+      plan: killerIds.length ? pd.plan : null,
+      // Nuova vittima possibile: chi non è Traditore (lui li conosce tutti)
+      swapOptions: live.filter((id) => id !== p.id && !isTraitorRole(s.players[id].role)),
+    };
   }
   return step;
 }
@@ -266,9 +288,9 @@ function playerStep(s, p) {
         firstDay: pd.firstDay,
         suspects: [...pd.suspects],
         failed: Boolean(pd.failed),
-        // Esito della Seduzione: solo a chi ha sedotto e a chi è stato sedotto
-        seduction: pd.seduction && (pd.seduction.byId === p.id || pd.seduction.targetId === p.id)
-          ? { targetId: pd.seduction.targetId, accepted: pd.seduction.accepted }
+        // Esito dell'offerta (Seduzione o Ultimatum): solo ai Traditori che l'hanno fatta e a chi l'ha ricevuta
+        seduction: pd.seduction && (pd.seduction.byIds.includes(p.id) || pd.seduction.targetId === p.id)
+          ? { kind: pd.seduction.kind, targetId: pd.seduction.targetId, accepted: pd.seduction.accepted }
           : null,
       };
     case PHASE.PRESENTATIONS:

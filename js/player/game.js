@@ -10,6 +10,7 @@ import { inventoryButtonHtml, inventoryHtml, itemHintHtml, giftHtml } from './in
 
 const FACTION = { faithfuls: 'Leale', traitors: 'Traditore' };
 const FACTION_A = { faithfuls: 'un Leale', traitors: 'un Traditore' };
+const SPECIAL_NAME = { seer: 'Veggente', knight: 'Cavaliere', secret_traitor: 'Traditore Segreto' };
 
 // Monta i gestori una volta sola e restituisce render(), da chiamare a ogni vista nuova
 export function createGameScreen(root, client) {
@@ -23,6 +24,7 @@ export function createGameScreen(root, client) {
     timer: null,         // { key, ms, start }: conto alla rovescia locale del timer del master
     torch: null,         // Le Torce: { key, round, phase: 'wait'|'lit'|'done', litAt, result, timers }
     inventory: false,    // pannello degli oggetti aperto
+    vision: false,       // Veggente: griglia della visione aperta
   };
 
   const view = () => client.view && client.view.game;
@@ -147,6 +149,11 @@ export function createGameScreen(root, client) {
     ui.error = '';
     render();
   });
+  on(root, '[data-act="vision"]', 'click', () => {
+    ui.vision = !ui.vision;
+    ui.pending = null;
+    render();
+  });
   on(root, '[data-act="inventory"]', 'click', () => {
     ui.inventory = !ui.inventory;
     ui.pending = null;
@@ -167,6 +174,8 @@ export function createGameScreen(root, client) {
     if (p.kind === 'chrono') send(A.MISSION_INPUT, { position: Number(p.value) });
     if (p.kind === 'messenger') send(A.MISSION_INPUT, { choice: Number(p.value) });
     if (p.kind === 'offer') send(A.SEDUCTION_ANSWER, { accept: p.value === 'yes' });
+    if (p.kind === 'vision') send(A.NIGHT_VISION, { targetId: p.value }).then(() => { ui.vision = false; render(); });
+    if (p.kind === 'swap') send(A.NIGHT_SWAP, { targetId: p.value === 'keep' ? null : p.value });
     if (p.kind === 'item') send(A.USE_ITEM, { item: p.value });
     if (p.kind === 'curse') send(A.USE_ITEM, { item: 'curse', targetId: p.value }).then((res) => {
       if (res.ok) {
@@ -281,10 +290,23 @@ function roleCardHtml(v, ui, small = false) {
     const allies = traitor && v.allies && v.allies.length
       ? `<span class="role-allies">Complici: ${v.allies.map((a) => esc(a.name) + (a.status !== 'alive' ? ' (fuori)' : '')).join(', ')}</span>`
       : traitor ? '<span class="role-allies">Nessun complice in gioco</span>' : '';
-    face = `<span class="role-name">Sei ${FACTION_A[v.me.faction]}</span>${allies}`;
+    const special = ROLE_TEXT[v.me.role];
+    const vision = v.me.vision
+      ? `<span class="role-allies">La tua visione: ${esc((v.players.find((p) => p.id === v.me.vision.targetId) || {}).name || '?')} è ${FACTION_A[v.me.vision.faction]}</span>`
+      : '';
+    face = special
+      ? `<span class="role-name">Sei ${special.name}</span><span class="role-power">${special.text}</span>${allies}${vision}`
+      : `<span class="role-name">Sei ${FACTION_A[v.me.faction]}</span>${allies}`;
   }
   return `<button type="button" class="role-card ${small ? 'is-small' : ''} ${ui.holding ? 'is-open' : ''} ${ui.holding && traitor ? 'is-traitor' : ''}" data-hold>${face}</button>`;
 }
+
+// Ruoli speciali: nome e potere sulla carta del ruolo
+const ROLE_TEXT = {
+  seer: { name: 'il Veggente', text: 'Sei Leale. Una volta per partita, di notte, scopri la fazione di un giocatore.' },
+  knight: { name: 'il Cavaliere', text: 'Sei Leale. Parti con uno Scudo: ti salva da un omicidio.' },
+  secret_traitor: { name: 'il Traditore Segreto', text: 'I Traditori non sanno chi sei. Una volta per partita puoi cambiare la loro vittima.' },
+};
 
 function confirmHtml(ui, label) {
   return `
@@ -343,27 +365,15 @@ function voteHtml(v, ui, nameOf, title) {
 function nightHtml(v, ui, nameOf) {
   const st = v.step;
   if (v.me.status !== 'alive') return `<h1>La notte</h1><p class="muted">Il castello dorme.</p>`;
-  // Offerta di Seduzione ricevuta (anonima): accettare o rifiutare in segreto
-  if (st.offer && st.offer.incoming) {
-    if (st.offer.answer === true) {
-      const allies = v.allies && v.allies.length ? ` Il tuo complice: <strong>${v.allies.map((a) => esc(a.name)).join(', ')}</strong>.` : '';
-      return `<h1>La notte</h1><p class="turned">Hai accettato: <strong>ora sei un Traditore</strong>.${allies} Ucciderete insieme dalla prossima notte. Non dirlo a nessuno.</p>`;
-    }
-    if (st.offer.answer === false) return '<h1>La notte</h1><p class="big">Hai rifiutato l\'offerta. Resti Leale.</p><p class="muted">Torna a dormire.</p>';
-    const label = ui.pending && (ui.pending.value === 'yes' ? '<strong>Accettare</strong> e diventare Traditore?' : '<strong>Rifiutare</strong> e restare Leale?');
-    return `<h1>La notte</h1>
-      <div class="offer"><p class="big">I Traditori ti offrono di unirti a loro.</p>
-      <p class="muted">Se accetti diventi Traditore. Se rifiuti resti Leale, e nessuno saprà dell'offerta.</p></div>
-      <div class="final-choices">
-        <button class="btn btn-primary btn-block" data-pick="yes" data-kind="offer">Accetto</button>
-        <button class="btn btn-secondary btn-block" data-pick="no" data-kind="offer">Rifiuto</button>
-      </div>
-      ${ui.pending ? confirmHtml(ui, label) : ''}`;
-  }
+  // Offerta ricevuta (Seduzione o Ultimatum, anonima): accettare o rifiutare in segreto
+  if (st.offer && st.offer.incoming) return offerHtml(v, ui);
   const turned = v.me.justTurned
     ? '<p class="turned">Il castello ti ha scelto: <strong>ora sei un Traditore</strong>. Agirai dalla prossima notte. Non dirlo a nessuno.</p>'
     : '';
-  const seducing = st.killer && st.plan === 'seduce';
+  const rest = st.rest === 'banquet'
+    ? '<p class="turned">Stanotte c\'è il Banchetto: nessuno morirà.</p>'
+    : st.rest === 'daylight' ? '<p class="turned">Il sangue è già stato versato oggi: stanotte nessuno morirà.</p>' : '';
+  const offering = st.killer && st.plan !== null && st.plan !== 'murder';
   // Stessa forma per tutti: titolo, griglia con lo stesso numero di nomi, conferma.
   // I Traditori scelgono chi colpire; gli altri indicano un sospetto (annunciato alla Colazione).
   const allyMarks = (id) => {
@@ -372,53 +382,127 @@ function nightHtml(v, ui, nameOf) {
     return who.length ? `<small>${who.join(', ')}</small>` : '';
   };
   let mine = '';
-  if (seducing && st.offer) {
-    mine = `<p class="big">Offerta inviata a ${esc(nameOf(st.offer.targetId))}.</p><p class="muted">Alla colazione saprai se ha accettato.</p>`;
+  if (offering && st.offer) {
+    mine = `<p class="big">${st.offer.kind === 'ultimatum' ? 'Ultimatum' : 'Offerta'} inviata a ${esc(nameOf(st.offer.targetId))}.</p><p class="muted">Alla colazione saprai cosa ha risposto.</p>`;
   } else if (st.myChoice) {
     mine = st.killer
       ? `<p class="muted">La tua scelta: ${esc(nameOf(st.myChoice))} (puoi cambiarla)</p>`
       : `<p class="big">Hai indicato ${esc(nameOf(st.myChoice))}.</p><p class="muted">Torna a dormire: alla colazione il castello svelerà il più sospettato.</p>`;
   }
-  const planBox = st.canSeduce
-    ? `<div class="plan-toggle">
-        <button class="btn ${st.plan === 'murder' ? 'btn-primary' : 'btn-ghost'}" data-plan="murder">Assassinare</button>
-        <button class="btn ${st.plan === 'seduce' ? 'btn-primary' : 'btn-ghost'}" data-plan="seduce">Sedurre</button>
-      </div>
-      <p class="muted small">Sei l'unico Traditore: stanotte puoi uccidere oppure offrire a un Leale di unirsi a te.</p>`
-    : '';
-  const question = seducing
-    ? '<p>Chi vuoi sedurre?</p>'
-    : st.killer
-    ? '<p>Chi colpire stanotte?</p>'
-    : '<p>Di chi sospetti?</p><p class="muted small">Nessuno saprà che l\'hai indicato tu.</p>';
-  let killerBox = '';
-  // Chat e accordo servono solo a chi uccide insieme ad altri (non a chi seduce, non a chi è solo)
-  if (st.killer && !seducing && st.allyPicks.length > 1) {
-    const consensus = st.consensus
-      ? `<p class="consensus">Accordo raggiunto: <strong>${esc(nameOf(st.consensus))}</strong></p>`
-      : '<p class="muted small">Dovete indicare tutti lo stesso nome.</p>';
-    const msgs = st.chat.map((m) => `<li><strong>${m.from === v.me.id ? 'Tu' : esc(nameOf(m.from))}:</strong> ${esc(m.text)}</li>`).join('');
-    killerBox = `
-      ${consensus}
-      <div class="chat">
-        <ul class="chat-log">${msgs || '<li class="muted">Nessun messaggio.</li>'}</ul>
-        <form class="chat-form" data-act="chat" autocomplete="off">
-          <input type="text" maxlength="200" placeholder="Scrivi ai complici…" enterkeyhint="send">
-          <button class="btn btn-small btn-secondary" type="submit">Invia</button>
-        </form>
-      </div>`;
+  let planBox = '';
+  if (st.canSeduce || st.canUltimatum) {
+    const btn = (plan, label) => `<button class="btn ${st.plan === plan ? 'btn-primary' : 'btn-ghost'}" data-plan="${plan}">${label}</button>`;
+    planBox = `<div class="plan-toggle">${btn('murder', 'Assassinare')}${st.canSeduce ? btn('seduce', 'Sedurre') : ''}${st.canUltimatum ? btn('ultimatum', 'Ultimatum') : ''}</div>
+      <p class="muted small">${st.canSeduce
+    ? 'Sei l\'unico Traditore: stanotte puoi uccidere oppure offrire a un Leale di unirsi a te.'
+    : 'Un complice è stato bandito: stanotte potete offrire a un Leale di unirsi a voi. Se rifiuta, sarà lui la vittima.'}</p>`;
   }
-  const canPick = seducing ? !st.offer : !st.myChoice || st.killer;
-  const confirmLabel = ui.pending && (seducing
-    ? `Sedurre <strong>${esc(nameOf(ui.pending.value))}</strong>? Non potrai cambiare.`
-    : st.killer
-    ? `Colpire <strong>${esc(nameOf(ui.pending.value))}</strong>?`
-    : `Sospettare di <strong>${esc(nameOf(ui.pending.value))}</strong>?`);
-  return `<h1>La notte</h1>${turned}${planBox}${canPick ? question : ''}
+  const question = st.plan === 'seduce'
+    ? '<p>Chi vuoi sedurre?</p>'
+    : st.plan === 'ultimatum' ? '<p>A chi offrire l\'Ultimatum? Dovete indicare tutti lo stesso nome.</p>'
+    : st.killer ? '<p>Chi colpire stanotte?</p>'
+    : '<p>Di chi sospetti?</p><p class="muted small">Nessuno saprà che l\'hai indicato tu.</p>';
+  // Chat e accordo servono a chi uccide insieme ad altri (non a chi seduce, non a chi è solo)
+  let killerBox = '';
+  if (st.killer && st.plan !== 'seduce' && st.allyPicks.length > 1) killerBox = consensusHtml(st, nameOf) + chatHtml(v, st, nameOf, true);
+  const canPick = offering ? !st.offer : !st.myChoice || st.killer;
+  const p = ui.pending;
+  let confirm = '';
+  if (p && p.kind === 'night') {
+    confirm = confirmHtml(ui, st.plan === 'seduce'
+      ? `Sedurre <strong>${esc(nameOf(p.value))}</strong>? Non potrai cambiare.`
+      : st.plan === 'ultimatum' ? `Ultimatum a <strong>${esc(nameOf(p.value))}</strong>?`
+      : st.killer ? `Colpire <strong>${esc(nameOf(p.value))}</strong>?`
+      : `Sospettare di <strong>${esc(nameOf(p.value))}</strong>?`);
+  }
+  if (p && p.kind === 'vision') confirm = confirmHtml(ui, `Scrutare <strong>${esc(nameOf(p.value))}</strong>? Hai una sola visione per partita.`);
+  if (p && p.kind === 'swap') confirm = confirmHtml(ui, p.value === 'keep' ? 'Lasciare la vittima scelta dai Traditori?' : `Cambiare la vittima con <strong>${esc(nameOf(p.value))}</strong>? Puoi farlo una sola volta.`);
+  const grid = ui.vision ? '' : `${canPick ? question : ''}
     ${canPick ? pickGrid(st.options, 'night', ui, nameOf, allyMarks, st.disabled) : ''}
-    ${mine}
-    ${ui.pending ? confirmHtml(ui, confirmLabel) : ''}
-    ${killerBox}`;
+    ${mine}`;
+  return `<h1>La notte</h1>${turned}${rest}${planBox}
+    ${seerHtml(v, ui, nameOf)}
+    ${grid}
+    ${confirm}
+    ${killerBox}
+    ${secretHtml(v, ui, nameOf)}`;
+}
+
+function offerHtml(v, ui) {
+  const st = v.step;
+  const ultimatum = st.offer.kind === 'ultimatum';
+  if (st.offer.answer === true) {
+    const allies = v.allies && v.allies.length ? ` I tuoi complici: <strong>${v.allies.map((a) => esc(a.name)).join(', ')}</strong>.` : '';
+    return `<h1>La notte</h1><p class="turned">Hai accettato: <strong>ora sei un Traditore</strong>.${allies} Ucciderete insieme dalla prossima notte. Non dirlo a nessuno.</p>`;
+  }
+  if (st.offer.answer === false) {
+    return ultimatum
+      ? '<h1>La notte</h1><p class="big">Hai rifiutato. Resti Leale fino alla fine.</p><p class="muted">I Traditori non perdonano: all\'alba lo saprai.</p>'
+      : '<h1>La notte</h1><p class="big">Hai rifiutato l\'offerta. Resti Leale.</p><p class="muted">Torna a dormire.</p>';
+  }
+  let label = '';
+  if (ui.pending) {
+    if (ui.pending.value === 'yes') label = '<strong>Accettare</strong> e diventare Traditore?';
+    else label = ultimatum ? '<strong>Rifiutare</strong>? Stanotte la vittima sarai tu.' : '<strong>Rifiutare</strong> e restare Leale?';
+  }
+  const text = ultimatum
+    ? '<p class="big">Ultimatum: i Traditori ti offrono di unirti a loro.</p><p class="muted">Se accetti diventi Traditore. <strong>Se rifiuti, stanotte la vittima sarai tu.</strong></p>'
+    : '<p class="big">I Traditori ti offrono di unirti a loro.</p><p class="muted">Se accetti diventi Traditore. Se rifiuti resti Leale, e nessuno saprà dell\'offerta.</p>';
+  return `<h1>La notte</h1>
+    <div class="offer ${ultimatum ? 'is-ultimatum' : ''}">${text}</div>
+    <div class="final-choices">
+      <button class="btn btn-primary btn-block" data-pick="yes" data-kind="offer">Accetto</button>
+      <button class="btn btn-secondary btn-block" data-pick="no" data-kind="offer">Rifiuto</button>
+    </div>
+    ${ui.pending ? confirmHtml(ui, label) : ''}`;
+}
+
+function consensusHtml(st, nameOf) {
+  return st.consensus
+    ? `<p class="consensus">Accordo raggiunto: <strong>${esc(nameOf(st.consensus))}</strong></p>`
+    : '<p class="muted small">I Traditori devono indicare tutti lo stesso nome.</p>';
+}
+
+// Chat dei Traditori; il Traditore Segreto la legge soltanto
+function chatHtml(v, st, nameOf, canWrite) {
+  const msgs = st.chat.map((m) => `<li><strong>${m.from === v.me.id ? 'Tu' : esc(nameOf(m.from))}:</strong> ${esc(m.text)}</li>`).join('');
+  const form = canWrite
+    ? `<form class="chat-form" data-act="chat" autocomplete="off">
+        <input type="text" maxlength="200" placeholder="Scrivi ai complici…" enterkeyhint="send">
+        <button class="btn btn-small btn-secondary" type="submit">Invia</button>
+      </form>`
+    : '';
+  return `<div class="chat"><ul class="chat-log">${msgs || '<li class="muted">Nessun messaggio.</li>'}</ul>${form}</div>`;
+}
+
+// Veggente: la visione (una per partita), prima del sospetto
+function seerHtml(v, ui, nameOf) {
+  const st = v.step;
+  if (!st.canVision) return '';
+  if (!ui.vision) {
+    return `<p class="seer-box"><button class="btn btn-secondary btn-small" data-act="vision">Usa la tua visione</button>
+      <span class="muted small">Una sola volta per partita: scopri la fazione di un giocatore.</span></p>`;
+  }
+  return `<p>Chi vuoi scrutare? <button class="btn btn-ghost btn-small" data-act="vision">Non ora</button></p>${pickGrid(st.options, 'vision', ui, nameOf)}`;
+}
+
+// Traditore Segreto: osserva i Traditori e, ad accordo raggiunto, può cambiare la vittima
+function secretHtml(v, ui, nameOf) {
+  const sec = v.step.secret;
+  if (!sec || !v.step.allyPicks) return '';
+  const st = v.step;
+  const picks = st.allyPicks.map((a) => `<li>${esc(nameOf(a.id))} ➜ ${a.targetId ? esc(nameOf(a.targetId)) : '…'}</li>`).join('');
+  let action = '';
+  if (sec.plan && sec.plan !== 'murder') action = '<p class="muted small">Stanotte i Traditori fanno un\'offerta: niente da cambiare.</p>';
+  else if (sec.swap) action = `<p class="turned">Hai cambiato la vittima: <strong>${esc(nameOf(sec.swap))}</strong>.</p>`;
+  else if (sec.canSwap && st.consensus) {
+    action = `<p>Vittima scelta: <strong>${esc(nameOf(st.consensus))}</strong>. Vuoi cambiarla? (una volta per partita)</p>
+      ${pickGrid(sec.swapOptions, 'swap', ui, nameOf)}
+      <button class="btn btn-ghost btn-block" data-pick="keep" data-kind="swap">Lascia la loro scelta</button>`;
+  } else if (sec.canSwap) action = '<p class="muted small">Quando si accorderanno potrai cambiare la vittima, una sola volta per partita.</p>';
+  else if (sec.swapUsed) action = '<p class="muted small">Hai già usato il tuo potere.</p>';
+  return `<div class="secret-box"><h2>Gli altri Traditori</h2><p class="muted small">Non sanno chi sei. Leggi, ma non puoi scrivere.</p>
+    <ul class="ally-picks">${picks}</ul>${consensusHtml(st, nameOf)}${chatHtml(v, st, nameOf, false)}${action}</div>`;
 }
 
 function finalHtml(v, ui, nameOf) {
@@ -494,7 +578,7 @@ function mainHtml(v, ui, nameOf) {
       return `<h1>${v.winner === 'traitors' ? 'Vincono i Traditori' : 'Vincono i Leali'}</h1>
         <p class="big">${won ? 'Hai vinto!' : 'Hai perso.'}</p>
         ${prizeText(v)}
-        <ul class="final-list">${v.players.map((p) => `<li><span>${esc(p.name)}</span><span class="tag-${p.faction}">${FACTION[p.faction] || ''}</span></li>`).join('')}</ul>`;
+        <ul class="final-list">${v.players.map((p) => `<li><span>${esc(p.name)}</span><span class="tag-${p.faction}">${SPECIAL_NAME[p.role] || FACTION[p.faction] || ''}</span></li>`).join('')}</ul>`;
     }
     default:
       return '';
@@ -515,6 +599,11 @@ function prizeText(v) {
 function seductionText(v, nameOf) {
   const sd = v.step.seduction;
   if (!sd || sd.targetId === v.me.id) return '';
+  if (sd.kind === 'ultimatum') {
+    return sd.accepted
+      ? `<p class="turned">${esc(nameOf(sd.targetId))} ha accettato l'Ultimatum: è dei vostri.</p>`
+      : `<p class="turned">${esc(nameOf(sd.targetId))} ha rifiutato l'Ultimatum, e l'ha pagata.</p>`;
+  }
   return sd.accepted
     ? `<p class="turned">${esc(nameOf(sd.targetId))} ha accettato: ora siete in due.</p>`
     : `<p class="turned">${esc(nameOf(sd.targetId))} ha rifiutato la tua offerta.</p>`;

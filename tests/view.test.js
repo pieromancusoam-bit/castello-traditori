@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { viewFor, viewForMaster } from '../js/engine/view.js';
 import { PHASE } from '../js/engine/state.js';
-import { ROLE } from '../js/engine/roles.js';
+import { ROLE, FACTION, factionOf } from '../js/engine/roles.js';
 import { createRng } from '../js/engine/rng.js';
 import { playRandomGame, newGame, withRoles, seeRoles, advance, ok } from './helpers.js';
 import { A } from '../js/engine/actions.js';
@@ -59,8 +59,11 @@ test('OBBLIGATORIO: nessuna vista di un Leale contiene il ruolo di un altro gioc
       onState: (s) => {
         const revealed = revealedIds(s);
         for (const pid of s.order) {
-          if (s.players[pid].role !== ROLE.FAITHFUL) continue;
-          const hidden = new Set(s.order.filter((id) => id !== pid && !revealed.has(id)));
+          // Tutti i Leali: anche Veggente e Cavaliere
+          if (factionOf(s.players[pid].role) !== FACTION.FAITHFULS) continue;
+          // Il Veggente conosce la fazione di chi ha scrutato: per lui quel giocatore non è nascosto
+          const seen = s.players[pid].vision ? s.players[pid].vision.targetId : null;
+          const hidden = new Set(s.order.filter((id) => id !== pid && id !== seen && !revealed.has(id)));
           const view = viewFor(s, pid);
           const label = `seed ${seed}, fase ${s.phase}, Leale ${pid}`;
 
@@ -101,7 +104,8 @@ test('lo schermo del master non contiene ruoli nascosti e non dipende da essi', 
         const label = `seed ${seed}, fase ${s.phase}`;
         assertNoHiddenRoles(view, hidden, label);
         const json = JSON.stringify(view);
-        assert.ok(!json.includes('"role"'), `${label}: campo role sullo schermo`);
+        // I ruoli (anche speciali) si scoprono solo a partita finita
+        if (s.phase !== PHASE.ENDED) assert.ok(!json.includes('"role"'), `${label}: campo role sullo schermo`);
         assert.ok(!json.includes('messaggio segreto'), `${label}: chat sullo schermo`);
         for (const key of SECRET_KEYS) assert.ok(!json.includes(key), `${label}: ${key} sullo schermo`);
         if (s.phaseData.stage === 'voting') assert.ok(!json.includes('"voterId"'), `${label}: voti prima della chiusura`);

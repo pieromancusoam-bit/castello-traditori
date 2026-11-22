@@ -8,7 +8,7 @@
 import { GAME } from '../config/game-config.js';
 import { A, PLAYER_ACTIONS, MASTER_ACTIONS, FINAL_CHOICES } from './actions.js';
 import { PHASE, STATUS } from './state.js';
-import { ROLE } from './roles.js';
+import { ROLE, factionOf, isTraitorRole } from './roles.js';
 import { createRng } from './rng.js';
 import { voteError } from './votes.js';
 import * as P from './phases.js';
@@ -87,20 +87,22 @@ const HANDLERS = {
     check(target && isAlive(target) && targetId !== p.id, REJECT.INVALID_TARGET);
 
     const pd = s.phaseData;
-    if (P.isKiller(s, p) && pd.plan === 'seduce') {
-      // Seduzione: si indica un Leale, che riceve l'offerta. La scelta non si cambia più.
-      check(!pd.offer, REJECT.ALREADY_DONE);
-      check(target.role !== ROLE.TRAITOR, REJECT.INVALID_TARGET);
-      pd.offer = { byId: p.id, targetId, answer: null };
+    if (P.isKiller(s, p)) {
+      check(P.canKill(s, p, targetId), REJECT.INVALID_TARGET);
+      check(!pd.offer, REJECT.ALREADY_DONE); // offerta partita: la scelta non si cambia più
       pd.picks[p.id] = targetId;
-    } else if (P.isKiller(s, p)) {
-      // Vittima: solo un Leale vivo. La scelta si può cambiare finché non c'è accordo.
-      check(target.role !== ROLE.TRAITOR, REJECT.INVALID_TARGET);
-      pd.picks[p.id] = targetId;
+      if (pd.plan === 'seduce') {
+        // Seduzione: il Traditore (solo) indica un Leale, che riceve l'offerta anonima
+        pd.offer = { kind: 'seduce', byIds: [p.id], targetId, answer: null };
+      } else if (pd.plan === 'ultimatum' && P.nightConsensus(s)) {
+        // Ultimatum: parte quando tutti i Traditori indicano lo stesso nome
+        pd.offer = { kind: 'ultimatum', byIds: P.nightKillers(s).map((k) => k.id), targetId, answer: null };
+      }
+      // Omicidio: la scelta si può cambiare finché non c'è accordo
     } else {
-      // Sospetto notturno (Leali e Traditore appena scelto dal castello): alla Colazione
-      // il castello annuncia il più sospettato, senza dire chi lo ha indicato
-      s.phaseData.suspicions[p.id] = targetId;
+      // Sospetto notturno (Leali, Traditore Segreto, Traditore appena scelto dal castello):
+      // alla Colazione il castello annuncia il più sospettato, senza dire chi lo ha indicato
+      pd.suspicions[p.id] = targetId;
     }
     if (P.allNightDone(s)) P.resolveNight(s, rng);
   },
@@ -117,21 +119,23 @@ const HANDLERS = {
     while (s.phaseData.chat.length > GAME.chatMaxMessages || bytes() > GAME.chatMaxBytes) s.phaseData.chat.shift();
   },
 
-  // Prima notte con un solo Traditore: "Assassinare" o "Sedurre" (finché l'offerta non è partita)
+  // "Assassinare", "Sedurre" (prima notte con un solo Traditore) o "Ultimatum" (dopo il bando
+  // del primo Traditore), finché l'offerta non è partita. Cambiare piano azzera le scelte.
   [A.NIGHT_PLAN](s, action) {
     check(s.phase === PHASE.NIGHT, REJECT.WRONG_PHASE);
     const p = me(s, action);
     const pd = s.phaseData;
-    check(isAlive(p) && P.isKiller(s, p) && pd.canSeduce, REJECT.NOT_ALLOWED);
+    check(isAlive(p) && P.isKiller(s, p) && (pd.canSeduce || pd.canUltimatum), REJECT.NOT_ALLOWED);
     const { plan } = payload(action);
-    check(plan === 'murder' || plan === 'seduce', REJECT.INVALID_PAYLOAD);
+    const allowed = plan === 'murder' || (plan === 'seduce' && pd.canSeduce) || (plan === 'ultimatum' && pd.canUltimatum);
+    check(allowed, REJECT.INVALID_PAYLOAD);
     check(!pd.offer, REJECT.ALREADY_DONE);
-    if (pd.plan !== plan) delete pd.picks[p.id];
+    if (pd.plan !== plan) pd.picks = {};
     pd.plan = plan;
   },
 
-  // Il Leale sedotto accetta o rifiuta in segreto. Se accetta diventa Traditore subito
-  // (vede il complice) e uccide dalla notte dopo; se rifiuta resta Leale.
+  // Il Leale che riceve l'offerta (Seduzione o Ultimatum) accetta o rifiuta in segreto.
+  // Se accetta diventa Traditore subito (vede i complici) e uccide dalla notte dopo.
   [A.SEDUCTION_ANSWER](s, action, rng) {
     check(s.phase === PHASE.NIGHT, REJECT.WRONG_PHASE);
     const p = me(s, action);
@@ -142,9 +146,41 @@ const HANDLERS = {
     check(typeof accept === 'boolean', REJECT.INVALID_PAYLOAD);
     pd.offer.answer = accept;
     if (accept) {
-      p.role = ROLE.TRAITOR;
+      p.role = ROLE.TRAITOR; // anche un Veggente, un Cavaliere o il Traditore Segreto
       p.turnedOnDay = s.day;
     }
+    if (P.allNightDone(s)) P.resolveNight(s, rng);
+  },
+
+  // Veggente: una volta per partita, di notte, scopre la fazione di un giocatore
+  [A.NIGHT_VISION](s, action, rng) {
+    check(s.phase === PHASE.NIGHT, REJECT.WRONG_PHASE);
+    const p = me(s, action);
+    check(isAlive(p) && p.role === ROLE.SEER, REJECT.NOT_ALLOWED);
+    check(!p.vision, REJECT.ALREADY_DONE);
+    const { targetId } = payload(action);
+    const target = s.players[targetId];
+    check(target && isAlive(target) && targetId !== p.id, REJECT.INVALID_TARGET);
+    p.vision = { day: s.day, targetId, faction: factionOf(target.role) };
+    if (P.allNightDone(s)) P.resolveNight(s, rng);
+  },
+
+  // Traditore Segreto: ad accordo raggiunto cambia la vittima ({ targetId }) o la lascia ({ targetId: null })
+  [A.NIGHT_SWAP](s, action, rng) {
+    check(s.phase === PHASE.NIGHT, REJECT.WRONG_PHASE);
+    const p = me(s, action);
+    const pd = s.phaseData;
+    check(P.secretCanSwap(s, p), REJECT.NOT_ALLOWED);
+    check(!pd.swapDecided, REJECT.ALREADY_DONE);
+    check(P.nightConsensus(s) !== null, REJECT.WRONG_PHASE);
+    const { targetId } = payload(action);
+    if (targetId !== null) {
+      const target = s.players[targetId];
+      check(target && isAlive(target) && targetId !== p.id && !isTraitorRole(target.role), REJECT.INVALID_TARGET);
+      pd.swap = targetId;
+      p.swapUsed = true;
+    }
+    pd.swapDecided = true;
     if (P.allNightDone(s)) P.resolveNight(s, rng);
   },
 
