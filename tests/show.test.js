@@ -115,3 +115,27 @@ test('partite casuali: ogni frase è completa e si dice solo ciò che è sullo s
     assert.ok(seen.has(m), `momento mai raggiunto: ${m}`);
   }
 });
+
+// ---------------- Vibrazioni dei telefoni ----------------
+import { viewFor } from '../js/engine/view.js';
+import { phoneBuzz } from '../js/show/phone-cues.js';
+
+test('OBBLIGATORIO: ogni telefono vibra negli stessi momenti, qualunque sia il ruolo', () => {
+  let buzzes = 0;
+  for (let seed = 1; seed <= 60; seed++) {
+    let prev = null;
+    playRandomGame({
+      players: 5 + (seed % 12),
+      seed,
+      onState: (s) => {
+        if (prev) {
+          const kinds = s.order.map((id) => phoneBuzz(viewFor(prev, id), viewFor(s, id)));
+          assert.ok(kinds.every((k) => k === kinds[0]), `seed ${seed}, fase ${s.phase}: vibrazioni diverse ${JSON.stringify(kinds)}`);
+          if (kinds[0]) buzzes++;
+        }
+        prev = s;
+      },
+    });
+  }
+  assert.ok(buzzes > 500, `solo ${buzzes} vibrazioni`);
+});

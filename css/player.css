@@ -207,3 +207,7 @@
 .pick .crest-mini { width: 1.9rem; align-self: center; }
 .top-me { display: inline-flex; align-items: center; gap: 0.35rem; }
 .top-me .crest-mini { width: 1.2rem; }
+/* Lampo al posto della vibrazione (iPhone): uguale per tutti, tenue di notte */
+.buzz-flash { position: fixed; inset: 0; z-index: 50; pointer-events: none; background: rgba(212, 174, 74, 0.35); animation: buzz-flash 450ms ease-out both; }
+body:has(.is-night) .buzz-flash { background: rgba(212, 174, 74, 0.12); }
+@keyframes buzz-flash { from { opacity: 1; } to { opacity: 0; } }

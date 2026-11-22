@@ -9,6 +9,9 @@ import { coins } from '../ui/format.js';
 import { inventoryButtonHtml, inventoryHtml, itemHintHtml, giftHtml } from './inventory.js';
 import { EVENTS } from '../config/game-config.js';
 import { avatarSvg } from '../ui/heraldry.js';
+import { phoneBuzz } from '../show/phone-cues.js';
+import { buzz } from '../platform/vibrate.js';
+import { SHOW } from '../config/show-config.js';
 
 // Stemmi di tutti i giocatori (pubblici), aggiornati a ogni vista
 let crests = {};
@@ -97,6 +100,20 @@ export function createGameScreen(root, client) {
     }
   }
   runCountdown(root, () => (ui.timer ? { left: ui.timer.ms - (Date.now() - ui.timer.start), total: ui.timer.ms } : null));
+
+  // ---- Vibrazioni: cambio di fase e tempo quasi scaduto (uguali per tutti) ----
+  let lastView = null;
+  let warnedKey = null;
+  setInterval(() => {
+    const t = ui.timer;
+    if (!t || t.ms < SHOW.vibrate.timerMinMs || warnedKey === t.key) return;
+    const left = t.ms - (Date.now() - t.start);
+    if (left <= SHOW.vibrate.timerWarnMs) {
+      warnedKey = t.key;
+      // Chi rientra a tempo quasi finito non vibra in ritardo
+      if (left > SHOW.vibrate.timerWarnMs - 1500) buzz('timer');
+    }
+  }, 500);
 
   // ---- Le Torce: il tempo di reazione si misura qui, sul telefono ----
   function stopTorch() {
@@ -252,6 +269,9 @@ export function createGameScreen(root, client) {
       if (v.phase === 'roles') ui.roleSeenOnce = false; // partita nuova: si guarda di nuovo il ruolo
     }
     crests = client.view.avatars || {};
+    const kind = phoneBuzz(lastView, v);
+    lastView = v;
+    if (kind) buzz(kind);
     syncTimer(v);
     syncTorch(v);
 

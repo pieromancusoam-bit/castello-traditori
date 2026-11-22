@@ -40,6 +40,7 @@ export const SHOW = Object.freeze({
     vote: Object.freeze([90, 80, 90]),      // si apre una votazione o una scelta
     timer: Object.freeze([60, 60, 60, 60, 60]), // tempo quasi scaduto
     timerWarnMs: 10000,
+    timerMinMs: 30000, // solo per i timer lunghi (discussione, giochi), non per le domande lampo
   }),
   flashMs: 450, // dove la vibrazione non esiste (iPhone): lampo dello schermo
 });
