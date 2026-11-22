@@ -141,6 +141,16 @@ function missionInputs(s, r, live) {
     case 'trial':
       if (d.sub !== 'voting') return [];
       return d.players.filter((id) => d.votes[id] === undefined).map((id) => input(id, { ok: r.next() < 0.6 }));
+    case 'estimate':
+      if (d.sub !== 'guess') return [];
+      return d.players.filter((id) => d.guesses[id] === undefined).map((id) => input(id, { value: 20 + r.int(150) }));
+    case 'memory':
+      if (d.sub !== 'pick') return [];
+      return d.players.filter((id) => d.picks[id] === undefined).map((id) => input(id, { symbol: r.int(6) }));
+    case 'chronology':
+      return d.players.filter((id) => d.positions[id] === undefined).map((id) => input(id, { position: 1 + r.int(d.players.length) }));
+    case 'messenger':
+      return d.guessers.filter((id) => d.picks[id] === undefined).map((id) => input(id, { choice: r.int(d.options.length) }));
     default:
       return [];
   }

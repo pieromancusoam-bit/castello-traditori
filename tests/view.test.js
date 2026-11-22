@@ -43,7 +43,7 @@ function permuteHiddenRoles(s, hidden, rng) {
 
 const SEEDS = 150;
 // Campi interni delle missioni con le scelte individuali: non devono mai uscire dal master
-const SECRET_KEYS = ['"choices"', '"answers"', '"times"', '"reported"', '"delays"', '"data"'];
+const SECRET_KEYS = ['"choices"', '"answers"', '"times"', '"reported"', '"delays"', '"data"', '"guesses"', '"picks"', '"positions"', '"events"', '"layoutSeed"'];
 
 test('OBBLIGATORIO: nessuna vista di un Leale contiene il ruolo di un altro giocatore', () => {
   let checked = 0;

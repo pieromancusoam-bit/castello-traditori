@@ -9,7 +9,8 @@ import { viewFor, viewForMaster } from '../js/engine/view.js';
 import { MISSIONS, RIDDLE_QUESTIONS, PHYSICAL_TRIALS } from '../js/config/missions.js';
 import { GAME } from '../js/config/game-config.js';
 import { NET } from '../js/config/net-config.js';
-import { MISSION_IDS, missionValue } from '../js/engine/missions/index.js';
+import { MISSION_IDS, missionValue, drawMission } from '../js/engine/missions/index.js';
+import { createRng } from '../js/engine/rng.js';
 import { groupAverage } from '../js/engine/missions/torches.js';
 import { createGame } from '../js/engine/state.js';
 import { newGame, withRoles, ok, rejected, advance, alive, seeRoles, voteAll } from './helpers.js';
@@ -70,19 +71,12 @@ test('il valore della missione cresce ogni giorno', () => {
 });
 
 test('le missioni non si ripetono finché non sono uscite tutte, e mai due volte di fila', () => {
-  for (let seed = 1; seed <= 30; seed++) {
-    let s = seeRoles(newGame(16, seed, { missions: true }));
-    const seen = [];
-    for (let day = 0; day < 9; day++) {
-      s = advance(s); // Colazione -> missione
-      seen.push(s.phaseData.id);
-      s.phaseData.stage = 'board';
-      s = advance(s); // -> Tavola Rotonda
-      s = advance(advance(s)); // nessun voto -> Notte
-      s = advance(s); // Notte senza scelte -> Colazione
-    }
-    assert.deepEqual([...seen.slice(0, 4)].sort(), [...MISSION_IDS].sort(), `seed ${seed}`);
-    assert.deepEqual([...seen.slice(4, 8)].sort(), [...MISSION_IDS].sort(), `seed ${seed}`);
+  const n = MISSION_IDS.length;
+  for (let seed = 1; seed <= 40; seed++) {
+    const s = { missionBag: [], lastMission: null };
+    const rng = createRng(seed);
+    const seen = Array.from({ length: n * 3 }, () => drawMission(s, rng));
+    for (let k = 0; k < 3; k++) assert.deepEqual(seen.slice(k * n, (k + 1) * n).sort(), [...MISSION_IDS].sort(), `seed ${seed}`);
     for (let i = 1; i < seen.length; i++) assert.notEqual(seen[i], seen[i - 1], `seed ${seed}: ripetuta`);
   }
 });
@@ -347,6 +341,9 @@ function scrambleOthers(s, pid) {
     if (d.answers && d.answers[id] !== undefined) d.answers[id] = (d.answers[id] + 1) % 4;
     if (d.votes && d.votes[id] !== undefined) d.votes[id] = !d.votes[id];
     if (d.times) d.times.forEach((t) => { if (t[id] !== undefined) t[id] += 37; });
+    if (d.guesses && d.guesses[id] !== undefined) d.guesses[id] += 11;
+    if (d.picks && d.picks[id] !== undefined) d.picks[id] = (d.picks[id] + 1) % (d.options ? d.options.length : 6);
+    if (d.positions && d.positions[id] !== undefined) d.positions[id] = (d.positions[id] % d.players.length) + 1;
   }
   return c;
 }
@@ -357,6 +354,13 @@ test('durante il gioco le scelte altrui non cambiano né i telefoni né lo scher
     ['riddle', (s) => input(input(s, 'p1', { index: 0, answer: 2 }), 'p3', { index: 0, answer: 1 })],
     ['torches', (s) => input(input(s, 'p1', { round: 0, ms: 300 }), 'p3', { round: 0, ms: 500 })],
     ['trial', (s) => input(input(advance(s), 'p1', { ok: true }), 'p3', { ok: false })],
+    ['estimate', (s) => input(input(advance(s), 'p1', { value: 50 }), 'p3', { value: 90 })],
+    ['memory', (s) => input(input(advance(s), 'p1', { symbol: 2 }), 'p3', { symbol: 4 })],
+    ['chronology', (s) => input(input(s, 'p1', { position: 2 }), 'p3', { position: 5 })],
+    ['messenger', (s) => {
+      const g = s.phaseData.data.guessers;
+      return input(input(s, g[0], { choice: 1 }), g[1], { choice: 3 });
+    }],
   ];
   for (const [id, play] of cases) {
     const s = play(playing(8, id));
