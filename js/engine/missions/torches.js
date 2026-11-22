@@ -1,6 +1,7 @@
 // Le Torce: a ogni giro la torcia si accende sui telefoni dopo un'attesa casuale.
 // Il telefono misura da sé il tempo di reazione (così il ritardo del Wi-Fi non conta)
 // e lo manda al master. Conta la media del gruppo; chi manca vale `missPenaltyMs`.
+// Traccia: a gioco finito la classifica dei tempi medi di ognuno, con i tocchi anticipati.
 
 import { MISSIONS } from '../../config/missions.js';
 import { REJECT, check } from '../errors.js';
@@ -42,14 +43,14 @@ export default {
   setup(s, rng) {
     const span = C.delayMaxMs - C.delayMinMs;
     const delays = Array.from({ length: C.rounds }, () => C.delayMinMs + Math.round((rng.next() * span) / 10) * 10);
-    return { players: aliveIdList(s), delays, round: 0, times: delays.map(() => ({})), reported: delays.map(() => ({})) };
+    return { players: aliveIdList(s), delays, round: 0, times: delays.map(() => ({})), reported: delays.map(() => ({})), early: delays.map(() => ({})) };
   },
 
   start(s) {
     setTimer(s, roundMs(mData(s)));
   },
 
-  // payload: { round, ms } — ms null se mancata o toccata troppo presto
+  // payload: { round, ms, early? } — ms null se mancata; early: toccata prima della fiamma
   input(s, p, payload) {
     const d = mData(s);
     check(d.players.includes(p.id), REJECT.NOT_ALLOWED);
@@ -57,6 +58,7 @@ export default {
     check(payload.ms === null || typeof payload.ms === 'number', REJECT.INVALID_PAYLOAD);
     check(!d.reported[d.round][p.id], REJECT.ALREADY_DONE);
     d.reported[d.round][p.id] = true;
+    if (payload.early === true) d.early[d.round][p.id] = true;
     const ms = cleanTime(payload.ms);
     if (ms !== null) d.times[d.round][p.id] = ms;
     if (d.players.every((id) => d.reported[d.round][id])) return nextRound(s);
@@ -73,7 +75,15 @@ export default {
     const avgMs = groupAverage(d);
     const value = s.phaseData.value;
     const coins = avgMs <= C.fullBelowMs ? value : avgMs <= C.halfBelowMs ? Math.round(value / 2) : 0;
-    return { success: coins > 0, coins, detail: { avgMs, fullBelowMs: C.fullBelowMs, halfBelowMs: C.halfBelowMs } };
+    // Traccia: media di ognuno, tocchi anticipati e torce mancate (dal più veloce al più lento)
+    const ranking = d.players.map((id) => {
+      const times = d.times.map((t) => t[id] ?? null);
+      const early = d.early.filter((e) => e[id]).length;
+      const missed = times.filter((t) => t === null).length - early;
+      const avg = Math.round(times.reduce((n, t) => n + (t ?? C.missPenaltyMs), 0) / times.length);
+      return { id, avgMs: avg, early, missed };
+    }).sort((a, b) => a.avgMs - b.avgMs);
+    return { success: coins > 0, coins, detail: { avgMs, fullBelowMs: C.fullBelowMs, halfBelowMs: C.halfBelowMs, ranking } };
   },
 
   masterView(s) {

@@ -1,6 +1,7 @@
 // La Prova Fisica: il castello propone una prova da fare nella stanza.
 // Alla fine ognuno vota se è riuscita; riesce con la maggioranza dei giocatori in gioco
-// (chi non vota conta come "no", la parità è un fallimento). Sullo schermo solo i conteggi.
+// (chi non vota conta come "no", la parità è un fallimento). Durante il voto solo i conteggi;
+// a voto chiuso la traccia: chi ha detto "fallita" e chi non ha votato.
 
 import { MISSIONS, PHYSICAL_TRIALS } from '../../config/missions.js';
 import { REJECT, check } from '../errors.js';
@@ -49,7 +50,9 @@ export default {
     const yes = d.players.filter((id) => d.votes[id] === true).length;
     const no = d.players.filter((id) => d.votes[id] === false).length;
     const success = yes * 2 > d.players.length;
-    return { success, coins: success ? s.phaseData.value : 0, detail: { yes, no, playerCount: d.players.length } };
+    const failIds = d.players.filter((id) => d.votes[id] === false);
+    const abstainIds = d.players.filter((id) => d.votes[id] === undefined);
+    return { success, coins: success ? s.phaseData.value : 0, detail: { yes, no, playerCount: d.players.length, failIds, abstainIds } };
   },
 
   masterView(s) {

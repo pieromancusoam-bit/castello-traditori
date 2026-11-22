@@ -198,7 +198,8 @@ test('Enigma: vale la risposta della maggioranza; parità = sbagliata; 1/5 del p
   assert.equal(s.phaseData.data.outcomes[4].correct, false);
   s = advance(s);
   assert.equal(s.phaseData.stage, 'result');
-  assert.deepEqual(s.phaseData.result.detail, { correct: 2, total: 5 });
+  assert.equal(s.phaseData.result.detail.correct, 2);
+  assert.equal(s.phaseData.result.detail.total, 5);
   assert.equal(s.phaseData.result.coins, Math.round((GAME.missionBaseValue * 2) / 5));
 });
 
@@ -314,7 +315,10 @@ test('Prova Fisica: riesce con la maggioranza dei giocatori in gioco; chi non vo
     ids.slice(yes, yes + no).forEach((id) => { s = input(s, id, { ok: false }); });
     if (s.phaseData.stage === 'play') s = expire(s);
     assert.equal(s.phaseData.result.success, success, `${yes} sì, ${no} no`);
-    assert.deepEqual(s.phaseData.result.detail, { yes, no, playerCount: 6 });
+    const { failIds, abstainIds, ...counts } = s.phaseData.result.detail;
+    assert.deepEqual(counts, { yes, no, playerCount: 6 });
+    assert.equal(failIds.length, no);
+    assert.equal(abstainIds.length, 6 - yes - no);
   }
 });
 
@@ -436,4 +440,50 @@ test('caso peggiore delle missioni: ogni vista sta in un messaggio di rete', () 
       assert.ok(size <= NET.messageMaxBytes - 1500, `${id}: ${size} byte`);
     }
   }
+});
+
+// ---------------- Tracce del sabotaggio (a gioco chiuso) ----------------
+
+test('Enigma: a domanda chiusa si vede chi ha dato quale risposta; alla fine i punti di ognuno', () => {
+  let s = playing(5, 'riddle');
+  const q = RIDDLE_QUESTIONS[s.phaseData.data.qIds[0]];
+  const wrong = (q.answer + 1) % 4;
+  for (const [id, a] of [['p1', q.answer], ['p2', q.answer], ['p3', wrong]]) s = input(s, id, { index: 0, answer: a });
+  assert.ok(!JSON.stringify(viewForMaster(s)).includes('byOption'), 'durante la domanda nessun nome');
+  s = expire(s);
+  const by = viewForMaster(s).step.mission.reveal.byOption;
+  assert.deepEqual(by[q.answer], ['p1', 'p2']);
+  assert.deepEqual(by[wrong], ['p3']);
+  assert.deepEqual(viewFor(s, 'p4').step.mission.reveal.byOption, by);
+  while (s.phaseData.stage === 'play') s = advance(s);
+  const scores = Object.fromEntries(viewForMaster(s).step.result.detail.scores.map((x) => [x.id, x.correct]));
+  assert.deepEqual(scores, { p1: 1, p2: 1, p3: 0, p4: 0, p5: 0 });
+});
+
+test('Torce: a gioco finito la classifica dei tempi, con anticipi e torce mancate', () => {
+  let s = playing(5, 'torches');
+  for (let r = 0; r < MISSIONS.torches.rounds; r++) {
+    s = input(s, 'p1', { round: r, ms: 200 });
+    s = input(s, 'p2', { round: r, ms: null, early: true });
+    s = input(s, 'p3', { round: r, ms: 400 });
+    s = input(s, 'p4', { round: r, ms: null });
+    if (s.phaseData.stage === 'play') s = expire(s); // p5 non tocca
+  }
+  const ranking = viewForMaster(s).step.result.detail.ranking;
+  assert.deepEqual(ranking[0], { id: 'p1', avgMs: 200, early: 0, missed: 0 });
+  assert.deepEqual(ranking[1], { id: 'p3', avgMs: 400, early: 0, missed: 0 });
+  const p2 = ranking.find((x) => x.id === 'p2');
+  assert.deepEqual(p2, { id: 'p2', avgMs: MISSIONS.torches.missPenaltyMs, early: MISSIONS.torches.rounds, missed: 0 });
+  assert.equal(ranking.find((x) => x.id === 'p5').missed, MISSIONS.torches.rounds);
+});
+
+test('Prova Fisica: a voto chiuso si vede chi ha detto "fallita" e chi non ha votato', () => {
+  let s = advance(playing(6, 'trial'));
+  s = input(s, 'p1', { ok: true });
+  s = input(s, 'p2', { ok: false });
+  assert.equal(viewForMaster(s).step.result, null);
+  s = expire(s);
+  const d = viewForMaster(s).step.result.detail;
+  assert.deepEqual(d.failIds, ['p2']);
+  assert.deepEqual(d.abstainIds, ['p3', 'p4', 'p5', 'p6']);
 });

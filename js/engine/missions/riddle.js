@@ -1,6 +1,7 @@
 // L'Enigma del Castello: domande a tempo. Per ogni domanda vale la risposta della
 // maggioranza; parità o nessuna risposta = sbagliata. Ogni risposta giusta vale 1/N del premio.
 // La risposta giusta arriva ai telefoni solo dopo la chiusura della domanda.
+// Tracce: a domanda chiusa si vede chi ha dato quale risposta; alla fine i punti di ognuno.
 
 import { MISSIONS, RIDDLE_QUESTIONS } from '../../config/missions.js';
 import { REJECT, check } from '../errors.js';
@@ -17,7 +18,7 @@ function closeQuestion(s) {
   const max = Math.max(...counts);
   const leaders = counts.map((n, i) => (n === max ? i : -1)).filter((i) => i >= 0);
   const groupAnswer = max > 0 && leaders.length === 1 ? leaders[0] : null;
-  d.outcomes.push({ groupAnswer, correct: groupAnswer === q.answer, counts });
+  d.outcomes.push({ groupAnswer, correct: groupAnswer === q.answer, counts, correctIndex: q.answer, answers: { ...d.answers } });
   d.sub = 'reveal';
   setTimer(s, C.revealMs);
 }
@@ -28,7 +29,13 @@ function questionView(d) {
   if (d.sub === 'reveal') {
     const o = d.outcomes[d.index];
     v.correctIndex = q.answer;
-    v.reveal = { groupAnswer: o.groupAnswer, correct: o.correct, counts: [...o.counts] };
+    v.reveal = {
+      groupAnswer: o.groupAnswer,
+      correct: o.correct,
+      counts: [...o.counts],
+      // Traccia: chi ha scelto ogni risposta (pubblico solo a domanda chiusa)
+      byOption: q.options.map((_, i) => d.players.filter((id) => o.answers[id] === i)),
+    };
   }
   return v;
 }
@@ -80,7 +87,9 @@ export default {
     const correct = d.outcomes.filter((o) => o.correct).length;
     const total = d.qIds.length;
     const coins = Math.round((s.phaseData.value * correct) / total);
-    return { success: coins > 0, coins, detail: { correct, total } };
+    // Traccia: risposte giuste di ognuno (chi non risponde vale come sbagliato)
+    const scores = d.players.map((id) => ({ id, correct: d.outcomes.filter((o) => o.answers[id] === o.correctIndex).length }));
+    return { success: coins > 0, coins, detail: { correct, total, scores } };
   },
 
   masterView(s) {
