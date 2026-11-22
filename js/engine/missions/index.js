@@ -19,6 +19,14 @@ export const missionValue = (day) => GAME.missionBaseValue + GAME.missionValuePe
 // Estrazione senza ripetizioni; finito il sacchetto si rimescola,
 // evitando di ripetere subito l'ultima missione giocata
 export function drawMission(s, rng) {
+  // Prove (?debug=1): il master ha scelto il prossimo gioco
+  const forced = s.debugNext && s.debugNext.mission;
+  if (forced && MISSION_MODULES[forced]) {
+    delete s.debugNext.mission;
+    s.missionBag = s.missionBag.filter((id) => id !== forced);
+    s.lastMission = forced;
+    return forced;
+  }
   if (!s.missionBag.length) {
     const bag = rng.shuffle(MISSION_IDS);
     if (bag.length > 1 && bag[0] === s.lastMission) [bag[0], bag[1]] = [bag[1], bag[0]];

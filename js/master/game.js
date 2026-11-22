@@ -8,6 +8,18 @@ import { GAME } from '../config/game-config.js';
 import { missionStageHtml, missionAdvanceLabel, boardHtml, prizeHtml, presentationHtml, presentationAdvanceLabel } from './mission.js';
 import { countdownHtml, runCountdown } from '../ui/countdown.js';
 import { coins } from '../ui/format.js';
+import { MISSIONS } from '../config/missions.js';
+import { EVENTS } from '../config/game-config.js';
+import { MISSION_IDS } from '../engine/missions/index.js';
+
+// Solo prove (?debug=1): scelta del prossimo gioco e del prossimo evento
+function debugBarHtml() {
+  const opts = (list, label) => `<option value="">${label}</option>${list.map(([id, name]) => `<option value="${id}">${esc(name)}</option>`).join('')}`;
+  return `<div class="debug-bar">
+    <select data-debug="mission">${opts(MISSION_IDS.map((id) => [id, MISSIONS[id].title]), 'Prossimo gioco: a caso')}</select>
+    <select data-debug="event">${opts(Object.entries(EVENTS).map(([id, e]) => [id, e.name]), 'Prossimo evento: a caso')}</select>
+  </div>`;
+}
 
 const FACTION_A = { faithfuls: 'un Leale', traitors: 'un Traditore' };
 const FACTION = { faithfuls: 'Leale', traitors: 'Traditore' };
@@ -26,7 +38,7 @@ export function mountGame(root, host, { debug, onClose }) {
         <button class="btn btn-small btn-ghost" data-act="lobby" hidden>Nuova partita, stessi giocatori</button>
         <button class="btn btn-primary btn-advance" data-act="advance"></button>
       </footer>
-      ${debug ? '<pre class="debug-panel"></pre>' : ''}
+      ${debug ? `${debugBarHtml()}<pre class="debug-panel"></pre>` : ''}
     </section>`;
 
   const el = (s) => root.querySelector(s);
@@ -54,6 +66,11 @@ export function mountGame(root, host, { debug, onClose }) {
     return left === null ? null : { left, total: t.ms };
   });
   on(root, '[data-act="lobby"]', 'click', () => host.backToLobby());
+  root.addEventListener('change', (e) => {
+    const sel = e.target.closest('[data-debug]');
+    if (!sel || !sel.value) return;
+    host.dispatch({ type: A.DEBUG_NEXT, payload: { [sel.dataset.debug]: sel.value } });
+  });
   on(root, '[data-act="close"]', 'click', () => {
     if (confirm('Chiudere la stanza? La partita salvata verrà cancellata.')) onClose();
   });

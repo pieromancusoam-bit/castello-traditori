@@ -406,3 +406,7 @@
 .chrono-who { color: var(--muted); font-size: 0.9em; }
 .chrono-list .is-flag { background: rgba(140, 28, 44, 0.25); }
 .chrono-list .is-flag .chrono-who { color: var(--warn); }
+
+/* ---------- Fase 3: prove, impostazioni, oggetti, eventi, missioni nuove ---------- */
+.debug-bar { order: 8; display: flex; gap: 0.6em; padding: 0.4em 0; font-size: 14px; }
+.debug-bar select { font: inherit; padding: 0.3em; background: #111; color: #9f9; border: 1px solid #333; border-radius: 6px; }

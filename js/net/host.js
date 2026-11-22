@@ -16,7 +16,7 @@ import { randomHex, cryptoRandom } from '../ui/dom.js';
 
 // status: 'opening' | 'open' | 'reopening' | 'signal-lost' | 'error'
 export class Host {
-  constructor({ roomCode = null, peerServer = null, roster = null, game = null, photos = null, resuming = false, onChange = () => {} }) {
+  constructor({ roomCode = null, peerServer = null, roster = null, game = null, photos = null, timer = null, resuming = false, onChange = () => {} }) {
     this.roomCode = roomCode || generateRoomCode(cryptoRandom);
     this.peerServer = peerServer;
     this.roster = roster ? R.markAllDisconnected(roster) : R.createRoster();
@@ -24,6 +24,7 @@ export class Host {
     this.onChange = onChange;
     this.game = upgradeGame(game); // stato completo della partita: non esce mai da qui
     this.timer = null; // { key, endsAt, handle }: orologio del timer della partita
+    this.savedTimer = timer; // { key, endsAt } dal salvataggio: dopo "Riprendi" si riparte dal tempo rimasto
     this.photos = new Map(Object.entries(photos || {})); // playerId -> ritratto (data URL)
 
     this.status = 'opening';
@@ -363,16 +364,20 @@ export class Host {
   // ---- Timer ----
   // Il motore dice solo durata e chiave; qui gira l'orologio vero. Allo scadere si manda
   // TIMER_EXPIRED con la stessa chiave (una chiave vecchia viene ignorata dal motore).
-  // Dopo "Riprendi" il timer in corso riparte da capo.
+  // Dopo "Riprendi" il timer in corso riparte dal tempo che restava (salvato con la partita).
   _syncTimer() {
     const t = this.game && this.game.phaseData && this.game.phaseData.timer;
     if (!t) return this._clearTimer();
     if (this.timer && this.timer.key === t.key) return;
     this._clearTimer();
+    let ms = t.ms;
+    const saved = this.savedTimer;
+    if (saved && saved.key === t.key) ms = Math.min(t.ms, Math.max(NET.resumeTimerMinMs, saved.endsAt - Date.now()));
+    this.savedTimer = null;
     const handle = setTimeout(() => {
       if (!this.closed) this.dispatch({ type: A.TIMER_EXPIRED, payload: { key: t.key } });
-    }, t.ms);
-    this.timer = { key: t.key, endsAt: Date.now() + t.ms, handle };
+    }, ms);
+    this.timer = { key: t.key, endsAt: Date.now() + ms, handle };
   }
 
   _clearTimer() {
@@ -392,7 +397,14 @@ export class Host {
       ...R.viewForPlayer(this.roster, this.roomCode, pid),
       hasPhoto: this.photos.has(pid),
       game: this.game ? viewFor(this.game, pid) : null,
+      // Tempo rimasto al timer in corso: il telefono che rientra non riparte da capo
+      timerLeft: this._timerLeftNow(),
     };
+  }
+
+  _timerLeftNow() {
+    const t = this.game && this.game.phaseData && this.game.phaseData.timer;
+    return t ? this.timerLeft(t.key) : null;
   }
 
   // Salvataggio automatico: stanza e partita a ogni cambiamento (lo stato è piccolo)
@@ -402,6 +414,7 @@ export class Host {
       peerServer: this.peerServer,
       roster: this.roster,
       game: this.game,
+      timer: this.timer ? { key: this.timer.key, endsAt: this.timer.endsAt } : null,
       savedAt: Date.now(),
     });
     local.set(KEYS.lastRoom, this.roomCode);

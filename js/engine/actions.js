@@ -14,11 +14,12 @@ export const A = Object.freeze({
   // Dal master
   ADVANCE: 'ADVANCE',           // "Avanti": chiude la fase o la fa proseguire ({ force } solo per le prove)
   TIMER_EXPIRED: 'TIMER_EXPIRED', // { key } tempo scaduto (il master tiene l'orologio)
+  DEBUG_NEXT: 'DEBUG_NEXT',     // { mission?, event? } solo prove (?debug=1): prossimo gioco o evento
 });
 
 export const PLAYER_ACTIONS = new Set([
   A.ROLE_SEEN, A.VOTE, A.NIGHT_CHOOSE, A.NIGHT_CHAT, A.NIGHT_PLAN, A.SEDUCTION_ANSWER, A.FINAL_CHOICE, A.MISSION_INPUT,
 ]);
-export const MASTER_ACTIONS = new Set([A.ADVANCE, A.TIMER_EXPIRED]);
+export const MASTER_ACTIONS = new Set([A.ADVANCE, A.TIMER_EXPIRED, A.DEBUG_NEXT]);
 
 export const FINAL_CHOICES = Object.freeze({ END: 'end', BANISH: 'banish' });

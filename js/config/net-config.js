@@ -20,6 +20,8 @@ export const NET = Object.freeze({
   // Master: "Riprendi" con ID ancora occupato su PeerJS
   resumeIdRetryMs: 3000,
   resumeIdMaxWaitMs: 30000,
+  // Dopo "Riprendi" un timer già scaduto riparte con almeno questo tempo (per vedere la clessidra)
+  resumeTimerMinMs: 3000,
 
   // Master: nuovi tentativi verso il server di aggancio
   signalRetryDelaysMs: [2000, 4000, 8000, 15000],

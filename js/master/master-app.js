@@ -45,6 +45,7 @@ export function startMaster(root, { debug }) {
         roster: saved.roster,
         game: saved.game,
         photos: saved.photos,
+        timer: saved.timer || null,
         resuming: true,
         onChange: () => update(),
       });

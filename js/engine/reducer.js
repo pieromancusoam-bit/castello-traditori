@@ -173,6 +173,14 @@ const HANDLERS = {
     return reject(REJECT.WRONG_PHASE);
   },
 
+  // Solo per le prove (?debug=1): sceglie il prossimo gioco o il prossimo evento
+  [A.DEBUG_NEXT](s, action) {
+    const { mission, event } = payload(action);
+    s.debugNext = { ...(s.debugNext || {}) };
+    if (typeof mission === 'string') s.debugNext.mission = mission;
+    if (typeof event === 'string') s.debugNext.event = event;
+  },
+
   // "Avanti" del master: chiude ciò che è aperto (chi manca è astenuto) o passa oltre
   [A.ADVANCE](s, action, rng) {
     switch (s.phase) {

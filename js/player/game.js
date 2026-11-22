@@ -77,10 +77,14 @@ export function createGameScreen(root, client) {
   });
 
   // ---- Timer: il telefono conta da quando riceve una chiave nuova ----
+  // Il master manda anche il tempo rimasto: chi rientra a metà non riparte da capo
   function syncTimer(v) {
     const t = v.step && v.step.timer;
     if (!t) ui.timer = null;
-    else if (!ui.timer || ui.timer.key !== t.key) ui.timer = { key: t.key, ms: t.ms, start: Date.now() };
+    else if (!ui.timer || ui.timer.key !== t.key) {
+      const left = client.view && Number.isFinite(client.view.timerLeft) ? client.view.timerLeft : t.ms;
+      ui.timer = { key: t.key, ms: t.ms, start: Date.now() - Math.max(0, t.ms - left) };
+    }
   }
   runCountdown(root, () => (ui.timer ? { left: ui.timer.ms - (Date.now() - ui.timer.start), total: ui.timer.ms } : null));
 
