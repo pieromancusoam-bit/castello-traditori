@@ -15,6 +15,8 @@ import { SHOW } from '../config/show-config.js';
 
 // Stemmi di tutti i giocatori (pubblici), aggiornati a ogni vista
 let crests = {};
+// Quando è cominciato il momento attuale (per i ritardi che non devono ripartire a ogni ridisegno)
+let stepStart = 0;
 const crestHtml = (id) => (crests[id] ? avatarSvg(crests[id], 'crest crest-mini') : '');
 
 const FACTION = { faithfuls: 'Leale', traitors: 'Traditore' };
@@ -262,6 +264,7 @@ export function createGameScreen(root, client) {
     const key = `${v.phase}|${v.day}|${v.step.stage || ''}|${v.step.round || ''}|${m.sub || ''}|${m.index ?? ''}`;
     if (key !== ui.stepKey) {
       ui.stepKey = key;
+      stepStart = Date.now();
       ui.pending = null;
       ui.error = '';
       ui.inventory = false; // fase nuova: si torna alla schermata di gioco
@@ -585,12 +588,19 @@ function finalHtml(v, ui, nameOf) {
   }
 }
 
+// La fazione compare solo quando la svela anche la TV (dopo le ultime parole e il silenzio)
 function revealHtml(v, nameOf) {
   const st = v.step;
+  const left = Math.max(0, SHOW.lastWordsMs + SHOW.revealSilenceMs - (Date.now() - stepStart));
+  const late = `style="animation-delay:${left}ms"`;
   if (st.playerId === v.me.id) {
-    return `<h1>Sei stato bandito</h1><p class="big">Il castello ora sa che eri ${FACTION_A[st.faction]}.</p>${spectator()}`;
+    return `<h1>Sei stato bandito</h1>
+      <p class="big words-now">Hai ${SHOW.lastWordsMs / 1000} secondi per le ultime parole: parla ora.</p>
+      <p class="big late-reveal" ${late}>Il castello ora sa che eri ${FACTION_A[st.faction]}.</p>${spectator()}`;
   }
-  return `<h1>${esc(nameOf(st.playerId))}</h1><p class="big">era ${FACTION_A[st.faction]}.</p>`;
+  return `<h1>${esc(nameOf(st.playerId))}</h1>
+    <p class="big words-now">Ascolta le sue ultime parole…</p>
+    <p class="big late-reveal" ${late}>era ${FACTION_A[st.faction]}.</p>`;
 }
 
 function mainHtml(v, ui, nameOf) {

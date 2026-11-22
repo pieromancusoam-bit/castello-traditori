@@ -458,7 +458,13 @@
 .vote-in { animation: vote-in 0.5s both; }
 @keyframes vote-in { from { opacity: 0; transform: translateY(0.4em) scale(0.97); } to { opacity: 1; transform: none; } }
 .reveal { display: flex; flex-direction: column; align-items: center; }
-.reveal .reveal-name { font-family: var(--font-title); font-size: 3.4em; animation: heartbeat 0.95s ease-in-out 0.9s 4; }
+.reveal .reveal-name { font-family: var(--font-title); font-size: 3.4em; animation: heartbeat 0.95s ease-in-out calc(var(--words, 0ms) + 900ms) 4; }
+.last-words { width: min(30em, 80%); animation: fade-out 0.6s var(--words, 0ms) both; }
+.last-words p { margin: 0 0 0.4em; color: var(--gold); font-size: 1.4em; letter-spacing: 0.1em; text-transform: uppercase; }
+.words-bar { height: 0.5em; border-radius: 1em; background: var(--stone-700); overflow: hidden; }
+.words-bar span { display: block; height: 100%; background: var(--gold); transform-origin: left; animation: words-run var(--words, 15s) linear both; }
+@keyframes words-run { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+@keyframes fade-out { from { opacity: 1; } to { opacity: 0; visibility: hidden; } }
 .reveal .reveal-faction { animation: faction-in 1.2s var(--silence, 4.5s) both; }
 @keyframes heartbeat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.08); } 30% { transform: scale(1); } 45% { transform: scale(1.05); } }
 @keyframes faction-in { from { opacity: 0; transform: scale(1.6); filter: blur(10px); } to { opacity: 1; transform: none; filter: none; } }

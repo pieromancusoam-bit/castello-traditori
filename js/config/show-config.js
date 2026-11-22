@@ -30,7 +30,8 @@ export const SHOW = Object.freeze({
     stepMs: 1100,   // tra un voto e il successivo
     outcomeMs: 900, // dopo l'ultimo voto: conteggio ed esito
   }),
-  revealSilenceMs: 4500,   // bandito: silenzio (con il cuore) prima della fazione
+  lastWordsMs: 15000,      // bandito: ultime parole prima della rivelazione
+  revealSilenceMs: 4500,   // poi silenzio (con il cuore) prima della fazione
   unveilSilenceMs: 3500,   // ultime maschere: silenzio prima della fazione
   breakfastBreakMs: 1600,  // il quadro della vittima si rompe (uguale al CSS)
   breakfastTextMs: 2600,   // poi il testo

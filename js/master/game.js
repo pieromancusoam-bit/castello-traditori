@@ -13,7 +13,7 @@ import { EVENTS, ITEMS } from '../config/game-config.js';
 import { MISSION_IDS } from '../engine/missions/index.js';
 import { openAudioPanel } from './audio-panel.js';
 import { SHOW } from '../config/show-config.js';
-import { voteTimes } from '../show/director.js';
+import { voteTimes, revealTimes } from '../show/director.js';
 
 // Solo prove (?debug=1): scelta del prossimo gioco e del prossimo evento
 function debugBarHtml(host) {
@@ -268,10 +268,13 @@ function voteStageHtml(st, nameOf, title) {
 
 const delay = (ms) => `animation-delay:${ms}ms`;
 
-// Bandito: il nome pulsa come un cuore nel silenzio, poi arriva la fazione
+// Bandito: ultime parole con la clessidra, poi il nome pulsa come un cuore nel silenzio
+// e arriva la fazione
 function revealStageHtml(st, nameOf) {
-  return `<div class="reveal" style="--silence:${SHOW.revealSilenceMs}ms">
+  const T = revealTimes();
+  return `<div class="reveal" style="--words:${T.words}ms;--silence:${T.faction}ms">
     <p class="lead reveal-name">${esc(nameOf(st.playerId))}</p>
+    <div class="last-words"><p>Le ultime parole</p><div class="words-bar"><span></span></div></div>
     <h1 class="reveal-faction faction-${st.faction}">era ${FACTION_A[st.faction]}</h1>
   </div>`;
 }

@@ -249,8 +249,14 @@ function voteCues(st, { say, sound, namesOf, nameOf }, final = false) {
   else say(o.reason === 'tie' ? 'votes.tie' : 'votes.none', {}, T.outcome);
 }
 
+// Bando: porta, ultime parole del bandito, rintocco, cuore, silenzio, fazione
+export const revealTimes = () => ({ words: SHOW.lastWordsMs, faction: SHOW.lastWordsMs + SHOW.revealSilenceMs });
+
 function revealCues(st, nameOf, { say, sound }) {
+  const T = revealTimes();
   sound('door');
-  sound('heart', 900);
-  say(st.faction === 'traitors' ? 'reveal.traitor' : 'reveal.faithful', { name: nameOf(st.playerId) }, SHOW.revealSilenceMs);
+  say('reveal.lastWords', { name: nameOf(st.playerId) }, 700);
+  sound('toll', T.words);
+  sound('heart', T.words + 900);
+  say(st.faction === 'traitors' ? 'reveal.traitor' : 'reveal.faithful', { name: nameOf(st.playerId) }, T.faction);
 }

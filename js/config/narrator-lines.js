@@ -223,6 +223,13 @@ export const NARRATOR_LINES = Object.freeze({
     'Nessuno ha votato. I Traditori dormiranno tranquilli.',
     'Oggi nessun nome. Il castello è deluso.',
   ]),
+  'reveal.lastWords': L([
+    '{name}, prima di lasciare il castello… vuoi dire qualcosa agli altri? Hai quindici secondi.',
+    '{name}, il castello ti concede le ultime parole. Parla ora.',
+    'Prima che la tua maschera cada, {name}… hai qualcosa da dire?',
+    '{name}, è il tuo ultimo momento al tavolo. Le tue ultime parole?',
+    'Il castello ascolta, {name}. Quindici secondi, poi il silenzio.',
+  ]),
   'reveal.traitor': L([
     '{name}… era un Traditore.',
     'Avevate ragione. {name} era un Traditore.',
