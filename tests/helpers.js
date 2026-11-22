@@ -130,6 +130,12 @@ function possibleActions(s, r) {
     case PHASE.MISSION:
       if (pd.stage === 'play') acts.push(...missionInputs(s, r, live));
       break;
+    case PHASE.SCENE:
+      for (const id of live) {
+        if (pd.touched[id] !== undefined) continue;
+        acts.push({ type: A.SCENE_TOUCH, playerId: id, payload: { targetId: pick(live.filter((t) => t !== id)) } });
+      }
+      break;
     default:
       break;
   }

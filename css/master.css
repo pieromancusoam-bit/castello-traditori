@@ -430,3 +430,9 @@
 .board-note { margin-top: 1em; }
 .vote-list li.is-double { color: var(--gold); }
 .dagger-mark { margin-left: 0.6em; padding: 0 0.4em; border: 2px solid var(--gold); border-radius: 8px; color: var(--gold); font-weight: 700; }
+.event-banner { margin: 0.8em auto; max-width: 40em; border: 2px solid var(--gold-dim); border-radius: 16px; padding: 0.6em 1.2em; background: rgba(140, 28, 44, 0.25); animation: fade-in 0.8s 2s both; }
+.event-banner h2 { margin: 0.1em 0; color: var(--gold); }
+.event-banner p { margin: 0.2em 0; }
+.event-line { color: var(--gold); font-size: 1.2em; margin: 0.3em 0; }
+.scene-text { font-family: var(--font-serif); font-size: 2.4em; max-width: 22em; margin: 0.4em auto; }
+.tally.is-fog { font-size: 1.4em; }

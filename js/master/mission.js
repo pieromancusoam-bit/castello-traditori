@@ -39,7 +39,8 @@ export function missionStageHtml(v, nameOf) {
   const st = v.step;
   const def = MISSIONS[st.id];
   if (st.stage === 'board') return boardHtml(v, nameOf);
-  const head = `<p class="kicker">Giorno ${v.day} · gioco ${st.slot} di ${st.perDay}</p><h1>${esc(def.title)}</h1>`;
+  const double = st.double ? '<p class="event-line">Doppia posta: questo gioco vale il doppio, ma se fallisce il montepremi perde monete.</p>' : '';
+  const head = `<p class="kicker">Giorno ${v.day} · gioco ${st.slot} di ${st.perDay}</p><h1>${esc(def.title)}</h1>${double}`;
   if (st.stage === 'intro') return head + introHtml(st, def, nameOf);
   if (st.stage === 'result') return head + resultHtml(st, nameOf);
   return head + playHtml(st, nameOf);
@@ -177,9 +178,10 @@ function resultHtml(st, nameOf) {
     chronology: () => `${d.correct} eventi al posto giusto su ${d.total}.`,
     messenger: () => `${d.correct} su ${d.total} hanno riconosciuto la scena.`,
   };
-  const verdict = r.coins > 0
+  let verdict = r.coins > 0
     ? `<p class="coins-won">+${coins(r.coins)} <span>monete</span></p>`
     : `<p class="coins-lost">${st.id === 'chest' ? 'Il forziere resta vuoto' : 'Nessuna moneta'}</p>`;
+  if (r.coins < 0) verdict = `<p class="coins-lost">−${coins(-r.coins)} monete${r.doubleLoss ? ': la Doppia posta costa cara' : ''}</p>`;
   const chestNote = st.id === 'chest' && d.leadCount > 0 ? '<p class="muted">Chi ha messo il piombo? Il castello non lo dirà mai.</p>' : '';
   const gift = r.itemGiven && !OWN_ITEMS.has(st.id) ? '<p class="gift-line">Il castello ha dato <strong>in segreto</strong> un oggetto a uno di voi.</p>' : '';
   return `<div class="mission-result ${r.coins > 0 ? 'is-won' : 'is-lost'}">

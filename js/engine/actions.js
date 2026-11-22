@@ -13,6 +13,7 @@ export const A = Object.freeze({
   FINAL_CHOICE: 'FINAL_CHOICE', // { choice: 'end' | 'banish' }
   MISSION_INPUT: 'MISSION_INPUT', // dati propri della missione in corso (vedi js/engine/missions/)
   USE_ITEM: 'USE_ITEM',         // { item, targetId? } Pugnale, Maledizione, Sigillo, Specchio
+  SCENE_TOUCH: 'SCENE_TOUCH',   // { targetId } Omicidio a vista: tutti toccano un nome
 
   // Dal master
   ADVANCE: 'ADVANCE',           // "Avanti": chiude la fase o la fa proseguire ({ force } solo per le prove)
@@ -22,7 +23,7 @@ export const A = Object.freeze({
 
 export const PLAYER_ACTIONS = new Set([
   A.ROLE_SEEN, A.VOTE, A.NIGHT_CHOOSE, A.NIGHT_CHAT, A.NIGHT_PLAN, A.SEDUCTION_ANSWER, A.FINAL_CHOICE, A.MISSION_INPUT,
-  A.USE_ITEM, A.NIGHT_VISION, A.NIGHT_SWAP,
+  A.USE_ITEM, A.NIGHT_VISION, A.NIGHT_SWAP, A.SCENE_TOUCH,
 ]);
 export const MASTER_ACTIONS = new Set([A.ADVANCE, A.TIMER_EXPIRED, A.DEBUG_NEXT]);
 

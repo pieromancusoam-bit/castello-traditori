@@ -142,6 +142,8 @@ function advanceLabel(v) {
       if (st.stage === 'discussion') return null; // la discussione minima non si salta
       return st.stage === 'voting' ? 'Chiudi la votazione' : st.outcome.kind === 'runoff' ? 'Al ballottaggio' : st.outcome.kind === 'banish' ? 'Rivela la fazione' : 'Prosegui';
     case 'reveal': return 'Prosegui';
+    case 'scene': return 'Fine della scena';
+    case 'dusk': return 'Prosegui';
     case 'night': return 'Fai sorgere il sole';
     case 'final':
       switch (st.stage) {
@@ -165,6 +167,15 @@ function outcomeHtml(o, nameOf) {
   return o.reason === 'tie' ? 'Ancora parità: oggi nessuno lascia il castello.' : 'Nessun voto: oggi nessuno lascia il castello.';
 }
 
+// Evento del giorno, annunciato alla Colazione
+function eventHtml(v) {
+  const ev = v.event;
+  if (!ev || ev.cancelled) return '';
+  const def = EVENTS[ev.id];
+  const extra = ev.id === 'doubleStakes' ? ` Tocca al gioco n. ${ev.slot} di oggi.` : '';
+  return `<div class="event-banner event-${ev.id}"><p class="kicker">Evento del castello</p><h2>${esc(def.name)}</h2><p>${esc(def.text + extra)}</p></div>`;
+}
+
 // Maledetti di oggi (mai chi ha lanciato la Maledizione) e Sigilli usati
 export function cursesHtml(v, nameOf) {
   const out = v.curses.map((id) => `<p class="curse-line"><strong>${esc(nameOf(id))}</strong> è stato maledetto: alla Tavola Rotonda non vota.</p>`);
@@ -178,7 +189,18 @@ function voteStageHtml(st, nameOf, title) {
       ? `<p class="lead">Ballottaggio tra ${st.candidates.map((id) => `<strong>${esc(nameOf(id))}</strong>`).join(' e ')}</p>`
       : '<p class="lead">Discutete. Poi votate dal telefono chi bandire.</p>';
     const banish = st.banishCount ? `<p class="muted">${st.banishCount === 1 ? 'Qualcuno ha' : `${st.banishCount} giocatori hanno`} scelto di bandire ancora.</p>` : '';
-    return `<h1>${st.round === 2 ? 'Ballottaggio' : title}</h1>${banish}${runoff}${progress(st.votedCount, st.voterCount, 'hanno votato')}`;
+    const second = st.second ? '<p class="event-line">Dopo il Banchetto: <strong>seconda votazione</strong> del giorno.</p>' : '';
+    const fog = st.fog ? '<p class="event-line">Nebbia: i voti si vedranno solo come conteggio.</p>' : '';
+    return `<h1>${st.round === 2 ? 'Ballottaggio' : title}</h1>${second}${fog}${banish}${runoff}${progress(st.votedCount, st.voterCount, 'hanno votato')}`;
+  }
+  // Nebbia: solo il conteggio, senza chi ha votato
+  if (st.fog) {
+    const fogRows = [...st.fogCounts].sort((a, b) => b.count - a.count)
+      .map((c) => `<li><strong>${esc(nameOf(c.targetId))}</strong> ${c.count} ${c.count === 1 ? 'voto' : 'voti'}</li>`).join('');
+    const dag = st.daggerCount ? `<p class="muted">${st.daggerCount === 1 ? 'Un voto contava' : `${st.daggerCount} voti contavano`} doppio (Pugnale).</p>` : '';
+    return `<h1>I voti nella nebbia</h1><p class="lead">La nebbia nasconde chi ha votato chi.</p>
+      <ul class="tally is-fog">${fogRows || '<li class="muted">Nessun voto</li>'}</ul>${dag}
+      <p class="outcome">${outcomeHtml(st.outcome, nameOf)}</p>`;
   }
   const counts = {};
   for (const v of st.votes) counts[v.targetId] = (counts[v.targetId] || 0) + (v.double ? 2 : 1);
@@ -221,6 +243,7 @@ function stageHtml(v, nameOf, host) {
       return `<h1>Colazione</h1>
         <p class="lead ${st.victimId ? 'after-break' : ''}">${msg}</p>
         ${suspects}
+        ${eventHtml(v)}
         ${cursesHtml(v, nameOf)}
         ${portraitWallHtml(v.players, { photoOf: (id) => host.photoOf(id), breakingId: st.victimId, suspects: st.suspects })}`;
     }
@@ -238,10 +261,27 @@ function stageHtml(v, nameOf, host) {
       return (st.stage === 'voting' ? cursesHtml(v, nameOf) : '') + voteStageHtml(st, nameOf, 'Tavola Rotonda');
     case 'reveal':
       return revealStageHtml(st, nameOf);
-    case 'night':
-      return `<h1>La notte</h1>
+    case 'scene':
+      return `<p class="kicker">Omicidio a vista</p><h1>La scena</h1>
+        <p class="scene-text">${esc(st.scene)}</p>
+        <p class="lead">Tutti toccano un nome sul telefono. Uno di quei tocchi uccide.</p>
+        ${progress(st.touchedCount, st.total, 'hanno toccato')}`;
+    case 'dusk': {
+      const text = st.reason === 'murdered'
+        ? `Al tramonto il castello scopre il delitto: <strong>${esc(nameOf(st.victimId))}</strong> è stato ucciso alla luce del giorno.`
+        : st.reason === 'gone' ? 'Al tramonto il pugnale cerca la sua vittima… ma ha già lasciato il castello.'
+        : 'Al tramonto nessuno è caduto: il Traditore non ha colpito.';
+      return `<h1>Il tramonto</h1><p class="lead ${st.victimId ? 'after-break' : ''}">${text}</p>
+        ${portraitWallHtml(v.players, { photoOf: (id) => host.photoOf(id), breakingId: st.victimId, suspects: [] })}`;
+    }
+    case 'night': {
+      const rest = v.event && !v.event.cancelled && (v.event.id === 'banquet' || v.event.id === 'daylightMurder')
+        ? `<p class="event-line">${v.event.id === 'banquet' ? 'Stanotte c\'è il Banchetto: nessuno morirà.' : 'Il sangue è già stato versato: stanotte nessuno morirà.'}</p>`
+        : '';
+      return `<h1>La notte</h1>${rest}
         <p class="lead">Chiudete gli occhi… Tutti toccano il proprio telefono.</p>
         ${progress(st.touchedCount, st.total, 'hanno fatto una scelta')}`;
+    }
     case 'final':
       switch (st.stage) {
         case 'choice':

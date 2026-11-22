@@ -6,6 +6,9 @@ import { PHASE, STATUS } from './state.js';
 import { ROLE, factionOf, isTraitorRole } from './roles.js';
 import { nightConsensus, nightKillers, isKiller, canKill, secretCanSwap, voterIds } from './phases.js';
 import { itemActions } from './items.js';
+import { daylightCanKill } from './events.js';
+import { SCENES } from '../config/game-config.js';
+import { tally, ballotWeights } from './votes.js';
 import { PRESENTATION_THEMES } from '../config/presentations.js';
 import { MISSION_MODULES } from './missions/index.js';
 
@@ -66,6 +69,31 @@ function common(s) {
     // Maledetti per la Tavola Rotonda di oggi e chi si è liberato con il Sigillo (mai chi ha maledetto)
     curses: [...(s.curses || [])],
     sealed: [...(s.sealed || [])],
+    event: publicEvent(s),
+  };
+}
+
+// Evento di oggi: quale e (Doppia posta) su quale gioco. Mai chi uccide alla luce del giorno.
+function publicEvent(s) {
+  const ev = s.dayEvent;
+  if (!ev || ev.day !== s.day) return null;
+  return { id: ev.id, slot: ev.id === 'doubleStakes' ? ev.slot : null, cancelled: Boolean(ev.cancelled) };
+}
+
+// Omicidio a vista: la scena è uguale per tutti; solo il Traditore designato ha i complici disattivati
+function sceneStep(s, p) {
+  const pd = s.phaseData;
+  const live = aliveIdList(s);
+  const step = { scene: SCENES[pd.sceneIndex], touchedCount: live.filter((id) => pd.touched[id] !== undefined).length, total: live.length, timer: timerView(pd) };
+  if (!p) return step;
+  const ev = s.dayEvent;
+  const killer = Boolean(ev && ev.killerId === p.id && isAlive(p));
+  return {
+    ...step,
+    options: isAlive(p) ? live.filter((id) => id !== p.id) : [],
+    disabled: killer ? live.filter((id) => id !== p.id && !daylightCanKill(s, p, id)) : [],
+    myTouch: pd.touched[p.id] ?? null,
+    killer,
   };
 }
 
@@ -89,7 +117,8 @@ function missionStep(s, p) {
     perDay: pd.perDay,
     value: pd.value,
     timer: timerView(pd),
-    result: pd.result ? { success: pd.result.success, coins: pd.result.coins, detail: structuredClone(pd.result.detail), itemGiven: Boolean(pd.gift) } : null,
+    double: Boolean(pd.double),
+    result: pd.result ? { success: pd.result.success, coins: pd.result.coins, detail: structuredClone(pd.result.detail), itemGiven: Boolean(pd.gift), doubleLoss: Boolean(pd.result.doubleLoss) } : null,
     // Oggetto vinto: solo a chi l'ha ricevuto
     myGift: p && pd.gift && pd.gift.playerId === p.id ? pd.gift.item : null,
     mission: p ? m.playerView(s, p) : m.masterView(s),
@@ -113,15 +142,25 @@ function masterVote(s) {
     voterCount: live.length,
     banishCount: pd.banishCount ?? null,
     timer: timerView(pd),
+    second: Boolean(pd.second),
+    fog: Boolean(pd.fog),
     votes: null,
+    fogCounts: null,
     outcome: null,
   };
   // I voti con i nomi compaiono sullo schermo solo a votazione chiusa
   if (pd.stage === 'results') {
     // Pugnale: si vede alla rivelazione dei voti ("conta doppio")
     const daggers = pd.ballot.daggers || {};
-    v.votes = s.order.filter((id) => pd.ballot.votes[id] !== undefined)
-      .map((id) => ({ voterId: id, targetId: pd.ballot.votes[id], double: Boolean(daggers[id]) }));
+    if (pd.fog) {
+      // Nebbia: solo il conteggio per giocatore, senza chi ha votato
+      const { counts } = tally(pd.ballot.votes, s.order, ballotWeights(pd.ballot));
+      v.fogCounts = s.order.filter((id) => counts[id]).map((id) => ({ targetId: id, count: counts[id] }));
+      v.daggerCount = Object.keys(daggers).filter((id) => pd.ballot.votes[id] !== undefined).length;
+    } else {
+      v.votes = s.order.filter((id) => pd.ballot.votes[id] !== undefined)
+        .map((id) => ({ voterId: id, targetId: pd.ballot.votes[id], double: Boolean(daggers[id]) }));
+    }
     v.outcome = publicOutcome(pd.outcome);
   }
   return v;
@@ -139,6 +178,10 @@ function masterStep(s) {
       return presentationStep(s);
     case PHASE.MISSION:
       return missionStep(s, null);
+    case PHASE.SCENE:
+      return sceneStep(s, null);
+    case PHASE.DUSK:
+      return { victimId: pd.victimId, reason: pd.reason };
     case PHASE.ROUNDTABLE:
       return masterVote(s);
     case PHASE.REVEAL:
@@ -288,6 +331,8 @@ function playerStep(s, p) {
         firstDay: pd.firstDay,
         suspects: [...pd.suspects],
         failed: Boolean(pd.failed),
+        // Omicidio a vista: solo il Traditore designato sa che oggi tocca a lui
+        daylightKiller: Boolean(s.dayEvent && s.dayEvent.day === s.day && s.dayEvent.killerId === p.id),
         // Esito dell'offerta (Seduzione o Ultimatum): solo ai Traditori che l'hanno fatta e a chi l'ha ricevuta
         seduction: pd.seduction && (pd.seduction.byIds.includes(p.id) || pd.seduction.targetId === p.id)
           ? { kind: pd.seduction.kind, targetId: pd.seduction.targetId, accepted: pd.seduction.accepted }
@@ -297,6 +342,10 @@ function playerStep(s, p) {
       return { ...presentationStep(s), mine: s.phaseData.order[s.phaseData.index] === p.id };
     case PHASE.MISSION:
       return missionStep(s, p);
+    case PHASE.SCENE:
+      return sceneStep(s, p);
+    case PHASE.DUSK:
+      return { victimId: pd.victimId, reason: pd.reason };
     case PHASE.ROUNDTABLE:
       return playerVote(s, p);
     case PHASE.REVEAL:

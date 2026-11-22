@@ -10,6 +10,7 @@ import { clearTimer, setTimer } from './missions/common.js';
 import { GAME } from '../config/game-config.js';
 import { PRESENTATION_THEMES } from '../config/presentations.js';
 import { ITEM, hasItem, takeItem, giveItem, drawItem } from './items.js';
+import { drawEvent, todayEvent, scenePending, sceneSetup, daylightCanKill } from './events.js';
 
 export const aliveIds = (s) => alivePlayers(s).map((p) => p.id);
 
@@ -18,10 +19,12 @@ export const aliveIds = (s) => alivePlayers(s).map((p) => p.id);
 // suspects: i più sospettati della notte (vivi), annunciati senza dire chi li ha indicati.
 // seduction: esito segreto della Seduzione della notte (lo vedono solo i due interessati)
 // failed: i Traditori hanno colpito uno scudato ("l'omicidio è fallito", senza nome)
-export function enterBreakfast(s, victimId, suspects = [], seduction = null, failed = false) {
+// rng: per estrarre l'evento del giorno (dal giorno 2)
+export function enterBreakfast(s, victimId, suspects = [], seduction = null, failed = false, rng = null) {
   s.day += 1;
   s.phase = PHASE.BREAKFAST;
   s.phaseData = { victimId, firstDay: s.day === 1, suspects, seduction, failed };
+  if (rng) drawEvent(s, rng);
 }
 
 // Dopo la Colazione: finale se restano pochi giocatori; il giorno 1 le presentazioni;
@@ -34,7 +37,37 @@ export function leaveBreakfast(s, rng) {
 
 function startDayGames(s, rng) {
   if (s.settings.missions) enterMission(s, rng, 1);
-  else enterRoundtable(s);
+  else toRoundtable(s, rng);
+}
+
+// Verso la Tavola Rotonda: prima, se c'è l'Omicidio a vista e non è ancora avvenuto, la scena
+function toRoundtable(s, rng) {
+  if (scenePending(s)) return enterScene(s, rng, { roundtable: true });
+  return enterRoundtable(s);
+}
+
+// ---- Omicidio a vista: la scena (tutti toccano un nome; conta solo il Traditore designato) ----
+
+export function enterScene(s, rng, next) {
+  s.phase = PHASE.SCENE;
+  s.phaseData = sceneSetup(s, rng, next);
+  setTimer(s, GAME.sceneMs);
+}
+
+export const allTouched = (s) => aliveIds(s).every((id) => s.phaseData.touched[id] !== undefined);
+
+export function sceneTouch(s, p, targetId) {
+  s.phaseData.touched[p.id] = targetId;
+  const ev = todayEvent(s, 'daylightMurder');
+  if (ev && ev.killerId === p.id && daylightCanKill(s, p, targetId)) ev.victimId = targetId;
+}
+
+export function leaveScene(s, rng) {
+  const ev = todayEvent(s, 'daylightMurder');
+  if (ev) ev.sceneDone = true;
+  const { next } = s.phaseData;
+  if (next.slot) return enterMission(s, rng, next.slot);
+  return enterRoundtable(s);
 }
 
 // ---- Presentazioni (giorno 1): uno alla volta, ognuno con un tema diverso ----
@@ -67,7 +100,14 @@ export const currentMission = (s) => MISSION_MODULES[s.phaseData.id];
 export function enterMission(s, rng, slot = 1) {
   const id = drawMission(s, rng);
   s.phase = PHASE.MISSION;
-  s.phaseData = { id, slot, perDay: s.settings.missionsPerDay, stage: 'intro', value: missionValue(s.day), data: null, result: null, timer: null };
+  s.phaseData = { id, slot, perDay: s.settings.missionsPerDay, stage: 'intro', value: missionValue(s.day), data: null, result: null, timer: null, double: false };
+  // Doppia posta: il gioco estratto (da quel posto in poi, se il gioco lo permette) vale il doppio
+  const ev = todayEvent(s, 'doubleStakes');
+  if (ev && !ev.used && slot >= ev.slot && MISSION_MODULES[id].noDouble !== true) {
+    ev.used = true;
+    s.phaseData.double = true;
+    s.phaseData.value *= 2;
+  }
   s.phaseData.data = MISSION_MODULES[id].setup(s, rng);
 }
 
@@ -84,6 +124,11 @@ export function finishMission(s, rng) {
   clearTimer(s);
   s.phaseData.stage = 'result';
   s.phaseData.result = result;
+  // Doppia posta fallita: il montepremi perde il valore normale del gioco
+  if (s.phaseData.double && result.coins <= 0) {
+    result.coins = -Math.min(s.pot, s.phaseData.value / 2);
+    result.doubleLoss = true;
+  }
   s.pot = Math.max(0, s.pot + result.coins);
   s.missionLog.push({ day: s.day, slot: s.phaseData.slot, id: s.phaseData.id, coins: result.coins });
   if (result.gift) {
@@ -107,20 +152,26 @@ export function advanceMission(s, rng) {
     case 'play': if (currentMission(s).advance(s, rng)) finishMission(s, rng); return undefined;
     // Dopo il risultato: il gioco successivo oppure, dopo l'ultimo del giorno, il tabellone
     case 'result':
-      if (pd.slot < pd.perDay) return enterMission(s, rng, pd.slot + 1);
+      // Omicidio a vista: la scena arriva dopo il primo gioco (o prima della Tavola Rotonda)
+      if (pd.slot < pd.perDay) {
+        if (pd.slot === 1 && scenePending(s)) return enterScene(s, rng, { slot: pd.slot + 1 });
+        return enterMission(s, rng, pd.slot + 1);
+      }
       pd.stage = 'board';
       return undefined;
-    default: return enterRoundtable(s);
+    default: return toRoundtable(s, rng);
   }
 }
 
 // ---- Tavola Rotonda (e voto della Cerimonia) ----
 
-// Prima del voto una discussione minima (clessidra): il voto si apre solo a tempo scaduto
-export function enterRoundtable(s) {
+// Prima del voto una discussione minima (clessidra): il voto si apre solo a tempo scaduto.
+// second: seconda votazione del giorno dopo il Banchetto (senza discussione).
+// Nebbia: i voti si rivelano solo come conteggio.
+export function enterRoundtable(s, { second = false } = {}) {
   s.phase = PHASE.ROUNDTABLE;
-  s.phaseData = { stage: 'voting', ballot: openBallot(), outcome: null, timer: null };
-  if (s.settings.discussion) {
+  s.phaseData = { stage: 'voting', ballot: openBallot(), outcome: null, timer: null, second, fog: Boolean(todayEvent(s, 'fog')) };
+  if (s.settings.discussion && !second) {
     s.phaseData.stage = 'discussion';
     setTimer(s, s.settings.discussionMs ?? discussionMs(alivePlayers(s).length));
   }
@@ -186,10 +237,32 @@ export function leaveResults(s, rng) {
   else afterDay(s, rng);
 }
 
-// Fine della giornata: finale se restano pochi giocatori, altrimenti Notte
+// Fine della giornata: al tramonto la vittima dell'Omicidio a vista; dopo il Banchetto una
+// seconda votazione; poi finale se restano pochi giocatori, altrimenti Notte
 export function afterDay(s, rng) {
-  if (alivePlayers(s).length <= s.settings.finalThreshold) enterFinal(s);
+  const ev = todayEvent(s, 'daylightMurder');
+  if (ev && ev.sceneDone && !ev.duskDone) return enterDusk(s, ev);
+  const over = alivePlayers(s).length <= s.settings.finalThreshold;
+  if (s.banquetDay === s.day) {
+    s.banquetDay = null;
+    if (!over) return enterRoundtable(s, { second: true });
+  }
+  if (over) enterFinal(s);
   else enterNight(s, rng);
+}
+
+// Il tramonto: si scopre la vittima dell'Omicidio a vista (se è ancora nel castello)
+function enterDusk(s, ev) {
+  ev.duskDone = true;
+  const victim = ev.victimId && s.players[ev.victimId];
+  let victimId = null;
+  if (victim && victim.status === STATUS.ALIVE) {
+    victim.status = STATUS.MURDERED;
+    victimId = victim.id;
+    s.history.push({ day: s.day, type: 'murdered', playerId: victimId });
+  }
+  s.phase = PHASE.DUSK;
+  s.phaseData = { victimId, reason: victimId ? 'murdered' : ev.victimId ? 'gone' : 'none' };
 }
 
 // ---- Notte ----
@@ -341,7 +414,7 @@ export function resolveNight(s, rng) {
   } else {
     s.history.push({ day: s.day, type: failed ? 'murder-failed' : 'no-murder' });
   }
-  enterBreakfast(s, victimId, nightSuspects(s), offerResult, failed);
+  enterBreakfast(s, victimId, nightSuspects(s), offerResult, failed, rng);
 }
 
 // Il più sospettato tra i vivi (dopo l'omicidio); in parità tutti i pari merito

@@ -7,6 +7,7 @@ import { missionHtml } from './mission.js';
 import { countdownHtml, runCountdown } from '../ui/countdown.js';
 import { coins } from '../ui/format.js';
 import { inventoryButtonHtml, inventoryHtml, itemHintHtml, giftHtml } from './inventory.js';
+import { EVENTS } from '../config/game-config.js';
 
 const FACTION = { faithfuls: 'Leale', traitors: 'Traditore' };
 const FACTION_A = { faithfuls: 'un Leale', traitors: 'un Traditore' };
@@ -176,6 +177,7 @@ export function createGameScreen(root, client) {
     if (p.kind === 'offer') send(A.SEDUCTION_ANSWER, { accept: p.value === 'yes' });
     if (p.kind === 'vision') send(A.NIGHT_VISION, { targetId: p.value }).then(() => { ui.vision = false; render(); });
     if (p.kind === 'swap') send(A.NIGHT_SWAP, { targetId: p.value === 'keep' ? null : p.value });
+    if (p.kind === 'scene') send(A.SCENE_TOUCH, { targetId: p.value });
     if (p.kind === 'item') send(A.USE_ITEM, { item: p.value });
     if (p.kind === 'curse') send(A.USE_ITEM, { item: 'curse', targetId: p.value }).then((res) => {
       if (res.ok) {
@@ -558,7 +560,12 @@ function mainHtml(v, ui, nameOf) {
       if (st.victimId === v.me.id) {
         return `<h1>Colazione</h1><p class="big">Stanotte sei stato assassinato.</p>${spectator()}`;
       }
-      return `<h1>Colazione</h1><p class="big">Guarda lo schermo principale.</p>${st.failed ? '<p class="turned">Stanotte i Traditori hanno colpito… ma l\'omicidio è fallito.</p>' : ''}${seductionText(v, nameOf)}${suspectsText(st.suspects, nameOf)}${cursesText(v, nameOf)}`;
+      return `<h1>Colazione</h1><p class="big">Guarda lo schermo principale.</p>${st.failed ? '<p class="turned">Stanotte i Traditori hanno colpito… ma l\'omicidio è fallito.</p>' : ''}${seductionText(v, nameOf)}${suspectsText(st.suspects, nameOf)}${cursesText(v, nameOf)}${eventText(v)}`;
+    case 'scene':
+      return sceneHtml(v, ui, nameOf);
+    case 'dusk':
+      if (st.victimId === v.me.id) return `<h1>Il tramonto</h1><p class="big">Sei stato assassinato alla luce del giorno.</p>${spectator()}`;
+      return `<h1>Il tramonto</h1><p class="big">${st.reason === 'murdered' ? `${esc(nameOf(st.victimId))} è stato ucciso alla luce del giorno.` : 'Nessuno è caduto al tramonto.'}</p><p class="muted">Guarda lo schermo principale.</p>`;
     case 'presentations':
       return st.mine
         ? `<p class="kicker">Presentazioni</p><h1>Tocca a te!</h1><div class="trial-card"><h2>${esc(st.theme)}</h2></div><p class="muted">Hai il tempo della clessidra.</p>`
@@ -593,6 +600,31 @@ function prizeText(v) {
     return pr.pot ? `<p class="coins-won">+${coins(pr.share)} <span>monete</span></p>` : '<p class="muted">Montepremi vuoto: vinci per la gloria.</p>';
   }
   return `<p class="muted">Montepremi: ${coins(pr.pot)} monete ai vincitori sopravvissuti.</p>`;
+}
+
+// Evento del giorno (alla Colazione); al Traditore designato anche il suo compito
+function eventText(v) {
+  const ev = v.event;
+  if (!ev || ev.cancelled) return '';
+  const def = EVENTS[ev.id];
+  const extra = ev.id === 'doubleStakes' ? ` Tocca al gioco n. ${ev.slot}.` : '';
+  const killer = v.step.daylightKiller
+    ? '<p class="turned">Oggi tocca a te: durante la scena tocca la tua vittima. Morirà al tramonto.</p>'
+    : '';
+  return `<div class="event-box"><p class="kicker">Evento: ${esc(def.name)}</p><p>${esc(def.text + extra)}</p></div>${killer}`;
+}
+
+// Omicidio a vista: la stessa griglia per tutti; solo il tocco del Traditore designato conta
+function sceneHtml(v, ui, nameOf) {
+  const st = v.step;
+  const head = '<p class="kicker">Omicidio a vista</p><h1>La scena</h1>';
+  if (v.me.status !== 'alive') return head + spectator();
+  if (st.myTouch) return `${head}<p class="big">Hai toccato ${esc(nameOf(st.myTouch))}.</p><p class="muted">Guarda lo schermo principale.</p>`;
+  const intro = st.killer
+    ? '<p>Tocca la tua vittima. Nessuno vedrà il tuo dito: tutti toccano un nome.</p>'
+    : '<p>Tocca un nome qualsiasi, così nessuno si tradisce. Il tuo tocco non uccide.</p>';
+  return head + intro + pickGrid(st.options, 'scene', ui, nameOf, () => '', st.disabled)
+    + (ui.pending && ui.pending.kind === 'scene' ? confirmHtml(ui, `Toccare <strong>${esc(nameOf(ui.pending.value))}</strong>?`) : '');
 }
 
 // Esito della Seduzione: solo a chi ha sedotto (il sedotto lo sa già)

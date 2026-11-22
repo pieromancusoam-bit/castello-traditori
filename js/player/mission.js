@@ -13,7 +13,7 @@ export function missionHtml(v, ui, nameOf, confirmHtml) {
   const def = MISSIONS[st.id];
   const m = st.mission;
   const alive = v.me.status === 'alive';
-  const head = `<p class="kicker">Gioco ${st.slot} di ${st.perDay}</p><h1>${esc(def.title)}</h1>`;
+  const head = `<p class="kicker">Gioco ${st.slot} di ${st.perDay}${st.double ? ' · Doppia posta' : ''}</p><h1>${esc(def.title)}</h1>`;
 
   if (st.stage === 'intro') {
     let mine = '';
@@ -176,7 +176,8 @@ function resultHtml(st, def, v, nameOf) {
     const x = d.scores.find((y) => y.id === me);
     if (x) mine = `Le tue risposte giuste: ${x.correct} su ${d.total}`;
   }
-  const won = r.coins > 0 ? `<p class="coins-won">+${coins(r.coins)} <span>monete</span></p>` : '<p class="coins-lost">Nessuna moneta</p>';
+  let won = r.coins > 0 ? `<p class="coins-won">+${coins(r.coins)} <span>monete</span></p>` : '<p class="coins-lost">Nessuna moneta</p>';
+  if (r.coins < 0) won = `<p class="coins-lost">−${coins(-r.coins)} monete</p>`;
   return `${won}<p class="big">${esc(lines[st.id] ? lines[st.id]() : '')}</p>
     ${mine ? `<p>${esc(mine)}</p>` : ''}
     <p class="muted">Sullo schermo principale si vede chi ha fatto cosa.</p>`;

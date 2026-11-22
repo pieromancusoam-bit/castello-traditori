@@ -201,6 +201,19 @@ const HANDLERS = {
     if (P.currentMission(s).input(s, p, payload(action), rng)) P.finishMission(s, rng);
   },
 
+  // Omicidio a vista: tutti toccano un nome (una volta); conta solo il Traditore designato
+  [A.SCENE_TOUCH](s, action, rng) {
+    check(s.phase === PHASE.SCENE, REJECT.WRONG_PHASE);
+    const p = me(s, action);
+    check(isAlive(p), REJECT.NOT_ALIVE);
+    check(s.phaseData.touched[p.id] === undefined, REJECT.ALREADY_DONE);
+    const { targetId } = payload(action);
+    const target = s.players[targetId];
+    check(target && isAlive(target) && targetId !== p.id, REJECT.INVALID_TARGET);
+    P.sceneTouch(s, p, targetId);
+    if (P.allTouched(s)) P.leaveScene(s, rng);
+  },
+
   // Oggetti: ognuno ha il suo momento (vedi js/engine/items.js)
   [A.USE_ITEM](s, action) {
     const p = me(s, action);
@@ -246,6 +259,7 @@ const HANDLERS = {
     // Presentazioni: il tempo è finito, ma si passa al prossimo solo con "Avanti"
     if (s.phase === PHASE.PRESENTATIONS) return clearTimer(s);
     if (s.phase === PHASE.ROUNDTABLE && s.phaseData.stage === 'discussion') return P.openVoting(s);
+    if (s.phase === PHASE.SCENE) return P.leaveScene(s, rng);
     return reject(REJECT.WRONG_PHASE);
   },
 
@@ -276,7 +290,10 @@ const HANDLERS = {
         }
         return s.phaseData.stage === 'voting' ? P.closeVoting(s) : P.leaveResults(s, rng);
       case PHASE.REVEAL:
+      case PHASE.DUSK:
         return P.afterDay(s, rng);
+      case PHASE.SCENE:
+        return P.leaveScene(s, rng);
       case PHASE.NIGHT:
         return P.resolveNight(s, rng);
       case PHASE.FINAL:
