@@ -122,11 +122,12 @@ export class Host {
     return !this.game && this.roster.order.length >= GAME.minPlayers;
   }
 
-  startGame() {
+  // settings: impostazioni partita scelte nella sala d'attesa (mancanti = js/config/)
+  startGame(settings = {}) {
     if (!this.canStart) return false;
     this.roster = { ...this.roster, locked: true };
     const players = this.roster.order.map((id) => ({ id, name: this.roster.players[id].name }));
-    this.game = createGame({ players, seed: Math.floor(cryptoRandom() * 2 ** 32) });
+    this.game = createGame({ players, seed: Math.floor(cryptoRandom() * 2 ** 32), settings });
     this._changed();
     return true;
   }

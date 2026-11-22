@@ -13,6 +13,13 @@
       "runtimeArgs": ["-m", "http.server", "8125", "--bind", "127.0.0.1"],
       "port": 8125,
       "autoPort": false
+    },
+    {
+      "name": "castello-f3",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8127", "--bind", "127.0.0.1"],
+      "port": 8127,
+      "autoPort": false
     }
   ]
 }

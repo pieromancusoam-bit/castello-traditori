@@ -5,6 +5,8 @@ import { qrSvg } from '../ui/qr.js';
 import { errorText } from '../ui/messages.js';
 import { wakeLockStatus } from '../platform/wake-lock.js';
 import { GAME } from '../config/game-config.js';
+import { loadChoices, saveChoices, resetChoices, settingsPanelHtml, readSettingsForm, settingsSummary } from './settings.js';
+import { choicesToSettings } from './settings-map.js';
 
 const STATUS_LABEL = {
   opening: 'Apro il castello…',
@@ -28,6 +30,10 @@ export function mountLobby(root, host, { debug, onClose }) {
         <div class="status-line" aria-live="polite"></div>
         <h2 class="players-title"></h2>
         <ul class="players"></ul>
+        <div class="settings-line">
+          <span class="settings-summary"></span>
+          <button class="btn btn-small btn-secondary" data-act="settings">Impostazioni partita</button>
+        </div>
         <button class="btn btn-primary btn-start" data-act="start"></button>
         <div class="lobby-footer">
           <span class="wake"></span>
@@ -35,11 +41,34 @@ export function mountLobby(root, host, { debug, onClose }) {
           <button class="btn btn-small btn-ghost" data-act="close">Chiudi stanza</button>
         </div>
       </div>
+      <div class="settings-overlay" hidden></div>
       ${debug ? '<pre class="debug-panel"></pre>' : ''}
     </section>`;
 
   const el = (s) => root.querySelector(s);
   let shownUrl = null;
+  let choices = loadChoices();
+
+  // ---- Impostazioni partita: pannello sopra la sala d'attesa ----
+  const overlay = el('.settings-overlay');
+  function openSettings() {
+    overlay.innerHTML = settingsPanelHtml(choices, host.publicPlayers().length);
+    overlay.hidden = false;
+  }
+  on(root, '[data-act="settings"]', 'click', openSettings);
+  on(root, '[data-act="settings-reset"]', 'click', () => {
+    choices = resetChoices();
+    openSettings();
+    update();
+  });
+  root.addEventListener('submit', (e) => {
+    if (!e.target.matches('[data-act="settings-form"]')) return;
+    e.preventDefault();
+    choices = readSettingsForm(e.target);
+    saveChoices(choices);
+    overlay.hidden = true;
+    update();
+  });
 
   on(root, '[data-act="retry"]', 'click', () => host.retryNow());
   on(root, '[data-act="remove"]', 'click', (e, btn) => {
@@ -49,7 +78,7 @@ export function mountLobby(root, host, { debug, onClose }) {
   on(root, '[data-act="start"]', 'click', () => {
     const off = host.publicPlayers().filter((p) => !p.connected).length;
     if (off && !confirm(`${off} giocatori risultano disconnessi. Iniziare lo stesso?`)) return;
-    host.startGame();
+    host.startGame(choicesToSettings(choices));
   });
   on(root, '[data-act="close"]', 'click', () => {
     if (confirm('Chiudere la stanza? I telefoni collegati verranno scollegati.')) onClose();
@@ -84,6 +113,7 @@ export function mountLobby(root, host, { debug, onClose }) {
         ${p.connected ? '' : `<button class="btn btn-small btn-ghost btn-remove" data-act="remove" data-id="${esc(p.id)}">Rimuovi</button>`}
       </li>`).join('');
 
+    el('.settings-summary').textContent = settingsSummary(choices);
     const start = el('[data-act="start"]');
     start.disabled = !host.canStart;
     start.textContent = host.canStart

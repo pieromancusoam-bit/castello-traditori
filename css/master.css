@@ -410,3 +410,17 @@
 /* ---------- Fase 3: prove, impostazioni, oggetti, eventi, missioni nuove ---------- */
 .debug-bar { order: 8; display: flex; gap: 0.6em; padding: 0.4em 0; font-size: 14px; }
 .debug-bar select { font: inherit; padding: 0.3em; background: #111; color: #9f9; border: 1px solid #333; border-radius: 6px; }
+.settings-line { display: flex; align-items: center; gap: 0.8em; margin: 1em 0 0.6em; font-size: 0.8em; color: var(--muted); }
+.settings-summary { flex: 1; }
+.settings-overlay { position: fixed; inset: 0; z-index: 20; background: rgba(8, 5, 6, 0.97); overflow: auto; padding: 2vh 3vw; }
+.settings-panel { max-width: 70em; margin: 0 auto; text-align: left; font-size: 0.8em; }
+.settings-panel h2 { margin: 0 0 0.2em; }
+.settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(22em, 1fr)); gap: 1em; margin: 1em 0; }
+.settings-panel fieldset { border: 1px solid var(--line, #5a4630); border-radius: 10px; padding: 0.6em 1em 0.8em; }
+.settings-panel legend { color: var(--gold, #d4af37); padding: 0 0.4em; }
+.set-row { display: flex; justify-content: space-between; align-items: center; gap: 1em; padding: 0.35em 0; }
+.set-label small { color: var(--muted); font-size: 0.8em; }
+.set-control { display: flex; align-items: center; gap: 0.6em; }
+.settings-panel select { font: inherit; font-size: 0.95em; padding: 0.25em 0.4em; background: #1b1416; color: var(--text); border: 1px solid #5a4630; border-radius: 6px; }
+.set-check input { width: 1.2em; height: 1.2em; vertical-align: middle; }
+.settings-actions { display: flex; justify-content: flex-end; gap: 1em; }
