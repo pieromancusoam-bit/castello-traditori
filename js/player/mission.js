@@ -20,7 +20,12 @@ export function missionHtml(v, ui, nameOf, confirmHtml) {
     if (st.id === 'chest') mine = m.inGroup ? '<p class="big">Sei nel gruppo del forziere.</p>' : '<p class="big">Non sei nel gruppo: osserva bene chi sceglie.</p>';
     if (st.id === 'trial') mine = `<div class="trial-card"><h2>${esc(m.title)}</h2><p>${esc(m.text)}</p></div>`;
     if (st.id === 'messenger') mine = m.isMessenger ? '<p class="big">Sei tu il messaggero!</p>' : `<p class="big">Il messaggero è ${esc(nameOf(m.messengerId))}.</p>`;
-    return `${head}<p>${esc(def.playerRules)}</p>${mine}<p class="stake">In palio ${coins(st.value)} monete</p>${watch}`;
+    if (st.id === 'bridge') mine = m.inPair ? '<p class="big">Sei sul ponte!</p>' : `<p class="big">Sul ponte: ${m.pair.map((id) => esc(nameOf(id))).join(' e ')}.</p>`;
+    if (st.id === 'letter') mine = m.isKeeper ? '<p class="big">La lettera è per te.</p>' : `<p class="big">La lettera è per ${esc(nameOf(m.keeperId))}.</p>`;
+    let stake = `<p class="stake">In palio ${coins(st.value)} monete</p>`;
+    if (st.id === 'auction') stake = '<p class="stake">All\'asta: uno Scudo</p>';
+    if (st.id === 'letter') stake = `<p class="stake">Rinuncia +${coins(st.value)} · Apre −${coins(m.cost)}</p>`;
+    return `${head}<p>${esc(def.playerRules)}</p>${mine}${stake}${watch}`;
   }
   if (st.stage === 'result') return head + resultHtml(st, def, v, nameOf);
   if (st.stage === 'board') return `<h1>Tabellone</h1><p class="big">Montepremi: ${coins(v.pot)} monete</p>${watch}`;
@@ -35,8 +40,61 @@ export function missionHtml(v, ui, nameOf, confirmHtml) {
     case 'memory': return head + memoryHtml(m, ui);
     case 'chronology': return head + chronologyHtml(m, ui, confirmHtml);
     case 'messenger': return head + messengerHtml(m, ui, nameOf, confirmHtml);
+    case 'crypt': return head + cryptHtml(m, ui);
+    case 'bridge': return head + bridgeHtml(m, ui, nameOf, confirmHtml);
+    case 'auction': return head + auctionHtml(m, ui, v);
+    case 'letter': return head + letterHtml(m, ui, nameOf, confirmHtml);
     default: return head;
   }
+}
+
+// ---- Fase 3 ----
+
+function cryptHtml(m, ui) {
+  if (!m.plays) return '<p class="big">Il gruppo sta ricostruendo il codice.</p>';
+  const card = `<div class="trial-card ${m.fake ? 'is-fake' : ''}"><p class="kicker">Il tuo frammento${m.fake ? ' · FALSO' : ''}</p><h2>${esc(m.fragment)}</h2></div>
+    ${m.fake ? '<p class="turned small">Sei un Traditore: questo frammento è falso. Leggilo o cambialo, come ti conviene.</p>' : '<p class="muted small">Leggilo agli altri. Attenzione: qualcuno ha un frammento falso.</p>'}`;
+  if (!m.canEnter) return `${card}<p class="big">Hai scritto: ${esc(m.myCode)}.</p><p class="muted">In attesa degli altri…</p>`;
+  return `${card}<form class="estimate-form" data-act="crypt" autocomplete="off">
+      <input type="text" inputmode="numeric" pattern="[0-9]{${m.digits}}" maxlength="${m.digits}" required placeholder="Codice di ${m.digits} cifre">
+      <button class="btn btn-primary" type="submit" ${ui.busy ? 'disabled' : ''}>Invia</button>
+    </form>`;
+}
+
+function bridgeHtml(m, ui, nameOf, confirmHtml) {
+  if (!m.inPair) return `<p class="big">${m.pair.map((id) => esc(nameOf(id))).join(' e ')} sono sul ponte.</p><p class="muted">Osservateli bene.</p>`;
+  if (!m.canChoose) return `<p class="big">Hai scelto: ${m.myChoice === 'trust' ? 'Fidarsi' : 'Tradire'}.</p><p class="muted">Alla fine tutti vedranno le due scelte.</p>`;
+  const label = ui.pending && (ui.pending.value === 'trust' ? '<strong>Fidarti</strong>?' : '<strong>Tradire</strong>? Se l\'altro si fida, prendi un oggetto.');
+  return `<p>Se vi fidate entrambi, monete per tutti. Se tradisci solo tu, prendi un oggetto. Alla fine le scelte si vedono.</p>
+    <div class="final-choices">
+      <button class="btn btn-secondary btn-block" data-pick="trust" data-kind="bridge">Fidarsi</button>
+      <button class="btn btn-primary btn-block" data-pick="betray" data-kind="bridge">Tradire</button>
+    </div>
+    ${ui.pending ? confirmHtml(ui, label) : ''}`;
+}
+
+function auctionHtml(m, ui, v) {
+  if (!m.plays) return '<p class="big">Si fanno le offerte per lo Scudo.</p>';
+  if (!m.canBid) return `<p class="big">La tua offerta: ${coins(m.myBid)} monete.</p><p class="muted">Nessuno saprà chi ha vinto.</p>`;
+  return `<p>Quante monete del montepremi offri per lo Scudo? (da 0 a ${coins(m.maxBid)})</p>
+    <form class="estimate-form" data-act="auction" autocomplete="off">
+      <input type="number" inputmode="numeric" min="0" max="${m.maxBid}" step="1" required placeholder="0 = nessuna offerta">
+      <button class="btn btn-primary" type="submit" ${ui.busy ? 'disabled' : ''}>Offri</button>
+    </form>
+    <p class="muted small">Chi vince paga con le monete di tutti: il montepremi è ${coins(v.pot)}.</p>`;
+}
+
+function letterHtml(m, ui, nameOf, confirmHtml) {
+  if (!m.isKeeper) return `<p class="big">${esc(nameOf(m.keeperId))} decide se aprire la lettera.</p>`;
+  if (!m.canChoose) return `<p class="big">${m.myChoice ? 'Hai aperto la lettera.' : 'Hai rinunciato alla lettera.'}</p>`;
+  const label = ui.pending && (ui.pending.value === 'open' ? `<strong>Aprire</strong> la lettera? Il gruppo perde ${coins(m.cost)} monete.` : '<strong>Rinunciare</strong> alla lettera?');
+  return `<div class="letter-seal" aria-hidden="true"></div>
+    <p>Se la apri ricevi un oggetto segreto, ma il gruppo perde ${coins(m.cost)} monete. Tutti sapranno cosa hai scelto.</p>
+    <div class="final-choices">
+      <button class="btn btn-primary btn-block" data-pick="open" data-kind="letter">Apro la lettera</button>
+      <button class="btn btn-secondary btn-block" data-pick="keep" data-kind="letter">Rinuncio</button>
+    </div>
+    ${ui.pending ? confirmHtml(ui, label) : ''}`;
 }
 
 function chestHtml(m, ui, confirmHtml) {
@@ -166,6 +224,10 @@ function resultHtml(st, def, v, nameOf) {
     memory: () => `${d.correct} simboli ricordati su ${d.total}.`,
     chronology: () => `${d.correct} eventi al posto giusto su ${d.total}.`,
     messenger: () => `${d.correct} su ${d.total} hanno riconosciuto «${d.options[d.correctIndex]}».`,
+    crypt: () => `Il codice era ${d.solution}: ${d.correct} cifre giuste su ${d.total}.`,
+    bridge: () => (d.betrayerId ? `${nameOf(d.betrayerId)} ha tradito.` : d.pair.every((x) => x.trust) ? 'Si sono fidati entrambi.' : 'Hanno tradito entrambi.'),
+    auction: () => (d.sold ? `Scudo venduto per ${coins(d.price)} monete.` : 'Nessuna offerta.'),
+    letter: () => (d.opened ? `${nameOf(d.keeperId)} ha aperto la lettera.` : `${nameOf(d.keeperId)} ha rinunciato alla lettera.`),
   };
   let mine = '';
   if (st.id === 'torches') {

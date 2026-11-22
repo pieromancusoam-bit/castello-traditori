@@ -9,8 +9,14 @@ import estimate from './estimate.js';
 import memory from './memory.js';
 import chronology from './chronology.js';
 import messenger from './messenger.js';
+import crypt from './crypt.js';
+import bridge from './bridge.js';
+import auction from './auction.js';
+import letter from './letter.js';
 
-export const MISSION_MODULES = Object.freeze({ chest, riddle, torches, trial, estimate, memory, chronology, messenger });
+export const MISSION_MODULES = Object.freeze({
+  chest, riddle, torches, trial, estimate, memory, chronology, messenger, crypt, bridge, auction, letter,
+});
 export const MISSION_IDS = Object.freeze(Object.keys(MISSION_MODULES));
 
 // Valore massimo della missione del giorno: cresce con i giorni

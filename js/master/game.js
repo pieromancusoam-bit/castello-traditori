@@ -9,15 +9,18 @@ import { missionStageHtml, missionAdvanceLabel, boardHtml, prizeHtml, presentati
 import { countdownHtml, runCountdown } from '../ui/countdown.js';
 import { coins } from '../ui/format.js';
 import { MISSIONS } from '../config/missions.js';
-import { EVENTS } from '../config/game-config.js';
+import { EVENTS, ITEMS } from '../config/game-config.js';
 import { MISSION_IDS } from '../engine/missions/index.js';
 
 // Solo prove (?debug=1): scelta del prossimo gioco e del prossimo evento
-function debugBarHtml() {
+function debugBarHtml(host) {
   const opts = (list, label) => `<option value="">${label}</option>${list.map(([id, name]) => `<option value="${id}">${esc(name)}</option>`).join('')}`;
+  const players = host.game ? host.game.order.map((id) => [id, host.game.players[id].name]) : [];
   return `<div class="debug-bar">
     <select data-debug="mission">${opts(MISSION_IDS.map((id) => [id, MISSIONS[id].title]), 'Prossimo gioco: a caso')}</select>
     <select data-debug="event">${opts(Object.entries(EVENTS).map(([id, e]) => [id, e.name]), 'Prossimo evento: a caso')}</select>
+    <select data-debug-give="item">${opts(Object.entries(ITEMS).map(([id, e]) => [id, e.name]), 'Dai un oggetto…')}</select>
+    <select data-debug-give="player">${opts(players, '…a chi?')}</select>
   </div>`;
 }
 
@@ -39,7 +42,7 @@ export function mountGame(root, host, { debug, onClose }) {
         <button class="btn btn-small btn-ghost" data-act="lobby" hidden>Nuova partita, stessi giocatori</button>
         <button class="btn btn-primary btn-advance" data-act="advance"></button>
       </footer>
-      ${debug ? `${debugBarHtml()}<pre class="debug-panel"></pre>` : ''}
+      ${debug ? `${debugBarHtml(host)}<pre class="debug-panel"></pre>` : ''}
     </section>`;
 
   const el = (s) => root.querySelector(s);
@@ -69,8 +72,17 @@ export function mountGame(root, host, { debug, onClose }) {
   on(root, '[data-act="lobby"]', 'click', () => host.backToLobby());
   root.addEventListener('change', (e) => {
     const sel = e.target.closest('[data-debug]');
-    if (!sel || !sel.value) return;
-    host.dispatch({ type: A.DEBUG_NEXT, payload: { [sel.dataset.debug]: sel.value } });
+    if (sel && sel.value) host.dispatch({ type: A.DEBUG_NEXT, payload: { [sel.dataset.debug]: sel.value } });
+    // Dai un oggetto: scelti oggetto e giocatore
+    if (e.target.closest('[data-debug-give]')) {
+      const item = root.querySelector('[data-debug-give="item"]');
+      const player = root.querySelector('[data-debug-give="player"]');
+      if (item.value && player.value) {
+        host.dispatch({ type: A.DEBUG_NEXT, payload: { give: { playerId: player.value, item: item.value } } });
+        item.value = '';
+        player.value = '';
+      }
+    }
   });
   on(root, '[data-act="close"]', 'click', () => {
     if (confirm('Chiudere la stanza? La partita salvata verrà cancellata.')) onClose();

@@ -28,6 +28,10 @@ export function missionAdvanceLabel(st) {
         case 'memory': return m.sub === 'show' ? 'Fine della catena' : 'Chiudi le scelte';
         case 'chronology': return 'Chiudi la fila';
         case 'messenger': return 'Chiudi le risposte';
+        case 'crypt': return 'Chiudi il codice';
+        case 'bridge': return 'Chiudi le scelte';
+        case 'auction': return "Chiudi l'asta";
+        case 'letter': return 'Chiudi la scelta';
         default: return 'Avanti';
       }
     case 'result': return st.slot < st.perDay ? 'Prossimo gioco' : 'Tabellone';
@@ -55,8 +59,13 @@ function introHtml(st, def, nameOf) {
   if (st.id === 'trial') extra = `<div class="trial-card"><h2>${esc(m.title)}</h2><p>${esc(m.text)}</p></div>`;
   if (st.id === 'estimate') extra = `<p class="lead">Contate le ${esc(m.object)}!</p>`;
   if (st.id === 'messenger') extra = `<p class="lead">Il messaggero è ${names([m.messengerId], nameOf)}.</p>`;
-  return `<p class="rules">${esc(def.rules)}</p>${extra}
-    <p class="stake">In palio <strong>${coins(st.value)}</strong> monete</p>`;
+  if (st.id === 'crypt') extra = `<p class="muted">Un codice di ${m.digits} cifre · monete per ogni cifra giusta</p>`;
+  if (st.id === 'bridge') extra = `<p class="lead">Sul ponte: ${names(m.pair, nameOf)}.</p>`;
+  if (st.id === 'letter') extra = `<p class="lead">La lettera è per ${names([m.keeperId], nameOf)}.</p>`;
+  let stake = `<p class="stake">In palio <strong>${coins(st.value)}</strong> monete</p>`;
+  if (st.id === 'auction') stake = `<p class="stake">All'asta: <strong>uno Scudo</strong>. Offerte fino a ${coins(m.maxBid)} monete del montepremi.</p>`;
+  if (st.id === 'letter') stake = `<p class="stake">Rinuncia: <strong>+${coins(st.value)}</strong> · Apre: <strong>−${coins(m.cost)}</strong> monete</p>`;
+  return `<p class="rules">${esc(def.rules)}</p>${extra}${stake}`;
 }
 
 function playHtml(st, nameOf) {
@@ -115,6 +124,19 @@ function playHtml(st, nameOf) {
       return `<p class="lead">${names([m.messengerId], nameOf)} descrive la scena, senza le parole proibite.</p>
         <ol class="options">${m.options.map((o, i) => `<li><span class="opt-letter">${i + 1}</span><span>${esc(o)}</span></li>`).join('')}</ol>
         ${progress(m.chosenCount, m.playerCount, 'hanno scelto')}`;
+    case 'crypt':
+      return `<div class="crypt-door" aria-hidden="true">${'<span>?</span>'.repeat(m.digits)}</div>
+        <p class="lead">Leggete ad alta voce i vostri frammenti e ricostruite il codice. Qualcuno mente.</p>
+        ${progress(m.enteredCount, m.playerCount, 'hanno scritto il codice')}`;
+    case 'bridge':
+      return `<p class="lead">${names(m.pair, nameOf)} sono sul ponte: Fidarsi o Tradire?</p>
+        ${progress(m.chosenCount, m.pair.length, 'hanno scelto')}`;
+    case 'auction':
+      return `<p class="lead">Offerte segrete per lo Scudo: il montepremi pagherà il prezzo.</p>
+        ${progress(m.bidCount, m.playerCount, 'hanno offerto')}`;
+    case 'letter':
+      return `<div class="letter-seal" aria-hidden="true"></div>
+        <p class="lead">${names([m.keeperId], nameOf)} tiene in mano la lettera sigillata. Aprirla o rinunciare?</p>`;
     default:
       return '';
   }
@@ -160,6 +182,10 @@ function traceHtml(st, nameOf) {
     case 'messenger':
       return `<p class="trace-line">Messaggero: <strong>${nm(d.messengerId)}</strong> · la scena era «${esc(d.options[d.correctIndex])}»</p>
         <ul class="trace-list">${d.guessList.map((x) => `<li class="${x.choice === d.correctIndex ? '' : 'is-flag'}"><span>${nm(x.id)}</span><small>${x.choice === null ? 'nessuna scelta' : esc(d.options[x.choice])}</small></li>`).join('')}</ul>`;
+    case 'crypt':
+      return `<ul class="trace-list">${d.typed.map((x) => `<li class="${x.value === d.solution ? '' : 'is-flag'}"><span>${nm(x.id)}</span><strong>${x.value === null ? '—' : esc(x.value)}</strong></li>`).join('')}</ul>`;
+    case 'bridge':
+      return `<ul class="trace-list">${d.pair.map((x) => `<li class="${x.trust ? '' : 'is-flag'}"><span>${nm(x.id)}</span><strong>${x.trust ? 'Fidarsi' : 'Tradire'}</strong></li>`).join('')}</ul>`;
     default:
       return '';
   }
@@ -177,6 +203,10 @@ function resultHtml(st, nameOf) {
     memory: () => `${d.correct} simboli ricordati su ${d.total}.`,
     chronology: () => `${d.correct} eventi al posto giusto su ${d.total}.`,
     messenger: () => `${d.correct} su ${d.total} hanno riconosciuto la scena.`,
+    crypt: () => `Il codice era ${d.solution}. ${d.groupAnswer === null ? 'Il gruppo non si è messo d\'accordo.' : `Il gruppo ha scritto ${d.groupAnswer}: ${d.correct} ${d.correct === 1 ? 'cifra giusta' : 'cifre giuste'} su ${d.total}.`}`,
+    bridge: () => (d.betrayerId ? `${nameOf(d.betrayerId)} ha tradito e prende un oggetto, in segreto.` : d.pair.every((x) => x.trust) ? 'Si sono fidati entrambi.' : 'Hanno tradito entrambi: nessuno prende niente.'),
+    auction: () => (d.sold ? `Lo Scudo è stato venduto per ${coins(d.price)} monete. Chi l'ha comprato? Il castello non lo dirà.` : 'Nessuna offerta: lo Scudo resta al castello.'),
+    letter: () => (d.opened ? `${nameOf(d.keeperId)} ha aperto la lettera e ha preso un oggetto.` : `${nameOf(d.keeperId)} ha rinunciato alla lettera.`),
   };
   let verdict = r.coins > 0
     ? `<p class="coins-won">+${coins(r.coins)} <span>monete</span></p>`

@@ -47,7 +47,9 @@ function permuteHiddenRoles(s, hidden, rng) {
 
 const SEEDS = 150;
 // Campi interni delle missioni con le scelte individuali: non devono mai uscire dal master
-const SECRET_KEYS = ['"choices"', '"answers"', '"times"', '"reported"', '"delays"', '"data"', '"guesses"', '"picks"', '"positions"', '"events"', '"layoutSeed"'];
+const SECRET_KEYS = ['"choices"', '"answers"', '"times"', '"reported"', '"delays"', '"data"', '"guesses"', '"picks"', '"positions"', '"events"', '"layoutSeed"',
+  // Fase 3: Ponte, Asta, Codice della Cripta; chi uccide alla luce del giorno; chi ha ricevuto un oggetto
+  '"moves"', '"bids"', '"secretCode"', '"fragments"', '"slotOf"', '"entered"', '"killerId"', '"gift"'];
 
 test('OBBLIGATORIO: nessuna vista di un Leale contiene il ruolo di un altro giocatore', () => {
   let checked = 0;

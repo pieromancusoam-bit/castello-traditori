@@ -436,3 +436,6 @@
 .event-line { color: var(--gold); font-size: 1.2em; margin: 0.3em 0; }
 .scene-text { font-family: var(--font-serif); font-size: 2.4em; max-width: 22em; margin: 0.4em auto; }
 .tally.is-fog { font-size: 1.4em; }
+.crypt-door { display: flex; gap: 0.4em; justify-content: center; margin: 0.5em 0; }
+.crypt-door span { width: 1.6em; height: 2.2em; display: grid; place-items: center; font-family: var(--font-title); font-size: 2.6em; color: var(--gold); border: 3px solid var(--gold-dim); border-radius: 10px; background: var(--stone-800); }
+.letter-seal { width: 5em; height: 5em; margin: 0.4em auto; border-radius: 50%; background: radial-gradient(circle at 35% 35%, var(--velvet-hi), var(--velvet) 60%, #4a0d18); box-shadow: 0 0 0 6px rgba(140, 28, 44, 0.35); }

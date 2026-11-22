@@ -187,3 +187,5 @@
 .offer.is-ultimatum { border-color: var(--bad); }
 .event-box { border: 1px solid var(--gold-dim); border-radius: var(--radius); padding: 0.5rem 0.8rem; background: rgba(140, 28, 44, 0.2); }
 .event-box p { margin: 0.2rem 0; }
+.trial-card.is-fake { border-color: var(--bad); }
+.letter-seal { width: 3.5em; height: 3.5em; margin: 0.3em auto; border-radius: 50%; background: radial-gradient(circle at 35% 35%, var(--velvet-hi), var(--velvet) 60%, #4a0d18); }

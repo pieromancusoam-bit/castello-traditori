@@ -174,6 +174,8 @@ export function createGameScreen(root, client) {
     if (p.kind === 'trial') send(A.MISSION_INPUT, { ok: p.value === 'yes' });
     if (p.kind === 'chrono') send(A.MISSION_INPUT, { position: Number(p.value) });
     if (p.kind === 'messenger') send(A.MISSION_INPUT, { choice: Number(p.value) });
+    if (p.kind === 'bridge') send(A.MISSION_INPUT, { choice: p.value });
+    if (p.kind === 'letter') send(A.MISSION_INPUT, { open: p.value === 'open' });
     if (p.kind === 'offer') send(A.SEDUCTION_ANSWER, { accept: p.value === 'yes' });
     if (p.kind === 'vision') send(A.NIGHT_VISION, { targetId: p.value }).then(() => { ui.vision = false; render(); });
     if (p.kind === 'swap') send(A.NIGHT_SWAP, { targetId: p.value === 'keep' ? null : p.value });
@@ -204,6 +206,19 @@ export function createGameScreen(root, client) {
     e.preventDefault();
     const value = Number(e.target.querySelector('input').value);
     if (Number.isInteger(value) && value > 0) send(A.MISSION_INPUT, { value });
+  });
+  // Codice della Cripta e offerta dell'Asta
+  root.addEventListener('submit', (e) => {
+    if (e.target.matches('[data-act="crypt"]')) {
+      e.preventDefault();
+      const code = e.target.querySelector('input').value.trim();
+      if (/^\d+$/.test(code)) send(A.MISSION_INPUT, { code });
+    }
+    if (e.target.matches('[data-act="auction"]')) {
+      e.preventDefault();
+      const bid = Number(e.target.querySelector('input').value);
+      if (Number.isInteger(bid) && bid >= 0) send(A.MISSION_INPUT, { bid });
+    }
   });
   root.addEventListener('submit', async (e) => {
     if (!e.target.matches('[data-act="chat"]')) return;

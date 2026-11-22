@@ -179,6 +179,15 @@ function missionInputs(s, r, live) {
       return d.players.filter((id) => d.positions[id] === undefined).map((id) => input(id, { position: 1 + r.int(d.players.length) }));
     case 'messenger':
       return d.guessers.filter((id) => d.picks[id] === undefined).map((id) => input(id, { choice: r.int(d.options.length) }));
+    case 'crypt':
+      return d.players.filter((id) => d.entered[id] === undefined)
+        .map((id) => input(id, { code: r.next() < 0.5 ? d.secretCode : String(1000 + r.int(9000)) }));
+    case 'bridge':
+      return d.pair.filter((id) => d.moves[id] === undefined).map((id) => input(id, { choice: r.next() < 0.6 ? 'trust' : 'betray' }));
+    case 'auction':
+      return d.players.filter((id) => d.bids[id] === undefined).map((id) => input(id, { bid: r.int(d.maxBid + 1) }));
+    case 'letter':
+      return d.opened === null ? [input(d.keeperId, { open: r.next() < 0.5 })] : [];
     default:
       return [];
   }

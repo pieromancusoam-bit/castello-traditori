@@ -71,6 +71,33 @@ export const MISSIONS = Object.freeze({
     options: 6,
     describeMs: 90000,
   }),
+  // ---- Fase 3 ----
+  crypt: Object.freeze({
+    title: 'Il Codice della Cripta',
+    rules: 'Ognuno riceve sul telefono un frammento di indizio su un codice di 4 cifre. Leggeteli ad alta voce e ricostruite il codice: ognuno lo scrive sul telefono, vale quello della maggioranza. Attenzione: i frammenti dei Traditori sono falsi.',
+    playerRules: 'Leggi il tuo frammento agli altri, poi scrivi il codice.',
+    digits: 4,
+    enterMs: 180000,    // tempo per discutere e scrivere il codice
+  }),
+  bridge: Object.freeze({
+    title: 'Il Ponte',
+    rules: 'Due giocatori estratti attraversano il ponte. Ognuno sceglie in segreto: Fidarsi o Tradire. Se si fidano entrambi, monete al montepremi. Se uno solo tradisce, prende lui un oggetto. Se tradiscono tutti e due, nessuno prende niente. Alla fine si vedono le scelte.',
+    playerRules: 'Fidarsi o Tradire?',
+    chooseMs: 45000,    // chi non sceglie in tempo si fida
+  }),
+  auction: Object.freeze({
+    title: "L'Asta",
+    rules: 'Il castello mette all\'asta uno Scudo. Ognuno offre in segreto monete del montepremi: vince l\'offerta più alta e il montepremi scende di quanto ha offerto. Chi vince resta segreto.',
+    playerRules: 'Quanto offri per lo Scudo? Le monete escono dal montepremi di tutti.',
+    bidMs: 45000,
+  }),
+  letter: Object.freeze({
+    title: 'La Lettera Sigillata',
+    rules: 'Il castello consegna una lettera sigillata a un giocatore estratto. Se la apre riceve un oggetto, ma il gruppo perde metà del valore del gioco. Se rinuncia, il gruppo guadagna il valore intero. La scelta si vedrà, l\'oggetto no.',
+    playerRules: 'Aprire la lettera o rinunciare?',
+    chooseMs: 45000,    // chi non sceglie in tempo rinuncia
+    openCost: 0.5,      // quota del valore del gioco tolta al montepremi se si apre
+  }),
 });
 
 // Simboli della Catena della Memoria (disegnati in js/ui/symbols.js)

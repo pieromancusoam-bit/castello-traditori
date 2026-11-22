@@ -264,11 +264,13 @@ const HANDLERS = {
   },
 
   // Solo per le prove (?debug=1): sceglie il prossimo gioco o il prossimo evento
+  // e dà un oggetto a un giocatore ({ give: { playerId, item } })
   [A.DEBUG_NEXT](s, action) {
-    const { mission, event } = payload(action);
+    const { mission, event, give } = payload(action);
     s.debugNext = { ...(s.debugNext || {}) };
     if (typeof mission === 'string') s.debugNext.mission = mission;
     if (typeof event === 'string') s.debugNext.event = event;
+    if (give && s.players[give.playerId] && Object.values(ITEM).includes(give.item)) s.players[give.playerId].items.push(give.item);
   },
 
   // "Avanti" del master: chiude ciò che è aperto (chi manca è astenuto) o passa oltre
