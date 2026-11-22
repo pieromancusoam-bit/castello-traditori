@@ -4,7 +4,9 @@ Aggiornato da Claude Code alla fine di ogni sessione di lavoro.
 
 ## Fase corrente
 
-**Fase 2 — MVP giocabile**: codice completo e provato in locale il 2026-11-21; manca la prima serata di gioco vera con il gruppo.
+**Fase 2b — Correzioni dopo la prima serata**: codice completo e provato in locale il 2026-11-22; manca la seconda serata con il gruppo.
+
+Fase 2 — MVP giocabile: **prima serata giocata** (2026-11-21); le osservazioni del gruppo sono diventate la Fase 2b.
 
 Fase 1 — Scheletro del gioco: **completata il 2026-11-21** (prova con i telefoni veri superata).
 
@@ -67,6 +69,41 @@ Fase 0 — Prototipo di connessione: **completata il 2026-11-21** (prova con 3 t
   e passaggio automatico alla domanda dopo, "Riprendi" del master e ricarica dei telefoni a metà
   partita, Tavola Rotonda → Cerimonia → montepremi al vincitore. Nessun errore in console.
 
+- Fase 2b, codice (dalle osservazioni della prima serata):
+  - **presentazioni** del giorno 1: uno alla volta, in ordine casuale, ognuno con un tema diverso
+    (32 temi in `js/config/presentations.js`), 45 secondi a testa, "Avanti" per il prossimo;
+  - **3 giochi al giorno** (`GAME.missionsPerDay`); tabellone solo dopo il terzo;
+  - **tracce del sabotaggio** a gioco chiuso (chi ha fatto cosa, mai i ruoli) in tutti i giochi
+    tranne il Forziere;
+  - **4 missioni nuove**: La Stima (disegno in SVG con candele o monete), La Catena della Memoria
+    (6 simboli disegnati in SVG), La Cronologia (42 eventi storici), Il Messaggero (30 scene);
+    **15 prove fisiche in più** (25 in tutto);
+  - **discussione minima** alla Tavola Rotonda: 5 minuti fino a 9 giocatori in gioco, 10 da 10 in su;
+    il voto si apre a tempo scaduto (salto solo con `?debug=1`);
+  - **Seduzione** la prima notte nelle partite con un solo Traditore;
+  - **Cerimonia con 3 giocatori** fino a 7 giocatori iniziali, con 4 oltre;
+  - **ultime maschere**: prima i Leali, i Traditori per ultimi.
+- Test: 114 (`npm test`). Le partite casuali del test obbligatorio giocano con tutte le regole
+  nuove accese (presentazioni, discussione, Seduzione, 8 missioni).
+- Prova in locale (master con `?debug=1` + 5 schede): presentazioni su TV e telefoni, Messaggero,
+  Enigma con i nomi sotto le risposte, Forziere, discussione con clessidra, voto, Seduzione accettata
+  (offerta anonima, complice svelato, esito solo al Traditore), Stima, Cronologia, Prova Fisica con
+  "fallita" e astenuti, Cerimonia con 3 giocatori, Traditori svelati per ultimi, montepremi diviso
+  tra due vincitori. La Catena della Memoria provata disegnando le sue schermate nella pagina (non è
+  uscita in partita). Nessun errore in console.
+
+## Fase 2b — attività
+
+- [x] Presentazioni del giorno 1 con temi casuali
+- [x] 3 giochi al giorno
+- [x] Tracce del sabotaggio nei giochi
+- [x] La Stima, La Catena della Memoria, La Cronologia, Il Messaggero; più prove fisiche
+- [x] Discussione minima alla Tavola Rotonda
+- [x] Seduzione la prima notte con un solo Traditore
+- [x] Cerimonia con 3 giocatori fino a 7; Traditori svelati per ultimi
+- [x] Prova in locale
+- [ ] Push su GitHub Pages e seconda serata con il gruppo
+
 ## Fase 2 — attività
 
 - [x] Montepremi e valori in configurazione
@@ -77,7 +114,7 @@ Fase 0 — Prototipo di connessione: **completata il 2026-11-21** (prova con 3 t
 - [x] Salvataggio automatico anche delle missioni
 - [x] Prima grafica a tema (palette scura, font gotico per i titoli)
 - [x] Prova in locale con 5 schede
-- [ ] Push su GitHub Pages e prima serata di gioco vera con il gruppo
+- [x] Push su GitHub Pages e prima serata di gioco vera con il gruppo (2026-11-21)
 
 ## Fase 1 — attività (completate)
 
@@ -139,6 +176,16 @@ Fase 0 — Prototipo di connessione: **completata il 2026-11-21** (prova con 3 t
 | 2026-11-21 | Font dei titoli: Grenze Gotisch (SIL OFL), scaricato in `assets/fonts/` | Gotico ma leggibile anche sulla TV |
 | 2026-11-21 | Ogni messaggio di rete resta sotto 15.000 byte (`NET.messageMaxBytes`): ritratto ridotto fino a stare in 12.000 caratteri, chat limitata a 30 messaggi e 4.000 byte, test sul caso peggiore (16 giocatori, nomi e chat pieni: circa 9.600 byte) | Correzione del bug iOS: PeerJS (JSON) chiude il canale sopra 16.300 byte |
 
+| 2026-11-22 | Presentazioni del giorno 1 con un tema diverso per ognuno; 3 giochi al giorno; discussione minima 5/10 minuti; Cerimonia con 3 fino a 7 giocatori; Traditori svelati per ultimi | Osservazioni di Piero dopo la prima serata |
+| 2026-11-22 | Seduzione: la prima notte, se la partita è iniziata con un solo Traditore, il Traditore sceglie Assassinare o Sedurre. Il sedotto può rifiutare e resta vivo; se accetta diventa Traditore e uccide dalla notte dopo. Offerta anonima; nessun omicidio quella notte | Decisione di Piero; "offerta anonima" proposta di Claude approvata |
+| 2026-11-22 | Indizi sulla fazione come tracce del sabotaggio: a gioco chiuso si vede chi ha fatto cosa (risposte, tempi, voti, stime); il Forziere resta anonimo | Decisione di Piero ("tracce del sabotaggio"); Forziere anonimo proposta di Claude approvata |
+| 2026-11-22 | Con esattamente 10 giocatori in gioco la discussione dura 10 minuti | Proposta di Claude approvata |
+| 2026-11-22 | "Qualche prova in più": 15 prove fisiche nuove nel catalogo (25 in tutto), oltre alle 4 missioni anticipate | Interpretazione di Claude della richiesta di Piero |
+| 2026-11-22 | Seduzione: un'offerta senza risposta quando il master chiude la notte vale come rifiutata; il Traditore non può cambiare il sedotto né tornare ad "Assassinare" dopo aver inviato l'offerta; il sedotto quella notte non indica sospetti obbligatori | Decisioni minori di Claude |
+| 2026-11-22 | Presentazioni: allo scadere dei 45 secondi non si passa da soli al prossimo, serve "Avanti" | Decisione minore di Claude: nessuno viene interrotto a metà frase |
+| 2026-11-22 | La Stima vince se la media cade entro il 10%; Catena della Memoria e Cronologia danno monete in proporzione alle parti giuste; il Messaggero vince con la maggioranza dei presenti che indovina | Decisioni minori di Claude (valori in `js/config/missions.js`) |
+| 2026-11-22 | Partite salvate con la versione precedente: riprendono con 1 gioco al giorno, senza presentazioni, discussione e Seduzione | Decisione minore di Claude |
+
 ## Decisioni aperte
 
 - Nome definitivo del gioco (provvisorio: Il Castello dei Traditori)
@@ -146,6 +193,14 @@ Fase 0 — Prototipo di connessione: **completata il 2026-11-21** (prova con 3 t
 - Montepremi "per la gloria" o con premio reale
 
 ## Problemi noti
+
+- Fase 2b: la durata di una giornata con 3 giochi e 5–10 minuti di discussione va misurata nella
+  seconda serata; se è troppo lunga si scende a 2 giochi (`GAME.missionsPerDay`).
+- Fase 2b: la Catena della Memoria non è ancora uscita in una partita di prova (provate solo le schermate).
+- Fase 2b: con 16 giocatori la Catena della Memoria dura circa 28 secondi di simboli: da valutare.
+- Fase 2b: le tracce rendono il sabotaggio molto visibile; se i Traditori vengono scoperti troppo
+  presto si possono ridurre (per esempio togliere i nomi dall'Enigma).
+- Fase 2b: il ritardo della discussione dopo "Riprendi" riparte da capo (come gli altri timer).
 
 - Fase 2: dopo un "Riprendi" a metà missione il timer in corso riparte da capo.
 - Fase 2: le domande dell'Enigma sono nel codice pubblico: chi le cerca nel sito trova le risposte.
@@ -180,7 +235,39 @@ Fase 0 — Prototipo di connessione: **completata il 2026-11-21** (prova con 3 t
 - Piano B: da GitHub Pages (https) il server di aggancio personale deve essere raggiungibile in
   https/wss. Un PeerServer su un PC di casa in semplice http non funziona senza un certificato.
 
-## Checklist per la prima serata di prova (Fase 2)
+## Checklist per la seconda serata (Fase 2b)
+
+Prima della serata
+1. Push su GitHub Pages; sul master Ctrl+F5 per caricare la versione nuova (titoli in gotico,
+   "Giorno 1 · gioco 1 di 3" sulle missioni).
+2. Stessa rete Wi-Fi, risparmio energetico spento, qualche oggetto per le prove fisiche
+   (bicchieri di plastica, monete, un mazzo di carte, una cintura).
+
+Giorno 1
+3. Dopo la prima Colazione partono le **presentazioni**: sulla TV ritratto, nome e tema;
+   sul telefono di chi tocca "Tocca a te!", su quello del successivo "Dopo tocca a te".
+   Il master preme "Prossimo" quando la persona ha finito.
+4. Poi **3 giochi**: controlla "gioco 1 di 3", "Prossimo gioco" e il tabellone solo dopo il terzo.
+5. A gioco chiuso guardate le **tracce** sulla TV (chi ha risposto cosa, classifica delle Torce,
+   chi ha detto "fallita", stime con i nomi…) e usatele alla Tavola Rotonda.
+6. **Tavola Rotonda**: clessidra grande da 5 minuti (10 con 10+ giocatori); i telefoni non votano
+   finché non è vuota; poi si vota come prima.
+
+Prima notte (partita con 5–6 giocatori, un solo Traditore)
+7. Il Traditore vede "Assassinare / Sedurre". Provate almeno una volta "Sedurre": il sedotto riceve
+   l'offerta (senza sapere da chi), accetta o rifiuta. Alla Colazione nessun morto; il Traditore
+   vede sul telefono se il sedotto ha accettato. Se ha accettato, la notte dopo uccidono in due.
+
+Finale
+8. Con 5–7 giocatori la **Cerimonia** parte quando restano 3; oltre i 7 quando restano 4.
+9. Nelle **ultime maschere** i Leali si svelano prima, i Traditori per ultimi.
+
+Dopo la serata
+10. Annotate: durata di ogni giornata, se 3 giochi sono troppi, quali giochi sono piaciuti, se le
+    tracce svelano troppo o troppo poco, come è andata la Seduzione, se i temi delle presentazioni
+    funzionano, quanti giorni dura una partita da 5–6 giocatori.
+
+## Checklist per la prima serata di prova (Fase 2) — svolta
 
 Prima della serata
 1. Push su GitHub Pages; apri il sito sul master (TV o PC collegato alla TV) e controlla che i

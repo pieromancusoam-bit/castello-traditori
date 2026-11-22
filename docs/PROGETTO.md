@@ -87,28 +87,30 @@ Ci sono due fazioni: **Leali** e **Traditori**. I Leali vincono se arrivano al f
 
 - Chi viene **bandito** alla Tavola Rotonda rivela la propria fazione. Chi viene **assassinato** di notte invece no, per mantenere il mistero.
 - I giocatori eliminati restano collegati come **spettatori**: vedono le fasi ma non i ruoli segreti, e non possono votare.
-- Il **finale** scatta quando restano 4 giocatori (valore modificabile). Il controllo si fa sia dopo la Tavola Rotonda sia alla Colazione, dopo l'omicidio notturno.
+- Il **finale** scatta quando restano 3 giocatori nelle partite fino a 7 giocatori iniziali, 4 oltre i 7 (valori modificabili). Il controllo si fa sia dopo la Tavola Rotonda sia alla Colazione, dopo l'omicidio notturno.
 - La partita **non finisce in anticipo**: anche se tutti i Traditori vengono banditi o se i Traditori raggiungono i Leali, si prosegue fino al finale.
 - **Nuovo Traditore scelto dal castello**: se tutti i Traditori sono stati banditi e in gioco restano più di 4 giocatori, la notte successiva il master trasforma in segreto un Leale vivo, scelto a caso, in Traditore. Quella notte non c'è omicidio; il nuovo Traditore lo scopre sul proprio telefono e agisce dalla notte dopo. Perché il colpo di scena funzioni, il numero di Traditori iniziali **non viene annunciato** ai giocatori.
 - In caso di **parità nel voto** si fa un ballottaggio tra i più votati. Se c'è ancora parità, nessuno viene bandito quel giorno.
+- **Seduzione** (partite iniziate con un solo Traditore, cioè 5–6 giocatori): la prima notte il Traditore sceglie se assassinare o sedurre. Se seduce indica un Leale, che riceve sul telefono un'offerta anonima e accetta o rifiuta in segreto. Se accetta diventa Traditore, vede il complice e dalla notte dopo uccide con lui; se rifiuta resta Leale. In entrambi i casi quella notte nessuno muore. Alla Colazione il Traditore scopre la risposta.
+- **Tavola Rotonda**: prima del voto c'è una discussione minima, con la clessidra sullo schermo: 5 minuti fino a 9 giocatori in gioco, 10 minuti da 10 in su. Il voto si apre solo a tempo scaduto.
 - **Sospetto notturno**: di notte ogni Leale indica in segreto di chi sospetta. Alla Colazione il castello annuncia il più sospettato (in parità, tutti i pari merito), senza dire chi l'ha indicato né quanti sospetti ha ricevuto. I Traditori di notte scelgono la vittima e non contribuiscono ai sospetti.
 
 ## Ciclo di gioco
 
-Ogni round è un giorno: Colazione, Missione e Tavola Rotonda, poi la Notte. Il ciclo si ripete finché non restano 4 giocatori, quando scatta il finale. Il master guida ogni passaggio con voce e timer. Se serve, un pulsante "Avanti" permette di forzare il ritmo.
+Ogni round è un giorno: Colazione, 3 giochi (missioni) e Tavola Rotonda, poi la Notte. Il primo giorno, dopo la Colazione, ognuno si presenta con un tema estratto a caso, diverso per ogni giocatore (es. "Presentati alla Regina", "…in palestra", "…a un colloquio di lavoro"), con 45 secondi a testa. Il ciclo si ripete finché non restano 4 giocatori, quando scatta il finale. Il master guida ogni passaggio con voce e timer. Se serve, un pulsante "Avanti" permette di forzare il ritmo.
 
 ```mermaid
 flowchart LR
     A[Sala d'attesa<br/>QR, nomi, avatar] --> B[Ruoli segreti<br/>i Traditori si vedono]
     B --> C[Colazione<br/>rivelata la vittima]
-    C --> D[Missione<br/>monete al montepremi]
+    C --> D[3 giochi<br/>monete al montepremi<br/>il giorno 1 prima le presentazioni]
     D --> E[Tavola Rotonda<br/>discussione e voto]
     E --> R[Rivelazione<br/>fazione del bandito]
-    R --> F{Più di 4 in gioco?}
+    R --> F{Sopra la soglia del finale?}
     F -- sì --> G[Notte<br/>omicidio, poteri]
     G -- giorno successivo --> C
     F -- no --> H[Finale<br/>Cerimonia delle Polveri]
-    C -. restano 4 dopo l'omicidio .-> H
+    C -. soglia raggiunta dopo l'omicidio .-> H
 ```
 
 Una partita da 10 giocatori dura di solito 5–6 giorni, cioè circa 60–75 minuti.
@@ -128,7 +130,9 @@ Di notte tutti i telefoni mostrano un'interfaccia uguale: una griglia con tutti 
 
 ## Missioni
 
-Ogni giorno c'è una missione, estratta a caso dal catalogo senza ripetizioni. Se riesce, aggiunge monete al montepremi comune. I Traditori possono sabotarla di nascosto, ma un fallimento troppo evidente attira i sospetti: è questo il cuore del gioco. Alcune missioni assegnano anche oggetti (vedi Oggetti e twist).
+Ogni giorno ci sono 3 giochi, estratti a caso dal catalogo senza ripetizioni. Se un gioco riesce, aggiunge monete al montepremi comune. I Traditori possono sabotarlo di nascosto, ma un fallimento troppo evidente attira i sospetti: è questo il cuore del gioco. Alcune missioni assegnano anche oggetti (vedi Oggetti e twist).
+
+**Tracce del sabotaggio** (decisione dopo la prima serata): durante il gioco le scelte restano segrete; a gioco chiuso lo schermo mostra i comportamenti individuali, mai i ruoli. Enigma: chi ha dato quale risposta e i punti di ognuno. Torce: la classifica dei tempi, con i tocchi anticipati. Prova Fisica: chi ha detto "fallita" e chi non ha votato. Stima: le stime con i nomi. Catena della Memoria: chi ha sbagliato la propria parte. Cronologia: la fila giusta, con il posto scelto da ognuno. Messaggero: chi era il messaggero e cosa ha scelto ognuno. Il Forziere resta anonimo (solo quanti Piombo): la traccia è il gruppo estratto.
 
 **Montepremi**: parte da zero. Ogni missione ha un valore massimo, per esempio 1.000 monete, che cresce nei giorni successivi. Il totale è sempre visibile sul master. A fine partita va diviso tra i vincitori: si può giocare "per la gloria" oppure convertirlo in un premio reale deciso dal gruppo.
 
@@ -139,9 +143,9 @@ Ogni giorno c'è una missione, estratta a caso dal catalogo senza ripetizioni. S
 | L'Enigma del Castello | Digitale, quiz | Domande a tempo su tutti i telefoni. Ogni risposta corretta del gruppo vale monete | Rispondono male apposta, o guidano il gruppo verso l'errore |
 | La Catena della Memoria | Digitale | Il master mostra per pochi secondi una sequenza di simboli. Ogni giocatore deve ricordarne la sua parte | Sbagliano la propria parte "per distrazione" |
 | Le Torce | Digitale, riflessi | Quando una torcia si accende sul telefono, va toccata il più in fretta possibile. Conta la media del gruppo | Rallentano di proposito |
-| La Stima | Digitale | "Quante candele ci sono nella sala?": il master mostra un'immagine e ognuno inserisce una stima. Si vince se la media cade entro il 10% | Spostano la media con stime esagerate |
+| La Stima | Digitale | "Quante candele ci sono nella sala?": il master mostra un'immagine per 12 secondi e ognuno inserisce una stima. Si vince se la media cade entro il 10% | Spostano la media con stime esagerate, che a fine gioco si vedono con i nomi |
 | Il Ponte | Digitale, a coppie | Due giocatori estratti scelgono in segreto "Fidarsi" o "Tradire". Se entrambi si fidano vincono monete, se uno tradisce prende lui un oggetto | Possono tradire, ma il risultato si vede |
-| Il Messaggero | Mista | Uno solo vede un'immagine e la descrive a voce senza nominarla. Gli altri indovinano sul telefono tra 6 opzioni | Se il Messaggero è un Traditore, descrive in modo ambiguo |
+| Il Messaggero | Mista | Uno solo vede una scena (descritta a parole) e la descrive a voce senza le parole proibite. Gli altri indovinano sul telefono tra 6 scene; vince la maggioranza giusta | Se il Messaggero è un Traditore, descrive in modo ambiguo |
 | La Cronologia | Digitale | Ognuno riceve un evento e il gruppo deve ordinarli in sequenza parlandosi | Spostano il proprio evento nel punto sbagliato |
 | La Prova Fisica | Fisica | Il master propone una prova nella stanza (torre di carte, mimo, catena umana). A fine prova ognuno vota sul telefono se è riuscita | Sabotano dal vivo, rischiando di farsi notare |
 | L'Asta | Digitale | Si mettono all'asta Scudi pagandoli con monete del montepremi: il premio scende, la sicurezza sale | Fanno salire il prezzo o comprano per sé |
@@ -175,10 +179,11 @@ Gli oggetti si vincono nelle missioni, all'Asta o al Ponte, e restano segreti fi
 
 **Finale: la Cerimonia delle Polveri**
 
-1. Con 4 giocatori rimasti, ognuno vota in segreto: "Chiudere la partita" o "Bandire ancora".
+1. Con 3 giocatori rimasti (4 nelle partite oltre i 7 giocatori), ognuno vota in segreto: "Chiudere la partita" o "Bandire ancora".
    Quando tutti hanno scelto, dopo una breve attesa lo schermo rivela le scelte una per una: ritratto e nome del giocatore, poi fiamme verdi ("Chiudere") o rosse ("Bandire").
 2. Se tutti scelgono "Chiudere", si rivelano i ruoli dei sopravvissuti.
 3. Se c'è almeno un "Bandire", si fa un'altra votazione e un altro giocatore esce, rivelando il suo ruolo. Poi si torna al punto 1.
+   Nelle ultime maschere si svelano prima i Leali e per ultimi i Traditori.
    Si può scendere al massimo fino a 2 giocatori: a quel punto non si vota più e i due rivelano uno alla volta il proprio schieramento.
 4. Se tra i sopravvissuti c'è anche un solo Traditore, il montepremi va interamente ai Traditori sopravvissuti. Altrimenti i Leali se lo dividono.
 
@@ -240,6 +245,7 @@ Lo sviluppo è diviso in 6 fasi. Alla fine di ognuna c'è qualcosa da provare da
 | 0. Prototipo di connessione | Stanza con codice e QR, ingresso dei telefoni, messaggi master ↔ telefono, riconnessione dopo ricarica | 3 telefoni restano collegati al master per 15 minuti e rientrano dopo un ricaricamento |
 | 1. Scheletro del gioco | Sala d'attesa, assegnazione ruoli, Colazione, Tavola Rotonda con voto, Notte con omicidio, condizioni di vittoria, schermate di testo semplici | Una partita intera di prova con 5+ telefoni arriva alla fine senza errori |
 | 2. MVP giocabile | Montepremi, 4 missioni (Forziere, Enigma, Torce, Prova Fisica), tabellone, finale con Cerimonia delle Polveri, salvataggio automatico, prima grafica a tema | Prima serata di gioco vera con il gruppo |
+| 2b. Correzioni dopo la prima serata | Presentazioni del giorno 1, 3 giochi al giorno con tracce del sabotaggio, 4 missioni anticipate (Stima, Catena della Memoria, Cronologia, Messaggero), discussione minima, Seduzione, Cerimonia con 3 nelle partite piccole, Traditori svelati per ultimi | Seconda serata con il gruppo |
 | 3. Profondità | Oggetti (Scudo, Pugnale, Maledizione, Specchio, Sigillo), ruoli speciali, reclutamento, eventi, altre 8 missioni, impostazioni partita | Ogni oggetto, ruolo ed evento è stato provato in partita almeno una volta |
 | 4. Spettacolo | Voce del narratore con frasi alternative, musica, effetti, animazioni delle rivelazioni, avatar, vibrazioni | Il gruppo gioca senza mai leggere le regole: segue il narratore |
 | 5. Rifinitura | Bilanciamento dai dati delle partite, regole consultabili nell'app, PWA installabile, test su iPhone, Android e TV, eventuale integrazione con Home Assistant | 3 partite consecutive senza blocchi e con esiti equilibrati tra Leali e Traditori |
