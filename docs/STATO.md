@@ -4,7 +4,10 @@ Aggiornato da Claude Code alla fine di ogni sessione di lavoro.
 
 ## Fase corrente
 
-**Fase 2b — Correzioni dopo la prima serata**: codice completo e provato in locale il 2026-11-22; manca la seconda serata con il gruppo.
+**Fase 3 — Profondità**: codice completo e provato in locale il 2026-11-22 (non ancora pubblicato);
+la seconda serata con il gruppo proverà insieme Fase 2b e Fase 3 (checklist in fondo).
+
+Fase 2b — Correzioni dopo la prima serata: codice completo e provato in locale il 2026-11-22.
 
 Fase 2 — MVP giocabile: **prima serata giocata** (2026-11-21); le osservazioni del gruppo sono diventate la Fase 2b.
 
@@ -91,6 +94,45 @@ Fase 0 — Prototipo di connessione: **completata il 2026-11-21** (prova con 3 t
   "fallita" e astenuti, Cerimonia con 3 giocatori, Traditori svelati per ultimi, montepremi diviso
   tra due vincitori. La Catena della Memoria provata disegnando le sue schermate nella pagina (non è
   uscita in partita). Nessun errore in console.
+
+- Fase 3, codice:
+  - **impostazioni partita** nella sala d'attesa (Traditori, soglia della Cerimonia, giochi al giorno,
+    tempo dei giochi, presentazioni, discussione, Veggente, Cavaliere, Traditore Segreto, Seduzione,
+    Ultimatum, i 4 eventi); valori di partenza da `js/config/`, scelte salvate sul master;
+  - **oggetti** con inventario segreto sul telefono: Scudo, Pugnale, Maledizione, Sigillo, Specchio;
+    un oggetto in segreto a un giocatore estratto a ogni gioco riuscito;
+  - **ruoli speciali**: Veggente, Traditore Segreto, Cavaliere (svelati a fine partita);
+  - **Ultimatum di reclutamento** al bando del primo Traditore;
+  - **eventi**: Nebbia, Doppia posta, Banchetto, Omicidio a vista (scena e tramonto);
+  - **4 missioni**: Il Codice della Cripta, Il Ponte, L'Asta, La Lettera Sigillata (catalogo completo: 12);
+  - timer che ripartono **dal tempo rimasto** dopo "Riprendi" (master e telefoni che rientrano);
+  - con `?debug=1`: scelta del prossimo gioco e del prossimo evento, "dai un oggetto a…".
+- Test: 180 (`npm test`). Le partite casuali del test obbligatorio giocano con tutto acceso: ruoli
+  speciali, oggetti in mano fin dall'inizio, Ultimatum, eventi sempre estratti quando possibili,
+  12 missioni. Il test controlla anche Veggente e Cavaliere e rimescola, oltre ai ruoli, gli oggetti
+  dei giocatori nascosti. In 150 partite escono tutti gli eventi, la scena, il tramonto, la seconda
+  votazione, lo Scudo che salva, il cambio di vittima e l'Ultimatum.
+- Prova in locale (master con `?debug=1` + 7 schede, due partite): impostazioni partita, carte dei
+  ruoli speciali, Cripta (frammento falso al Traditore, codici con i nomi), Ponte con tradimento e
+  oggetto segreto, Maledizione annunciata senza autore, Sigillo, Pugnale "×2", Specchio, Veggente,
+  Ultimatum accettato e rifiutato, Asta con vincitore segreto, Lettera aperta, Scudo del Cavaliere
+  ("omicidio fallito"), Traditore Segreto che vede la chat e decide sulla vittima, Omicidio a vista
+  (scena e tramonto), Catena della Memoria in partita, Nebbia, Cerimonia e ruoli svelati alla fine,
+  "Riprendi" del master durante la discussione (da 2:46 riparte a 2:38) e telefono ricaricato (2:07).
+  Banchetto e Doppia posta provati solo con i test. Nessun errore in console.
+
+## Fase 3 — attività
+
+- [x] Impostazioni nel motore, ruoli e fazioni separati, inventario
+- [x] Timer dopo "Riprendi" e strumenti di prova (`?debug=1`)
+- [x] Schermata Impostazioni partita
+- [x] Oggetti con inventario sul telefono
+- [x] Veggente, Traditore Segreto, Cavaliere
+- [x] Ultimatum di reclutamento
+- [x] Eventi
+- [x] Il Codice della Cripta, Il Ponte, L'Asta, La Lettera Sigillata
+- [x] Prova in locale
+- [ ] Push su GitHub Pages e seconda serata con il gruppo (Fase 2b + Fase 3)
 
 ## Fase 2b — attività
 
@@ -186,23 +228,44 @@ Fase 0 — Prototipo di connessione: **completata il 2026-11-21** (prova con 3 t
 | 2026-11-22 | La Stima vince se la media cade entro il 10%; Catena della Memoria e Cronologia danno monete in proporzione alle parti giuste; il Messaggero vince con la maggioranza dei presenti che indovina | Decisioni minori di Claude (valori in `js/config/missions.js`) |
 | 2026-11-22 | Partite salvate con la versione precedente: riprendono con 1 gioco al giorno, senza presentazioni, discussione e Seduzione | Decisione minore di Claude |
 
+| 2026-11-22 | Fase 3: tutte le proposte della sessione di piano accettate (oggetti dai giochi riusciti, Scudo, Pugnale, Maledizione/Sigillo, Specchio, Traditore Segreto, Veggente, Cavaliere, Ultimatum, eventi, 4 missioni; dettagli in PROGETTO.md) | Decisione di Piero ("sì, tutte ok") |
+| 2026-11-22 | Ultimatum senza accordo all'alba: nessuna offerta e nessun omicidio. Ultimatum senza risposta: vale come rifiutato (il Leale muore) | Decisioni minori di Claude |
+| 2026-11-22 | Il Traditore Segreto resta segreto anche per chi recluta con l'Ultimatum: il reclutato vede solo i Traditori "normali" | Decisione minore di Claude, coerente con il ruolo |
+| 2026-11-22 | Di notte, ad accordo raggiunto, la notte aspetta che il Traditore Segreto decida (cambia o lascia) finché ha il potere | Decisione minore di Claude: altrimenti la notte finirebbe prima che possa agire |
+| 2026-11-22 | Omicidio a vista: la scena viene dopo il primo gioco (con un solo gioco al giorno o senza giochi, prima della Tavola Rotonda); 20 s (`GAME.sceneMs`); senza tocco valido nessuno muore. Il giorno dell'Omicidio a vista l'Ultimatum aspetta la notte dopo | Decisioni minori di Claude |
+| 2026-11-22 | Il montepremi non scende mai sotto zero e la perdita mostrata è quella vera; la Doppia posta fallita toglie il valore normale del gioco | Decisione minore di Claude |
+| 2026-11-22 | Maledizione: nelle partite senza giochi si lancia alla Colazione. Specchio: si usa in qualsiasi momento dopo una Tavola Rotonda | Decisioni minori di Claude |
+| 2026-11-22 | Il moltiplicatore "tempo dei giochi" vale solo per i timer delle missioni; presentazioni e discussione hanno i loro valori | Decisione minore di Claude |
+| 2026-11-22 | Di notte il pulsante "Oggetti" non compare: la schermata notturna resta uguale per tutti | Decisione minore di Claude |
+| 2026-11-22 | Riepilogo della sala d'attesa: "Traditori automatico / scelti a mano", mai il numero | Decisione minore di Claude: lo schermo lo vedono tutti |
+
 ## Decisioni aperte
 
 - Nome definitivo del gioco (provvisorio: Il Castello dei Traditori)
-- Ruoli speciali da includere nella prima versione
 - Montepremi "per la gloria" o con premio reale
 
 ## Problemi noti
 
+- Fase 3: Banchetto e Doppia posta non sono ancora stati visti sullo schermo (solo test del motore):
+  da guardare nella seconda serata o forzandoli con `?debug=1`.
+- Fase 3: il pulsante "Oggetti" compare solo a chi ha oggetti: chi sbircia il telefono altrui
+  sa che ne ha. Di notte è nascosto.
+- Fase 3: il Codice della Cripta con 5–6 giocatori ha pochi frammenti: se il Traditore ha l'indizio
+  diretto su una cifra, il gruppo può non riuscire a ricostruirla. Da valutare giocando.
+- Fase 3: l'Asta con il montepremi vuoto non vende nulla (offerte solo da 0).
+- Fase 3: il Traditore Segreto di notte ha la schermata più lunga (chat in lettura), come i Traditori.
+- Fase 3: con le animazioni del browser in pausa (pannello nascosto) la catena di simboli non scorre:
+  in locale si prova con la finestra in primo piano.
+
 - Fase 2b: la durata di una giornata con 3 giochi e 5–10 minuti di discussione va misurata nella
-  seconda serata; se è troppo lunga si scende a 2 giochi (`GAME.missionsPerDay`).
-- Fase 2b: la Catena della Memoria non è ancora uscita in una partita di prova (provate solo le schermate).
+  seconda serata; se è troppo lunga si scende a 2 giochi (impostazioni partita).
 - Fase 2b: con 16 giocatori la Catena della Memoria dura circa 28 secondi di simboli: da valutare.
 - Fase 2b: le tracce rendono il sabotaggio molto visibile; se i Traditori vengono scoperti troppo
   presto si possono ridurre (per esempio togliere i nomi dall'Enigma).
-- Fase 2b: il ritardo della discussione dopo "Riprendi" riparte da capo (come gli altri timer).
+- **Chiusi in Fase 3**: la Catena della Memoria è uscita in una partita di prova (forzata con
+  `?debug=1`); dopo "Riprendi" i timer (missioni, discussione, presentazioni) ripartono dal tempo
+  rimasto e non più da capo.
 
-- Fase 2: dopo un "Riprendi" a metà missione il timer in corso riparte da capo.
 - Fase 2: le domande dell'Enigma sono nel codice pubblico: chi le cerca nel sito trova le risposte.
 - Fase 2: con 5–6 giocatori c'è un solo Traditore, che da solo non può svuotare il Forziere
   (servono 2 Piombo). Da valutare dopo la prima serata (`MISSIONS.chest.leadToFail`).
@@ -235,37 +298,68 @@ Fase 0 — Prototipo di connessione: **completata il 2026-11-21** (prova con 3 t
 - Piano B: da GitHub Pages (https) il server di aggancio personale deve essere raggiungibile in
   https/wss. Un PeerServer su un PC di casa in semplice http non funziona senza un certificato.
 
-## Checklist per la seconda serata (Fase 2b)
+## Checklist per la seconda serata (Fase 2b + Fase 3)
+
+L'obiettivo della Fase 3 è provare in partita almeno una volta ogni oggetto, ruolo ed evento.
+Conviene fare due partite: una piccola (5–6 giocatori, Seduzione) e una grande (7+, ruoli speciali).
+Se qualcosa non esce da solo, il master con `?debug=1` può forzare il prossimo gioco, il prossimo
+evento o dare un oggetto (barra verde in basso): usatela tra una partita e l'altra, non a sorpresa.
 
 Prima della serata
-1. Push su GitHub Pages; sul master Ctrl+F5 per caricare la versione nuova (titoli in gotico,
-   "Giorno 1 · gioco 1 di 3" sulle missioni).
+1. Push su GitHub Pages; sul master Ctrl+F5 per caricare la versione nuova. Sui telefoni che erano
+   già entrati, ricaricare la pagina.
 2. Stessa rete Wi-Fi, risparmio energetico spento, qualche oggetto per le prove fisiche
    (bicchieri di plastica, monete, un mazzo di carte, una cintura).
+3. Sala d'attesa: aprite **Impostazioni partita** prima che arrivino i giocatori. Controllate che
+   il riepilogo sotto l'elenco non mostri mai il numero di Traditori. Per la partita grande:
+   Veggente, Cavaliere e Traditore Segreto su "Sì", eventi tutti accesi.
 
 Giorno 1
-3. Dopo la prima Colazione partono le **presentazioni**: sulla TV ritratto, nome e tema;
-   sul telefono di chi tocca "Tocca a te!", su quello del successivo "Dopo tocca a te".
-   Il master preme "Prossimo" quando la persona ha finito.
-4. Poi **3 giochi**: controlla "gioco 1 di 3", "Prossimo gioco" e il tabellone solo dopo il terzo.
-5. A gioco chiuso guardate le **tracce** sulla TV (chi ha risposto cosa, classifica delle Torce,
-   chi ha detto "fallita", stime con i nomi…) e usatele alla Tavola Rotonda.
-6. **Tavola Rotonda**: clessidra grande da 5 minuti (10 con 10+ giocatori); i telefoni non votano
-   finché non è vuota; poi si vota come prima.
+4. **Carta del ruolo**: Veggente, Cavaliere e Traditore Segreto vedono nome e potere; il Traditore
+   Segreto vede i complici, i Traditori non vedono lui. Il Cavaliere ha "Oggetti (1)" in alto.
+5. Dopo la prima Colazione partono le **presentazioni** (ritratto, nome e tema; "Prossimo" del master).
+6. **3 giochi** (o quanti scelti): "gioco 1 di 3", tabellone solo dopo l'ultimo; a gioco chiuso le
+   **tracce** sulla TV. Dopo un gioco riuscito la TV dice "un oggetto in segreto a uno di voi": solo
+   un telefono mostra quale.
+7. Giochi nuovi da vedere almeno una volta: **Codice della Cripta** (il Traditore vede "frammento
+   FALSO"; codici con i nomi alla fine), **Ponte** (due giocatori, scelte svelate alla fine),
+   **Asta** (offerte segrete, si vede solo il prezzo), **Lettera** (scelta pubblica, oggetto segreto).
+8. Sul **tabellone**, chi ha una Maledizione la lancia: la TV annuncia il maledetto, non chi l'ha
+   lanciata. Alla **Tavola Rotonda** il maledetto non vota, a meno che usi un **Sigillo** (si vede).
+9. **Tavola Rotonda**: clessidra da 5 minuti (10 con 10+ giocatori). Chi ha il **Pugnale** lo usa
+   prima di votare: alla rivelazione compare "×2" accanto al suo voto. Dopo il voto chi ha lo
+   **Specchio** lo usa e vede solo lui chi l'ha votato.
+10. A metà discussione ricaricate il master e premete "Riprendi stanza": la clessidra riparte dal
+    tempo che restava, non da capo.
 
-Prima notte (partita con 5–6 giocatori, un solo Traditore)
-7. Il Traditore vede "Assassinare / Sedurre". Provate almeno una volta "Sedurre": il sedotto riceve
-   l'offerta (senza sapere da chi), accetta o rifiuta. Alla Colazione nessun morto; il Traditore
-   vede sul telefono se il sedotto ha accettato. Se ha accettato, la notte dopo uccidono in due.
+Notti
+11. Prima notte con un solo Traditore: "Assassinare / Sedurre" (offerta anonima, il sedotto accetta
+    o rifiuta, nessun morto, esito solo al Traditore).
+12. **Veggente**: "Usa la tua visione", poi il sospetto; la risposta resta sulla sua carta.
+13. **Traditore Segreto**: vede chat e scelte dei Traditori; ad accordo raggiunto cambia la vittima o
+    "Lascia la loro scelta" (la notte aspetta lui, una volta per partita).
+14. **Scudo** (o Cavaliere colpito): alla Colazione "l'omicidio è fallito", senza nome.
+15. **Ultimatum**: la notte dopo il bando del primo Traditore, i rimasti scelgono "Ultimatum" e lo
+    stesso nome. Chi lo riceve vede l'avviso "se rifiuti la vittima sarai tu". Provate un sì e un no.
+
+Eventi (dal giorno 2, annunciati alla Colazione)
+16. **Nebbia**: alla Tavola Rotonda solo il conteggio dei voti, senza nomi.
+17. **Doppia posta**: il gioco indicato vale il doppio ("Doppia posta" sul titolo); se fallisce il
+    montepremi perde monete.
+18. **Banchetto**: la notte nessuno muore; il giorno dopo due votazioni, la seconda senza discussione.
+19. **Omicidio a vista**: il Traditore designato lo sa alla Colazione; dopo il primo gioco "La scena":
+    tutti toccano un nome; la vittima si scopre al **tramonto**, dopo la Tavola Rotonda.
 
 Finale
-8. Con 5–7 giocatori la **Cerimonia** parte quando restano 3; oltre i 7 quando restano 4.
-9. Nelle **ultime maschere** i Leali si svelano prima, i Traditori per ultimi.
+20. Con 5–7 giocatori la **Cerimonia** parte quando restano 3; oltre i 7 quando restano 4. Nelle
+    **ultime maschere** i Leali prima, i Traditori per ultimi. A fine partita compaiono anche i
+    ruoli speciali (Veggente, Cavaliere, Traditore Segreto).
 
 Dopo la serata
-10. Annotate: durata di ogni giornata, se 3 giochi sono troppi, quali giochi sono piaciuti, se le
-    tracce svelano troppo o troppo poco, come è andata la Seduzione, se i temi delle presentazioni
-    funzionano, quanti giorni dura una partita da 5–6 giocatori.
+21. Annotate: durata di ogni giornata, se 3 giochi sono troppi, giochi più e meno piaciuti, se le
+    tracce svelano troppo, come sono andate Seduzione e Ultimatum, quali oggetti sono stati usati e
+    quali mai, se gli eventi sono troppo frequenti (50% al giorno), se la Cripta con pochi giocatori
+    è risolvibile, se l'Asta svuota troppo il montepremi, telefoni e browser usati.
 
 ## Checklist per la prima serata di prova (Fase 2) — svolta
 

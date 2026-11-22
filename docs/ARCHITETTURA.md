@@ -37,7 +37,8 @@ flowchart LR
     roles.js             assegnazione ruoli, condizioni di vittoria
     votes.js             conteggio voti, parità, ballottaggio
     missions/            un file per tipo di missione (stessa interfaccia)
-    items.js             oggetti (Fase 3)
+    items.js             oggetti: Scudo, Pugnale, Maledizione, Sigillo, Specchio (Fase 3)
+    events.js            eventi: estrazione, Omicidio a vista (Fase 3)
     view.js              viewFor(state, playerId) e viewForMaster(state)
     rng.js               generatore pseudo-casuale con seed
 /js/net/
@@ -108,6 +109,13 @@ applyAction(state, action) → { state, effects }
 - `effects` = cose che il mondo esterno deve fare: `narrate`, `playSound`, `startTimer`,
   `vibrate`, `save`. Il motore non le esegue: le esegue il master.
 - Nessun `Date.now()` dentro il motore: il tempo entra come azione.
+- Fase 3: il master salva anche `{ key, endsAt }` del timer in corso accanto alla partita; dopo
+  "Riprendi" il timer riparte dal tempo rimasto, e ai telefoni arriva `timerLeft` con la vista
+  (fuori dal motore, che continua a non conoscere il tempo).
+- Fase 3: fasi nuove `scene` (Omicidio a vista) e `dusk` (tramonto); ruoli `secret_traitor`, `seer`,
+  `knight` con la fazione calcolata da `factionOf`; `settings` completo da `resolveSettings`
+  (pannello "Impostazioni partita" in `js/master/settings*.js`); azione `DEBUG_NEXT` solo dal master
+  (`?debug=1`: prossimo gioco, prossimo evento, dai un oggetto).
 - Timer (Fase 2): il motore salva solo `phaseData.timer = { key, ms }`. Il master (`Host._syncTimer`)
   fa girare l'orologio e allo scadere invia `TIMER_EXPIRED { key }`; una chiave vecchia viene rifiutata.
 - Missioni (Fase 2): un modulo per file in `js/engine/missions/`, stessa interfaccia

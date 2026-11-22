@@ -132,7 +132,9 @@ Di notte tutti i telefoni mostrano un'interfaccia uguale: una griglia con tutti 
 
 Ogni giorno ci sono 3 giochi, estratti a caso dal catalogo senza ripetizioni. Se un gioco riesce, aggiunge monete al montepremi comune. I Traditori possono sabotarlo di nascosto, ma un fallimento troppo evidente attira i sospetti: è questo il cuore del gioco. Alcune missioni assegnano anche oggetti (vedi Oggetti e twist).
 
-**Tracce del sabotaggio** (decisione dopo la prima serata): durante il gioco le scelte restano segrete; a gioco chiuso lo schermo mostra i comportamenti individuali, mai i ruoli. Enigma: chi ha dato quale risposta e i punti di ognuno. Torce: la classifica dei tempi, con i tocchi anticipati. Prova Fisica: chi ha detto "fallita" e chi non ha votato. Stima: le stime con i nomi. Catena della Memoria: chi ha sbagliato la propria parte. Cronologia: la fila giusta, con il posto scelto da ognuno. Messaggero: chi era il messaggero e cosa ha scelto ognuno. Il Forziere resta anonimo (solo quanti Piombo): la traccia è il gruppo estratto.
+**Tracce del sabotaggio** (decisione dopo la prima serata): durante il gioco le scelte restano segrete; a gioco chiuso lo schermo mostra i comportamenti individuali, mai i ruoli. Enigma: chi ha dato quale risposta e i punti di ognuno. Torce: la classifica dei tempi, con i tocchi anticipati. Prova Fisica: chi ha detto "fallita" e chi non ha votato. Stima: le stime con i nomi. Catena della Memoria: chi ha sbagliato la propria parte. Cronologia: la fila giusta, con il posto scelto da ognuno. Messaggero: chi era il messaggero e cosa ha scelto ognuno. Codice della Cripta: il codice scritto da ognuno (mai i frammenti, quelli falsi svelerebbero i Traditori). Ponte: le due scelte con i nomi. Lettera: se è stata aperta. Il Forziere resta anonimo (solo quanti Piombo): la traccia è il gruppo estratto. L'Asta mostra solo il prezzo, mai chi ha vinto.
+
+**Regole precise delle missioni della Fase 3**: Cripta — il Traditore sa che il suo frammento è falso; ognuno scrive il codice sul telefono, vale quello della maggioranza, monete per ogni cifra giusta. Ponte — se tradiscono entrambi nessuno prende niente. Asta — buste chiuse per 1 Scudo, offerte da 0 al montepremi, vince la più alta (parità a sorte), il montepremi scende del prezzo; il gioco non aggiunge monete. Lettera — il giocatore estratto, se rinuncia, fa guadagnare il valore del gioco; se apre riceve un oggetto a caso e il gruppo perde metà del valore.
 
 **Montepremi**: parte da zero. Ogni missione ha un valore massimo, per esempio 1.000 monete, che cresce nei giorni successivi. Il totale è sempre visibile sul master. A fine partita va diviso tra i vincitori: si può giocare "per la gloria" oppure convertirlo in un premio reale deciso dal gruppo.
 
@@ -176,6 +178,22 @@ Gli oggetti si vincono nelle missioni, all'Asta o al Ponte, e restano segreti fi
 - **Banchetto**: nessun omicidio questa notte, ma il giorno dopo si bandiscono due giocatori.
 - **Nebbia**: alla prossima Tavola Rotonda i voti vengono rivelati solo come conteggio, senza nomi.
 - **Doppia posta**: la missione del giorno vale il doppio, ma un fallimento toglie monete al montepremi.
+
+**Regole precise (decise prima della Fase 3)**
+
+- *Come si vincono gli oggetti*: ogni gioco riuscito dà 1 oggetto, in segreto, a un partecipante estratto a caso (lo schermo dice solo "qualcuno ha ricevuto un oggetto"). Il Ponte, l'Asta e la Lettera danno oggetti a modo loro. Nessun limite di oggetti, nessuno scambio; gli oggetti di chi esce vanno persi.
+- *Scudo*: resta in mano finché non blocca un omicidio notturno, poi si consuma. Alla Colazione "l'omicidio è fallito", senza nome. Non protegge di giorno (Omicidio a vista) né chi rifiuta l'Ultimatum.
+- *Pugnale*: si usa prima di confermare il voto e vale per quel turno (anche al ballottaggio), non nella Cerimonia. Sulla TV, alla rivelazione dei voti, compare "×2".
+- *Maledizione e Sigillo*: la Maledizione si lancia dal telefono durante il tabellone, dopo l'ultimo gioco del giorno (alla Colazione nelle partite senza giochi). La TV annuncia il maledetto, mai chi l'ha lanciata. Il maledetto non vota alla Tavola Rotonda del giorno (nemmeno al ballottaggio o alla seconda votazione del Banchetto) ma resta votabile; con il Sigillo spezza la Maledizione, e si vede. Nella Cerimonia la Maledizione decade.
+- *Specchio*: mostra solo a chi lo usa chi ha votato contro di lui nell'ultimo turno della Tavola Rotonda più recente. Serve soprattutto dopo la Nebbia.
+- *Traditore Segreto*: è uno degli N Traditori; si può accendere con almeno 2 Traditori ed è acceso di base da 14 giocatori. Di notte legge chat e scelte dei Traditori senza scrivere né votare, indica un sospetto come un Leale e, una volta per partita, ad accordo raggiunto può cambiare la vittima. I Traditori possono sceglierlo come vittima: se non usa il potere muore. Se restano solo lui, uccide da solo e il castello non sceglie un nuovo Traditore.
+- *Veggente*: una volta per partita, di notte, prima del sospetto, vede subito la fazione (non il ruolo) di un giocatore. *Cavaliere*: parte con uno Scudo. Veggente e Cavaliere sono accesi di base da 7 giocatori.
+- Chi viene sedotto, reclutato o scelto dal castello diventa Traditore: perde il potere del ruolo speciale ma tiene gli oggetti. Al bando si rivela solo la fazione; i ruoli speciali si scoprono a fine partita.
+- *Ultimatum*: la notte dopo il bando del primo Traditore i Traditori rimasti scelgono "Assassinare" o "Ultimatum" e devono indicare tutti lo stesso nome. Offerta anonima. Chi accetta diventa Traditore e quella notte non muore nessuno; chi rifiuta (o non risponde) è la vittima. Se il primo Traditore bandito era l'ultimo, l'Ultimatum va perso (notte del castello). Seduzione e Ultimatum sono indipendenti; nella stessa notte vince l'Ultimatum.
+- *Eventi*: dal giorno 2, ogni giorno con il 50% di probabilità (`GAME.eventChance`), mai due giorni di fila, mai il giorno della Cerimonia; si accendono o spengono uno per uno nelle impostazioni. Nessun evento nelle notti dell'Ultimatum o del castello (il Banchetto salta).
+- *Doppia posta*: raddoppia un gioco a caso dei 3, annunciato alla Colazione; se fallisce il montepremi perde il valore normale del gioco (mai sotto zero). L'Asta e la Lettera passano la Doppia posta al gioco dopo.
+- *Banchetto*: annunciato alla Colazione, la notte nessuno muore (Veggente e sospetti restano); il giorno dopo due votazioni di fila, la seconda senza discussione; se dopo il primo bando si arriva alla soglia della Cerimonia, la seconda salta.
+- *Omicidio a vista*: annunciato alla Colazione; un Traditore estratto (lo sa solo lui) durante "la scena", dopo il primo gioco, tocca la vittima mentre tutti toccano un nome sul telefono. La vittima gioca e vota fino al tramonto, dopo la Tavola Rotonda; la notte è tranquilla. Se la vittima viene bandita prima, non muore nessun altro.
 
 **Finale: la Cerimonia delle Polveri**
 
@@ -246,7 +264,7 @@ Lo sviluppo è diviso in 6 fasi. Alla fine di ognuna c'è qualcosa da provare da
 | 1. Scheletro del gioco | Sala d'attesa, assegnazione ruoli, Colazione, Tavola Rotonda con voto, Notte con omicidio, condizioni di vittoria, schermate di testo semplici | Una partita intera di prova con 5+ telefoni arriva alla fine senza errori |
 | 2. MVP giocabile | Montepremi, 4 missioni (Forziere, Enigma, Torce, Prova Fisica), tabellone, finale con Cerimonia delle Polveri, salvataggio automatico, prima grafica a tema | Prima serata di gioco vera con il gruppo |
 | 2b. Correzioni dopo la prima serata | Presentazioni del giorno 1, 3 giochi al giorno con tracce del sabotaggio, 4 missioni anticipate (Stima, Catena della Memoria, Cronologia, Messaggero), discussione minima, Seduzione, Cerimonia con 3 nelle partite piccole, Traditori svelati per ultimi | Seconda serata con il gruppo |
-| 3. Profondità | Oggetti (Scudo, Pugnale, Maledizione, Specchio, Sigillo), ruoli speciali, reclutamento, eventi, altre 8 missioni, impostazioni partita | Ogni oggetto, ruolo ed evento è stato provato in partita almeno una volta |
+| 3. Profondità | Oggetti (Scudo, Pugnale, Maledizione, Specchio, Sigillo), ruoli speciali, reclutamento (Ultimatum), eventi, le 4 missioni rimaste (catalogo completo: 12), impostazioni partita | Ogni oggetto, ruolo ed evento è stato provato in partita almeno una volta |
 | 4. Spettacolo | Voce del narratore con frasi alternative, musica, effetti, animazioni delle rivelazioni, avatar, vibrazioni | Il gruppo gioca senza mai leggere le regole: segue il narratore |
 | 5. Rifinitura | Bilanciamento dai dati delle partite, regole consultabili nell'app, PWA installabile, test su iPhone, Android e TV, eventuale integrazione con Home Assistant | 3 partite consecutive senza blocchi e con esiti equilibrati tra Leali e Traditori |
 
@@ -278,6 +296,6 @@ Il rischio principale è tecnico: la connessione tra telefoni e master. Per ques
 **Decisioni da prendere prima di iniziare**
 
 - [ ] Nome definitivo del gioco
-- [ ] Ruoli speciali da tenere per la prima versione
+- [x] Ruoli speciali da tenere per la prima versione (tutti e tre, attivabili dalle impostazioni)
 - [ ] Montepremi "per la gloria" o con premio reale
 - [x] Account GitHub da usare per la pubblicazione (repository pubblico `castello-traditori`)
