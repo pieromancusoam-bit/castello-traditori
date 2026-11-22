@@ -162,6 +162,27 @@ Fase 0 — Prototipo di connessione: **completata il 2026-11-21** (prova con 3 t
   Colazione), vibrazione e lampo al cambio di fase. Nessun errore in console. **Non ascoltati**:
   musica ed effetti (il browser di prova è muto); Cerimonia e finale visti solo con i test.
 
+- Fase 4, correzioni dopo la prima prova di Piero (2026-11-22):
+  - **numeri letti per esteso** ("1.250" → "milleduecentocinquanta", `js/show/spoken.js`);
+  - **voce**: prima le voci maschili "naturali" (Edge: Diego, Giuseppe), con tono e velocità diversi
+    per voci naturali e classiche; il pannello Audio consiglia Edge se manca una voce naturale;
+  - **spiegazione delle regole** a inizio partita: "Inizia la partita" apre 5–8 diapositive lette
+    dal custode (castello e fazioni, giorno e giochi, Tavola Rotonda, notte, oggetti uno per uno,
+    ruoli speciali ed eventi se accesi, finale), poi parte la partita; "Salta le regole e inizia";
+  - **ultime parole** del bandito: 15 s con la barra che si svuota, poi rintocco, cuore, silenzio e
+    fazione. Anche i telefoni mostrano la fazione solo in quel momento (prima la mostravano subito);
+  - **"Apri il voto ora"**: il master può aprire il voto prima della fine della clessidra (conferma);
+  - **oggetti più equi**: chi ne ha già ricevuti dal castello ha meno probabilità (peso
+    1 / (1 + 2 × ricevuti)), ma resta casuale;
+  - **ultime maschere**: il nome non cambia più colore prima che il narratore sveli la fazione;
+  - **forziere** non più sopra il titolo;
+  - **blocco schermo** ripreso a ogni tocco e ogni 15 s quando si perde (vedi Problemi noti).
+- Test: 193 (`npm test`): numeri a voce, oggetti equi (in 4.000 prove i "tre oggetti alla stessa
+  persona" scendono di oltre 3 volte), regole che seguono le impostazioni e non dicono mai quanti
+  sono i Traditori.
+- Prova in locale: diapositive delle regole con salto, forziere, "Apri il voto ora", ultime parole
+  (fazione nascosta su TV e telefono per 19,5 s, poi detta e mostrata), nessun errore in console.
+
 ## Fase 4 — attività
 
 - [x] Regista e frasi del narratore
@@ -170,6 +191,7 @@ Fase 0 — Prototipo di connessione: **completata il 2026-11-21** (prova con 3 t
 - [x] Stemmi araldici
 - [x] Vibrazioni (e lampo su iPhone)
 - [x] Prova in locale
+- [x] Correzioni dopo la prima prova (numeri, voce, regole, ultime parole, voto anticipato, oggetti, colori, forziere, blocco schermo)
 - [ ] Ascoltare voce, musica ed effetti sulla TV vera e regolare volumi e tempi
 - [ ] Facoltativo: file audio registrati (CC0) al posto dei suoni sintetizzati
 - [ ] Push su GitHub Pages e seconda serata con il gruppo
@@ -300,6 +322,11 @@ Fase 0 — Prototipo di connessione: **completata il 2026-11-21** (prova con 3 t
 | 2026-11-22 | Vibrazione del tempo quasi scaduto solo per timer da 30 s in su (non per le domande lampo dell'Enigma) | Decisione minore di Claude |
 | 2026-11-22 | Il lampo al posto della vibrazione è tenue di notte | Decisione minore di Claude: la luce non deve farsi notare |
 
+| 2026-11-22 | Regole spiegate a inizio partita come diapositive narrate sul master, tra "Inizia la partita" e l'assegnazione dei ruoli, saltabili | Decisione minore di Claude: nessuna fase nuova nel motore; i telefoni intanto sono in sala d'attesa |
+| 2026-11-22 | Ultime parole del bandito: 15 s (`SHOW.lastWordsMs`), anche nella Cerimonia | Richiesta di Piero ("10/15 secondi"); 15 s e Cerimonia decisioni minori di Claude |
+| 2026-11-22 | Oggetti del castello: estrazione pesata, non "a turno" | Decisione minore di Claude: a turno si capirebbe chi riceve l'ultimo oggetto |
+| 2026-11-22 | La discussione minima si può chiudere prima con "Apri il voto ora" (con conferma) | Richiesta di Piero; cambia la decisione della Fase 2b |
+
 ## Decisioni aperte
 
 - Nome definitivo del gioco (provvisorio: Il Castello dei Traditori)
@@ -307,6 +334,13 @@ Fase 0 — Prototipo di connessione: **completata il 2026-11-21** (prova con 3 t
 
 ## Problemi noti
 
+- Fase 4: **blocco schermo**: probabile causa del problema della seconda prova: i telefoni già usati
+  rientrano da soli all'apertura (token salvato), senza un tocco; iPhone/Safari concede il blocco
+  solo dentro un tocco, quindi restava spento. Ora si riprende al primo tocco sulla pagina e ogni
+  15 s. Da verificare sui telefoni veri; con il risparmio energetico attivo il telefono lo nega.
+- Fase 4: **voce realistica**: con la sola sintesi del browser le voci migliori sono quelle
+  "naturali" di Microsoft Edge (gratuite, serve internet). Chrome ha solo Cosimo (più metallica).
+  Alternativa futura, più pesante: una voce neurale scaricata nel sito (decine di MB).
 - Fase 4: **cache del browser**: dopo un aggiornamento alcuni browser tengono i file vecchi per un po'
   (GitHub Pages: 10 minuti). Sul master Ctrl+F5; sui telefoni ricaricare la pagina e, se serve,
   chiudere e riaprire la scheda.
@@ -384,6 +418,12 @@ Durante la partita
    sono spenti. Sul master lo stemma compare nell'elenco.
 4. "Inizia la partita": il narratore spiega come guardare il ruolo; la musica parte.
 5. Mentre parla, "Avanti" dice "Il narratore parla…": tenetelo premuto per saltare.
+5b. "Inizia la partita" apre le regole: il custode le legge una per volta (oggetti compresi);
+    provate anche "Salta le regole e inizia". I numeri (monete) devono essere detti per esteso.
+5c. Alla Tavola Rotonda provate "Apri il voto ora" prima della fine della clessidra.
+5d. Al bando: 15 secondi di ultime parole con la barra, poi la fazione (sulla TV e sui telefoni
+    insieme). Nelle ultime maschere il nome non deve cambiare colore prima della fazione.
+5e. Telefoni già usati la volta prima: dopo il primo tocco lo schermo non deve più spegnersi.
 6. Primo gioco: il narratore legge le regole; le volte dopo no. Risultato con monete o
    fallimento (suono diverso).
 7. Tavola Rotonda: rintocco, spiegazione la prima volta; alla chiusura i voti compaiono uno alla
