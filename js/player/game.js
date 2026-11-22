@@ -116,7 +116,8 @@ export function createGameScreen(root, client) {
     const torch = ui.torch;
     if (!torch || torch.phase === 'done') return;
     let ms = null;
-    if (torch.phase === 'wait') torch.result = 'early';
+    const early = torch.phase === 'wait';
+    if (early) torch.result = 'early';
     else if (kind === 'miss') torch.result = 'miss';
     else {
       ms = Math.round(performance.now() - torch.litAt);
@@ -124,7 +125,7 @@ export function createGameScreen(root, client) {
     }
     torch.phase = 'done';
     stopTorch();
-    send(A.MISSION_INPUT, { round: torch.round, ms });
+    send(A.MISSION_INPUT, early ? { round: torch.round, ms, early: true } : { round: torch.round, ms });
   }
   root.addEventListener('pointerdown', (e) => {
     if (e.target.closest('[data-torch]')) {
@@ -152,11 +153,28 @@ export function createGameScreen(root, client) {
     if (p.kind === 'final') send(A.FINAL_CHOICE, { choice: p.value });
     if (p.kind === 'chest') send(A.MISSION_INPUT, { choice: p.value });
     if (p.kind === 'trial') send(A.MISSION_INPUT, { ok: p.value === 'yes' });
+    if (p.kind === 'chrono') send(A.MISSION_INPUT, { position: Number(p.value) });
+    if (p.kind === 'messenger') send(A.MISSION_INPUT, { choice: Number(p.value) });
+    if (p.kind === 'offer') send(A.SEDUCTION_ANSWER, { accept: p.value === 'yes' });
+  });
+  // Catena della Memoria: il simbolo parte subito (c'è poco tempo)
+  on(root, '[data-symbol]', 'click', (e, btn) => {
+    if (!ui.busy) send(A.MISSION_INPUT, { symbol: Number(btn.dataset.symbol) });
+  });
+  // Prima notte con un solo Traditore: Assassinare o Sedurre
+  on(root, '[data-plan]', 'click', (e, btn) => {
+    if (!ui.busy) send(A.NIGHT_PLAN, { plan: btn.dataset.plan });
   });
   // Enigma: la risposta parte subito (c'è poco tempo)
   on(root, '[data-answer]', 'click', (e, btn) => {
     if (ui.busy) return;
     send(A.MISSION_INPUT, { index: Number(btn.dataset.index), answer: Number(btn.dataset.answer) });
+  });
+  root.addEventListener('submit', (e) => {
+    if (!e.target.matches('[data-act="estimate"]')) return;
+    e.preventDefault();
+    const value = Number(e.target.querySelector('input').value);
+    if (Number.isInteger(value) && value > 0) send(A.MISSION_INPUT, { value });
   });
   root.addEventListener('submit', async (e) => {
     if (!e.target.matches('[data-act="chat"]')) return;
@@ -268,6 +286,9 @@ function outcomeText(o, nameOf) {
 
 function voteHtml(v, ui, nameOf, title) {
   const st = v.step;
+  if (st.stage === 'discussion') {
+    return `<h1>${title}</h1><p class="big">Discutete: chi sono i Traditori?</p><p class="muted">Il voto si apre quando la clessidra è vuota.</p>`;
+  }
   if (st.stage === 'results') {
     return `<h1>${title}</h1><p class="big">${outcomeText(st.outcome, nameOf)}</p><p class="muted">Guarda lo schermo principale.</p>`;
   }
@@ -282,9 +303,27 @@ function voteHtml(v, ui, nameOf, title) {
 function nightHtml(v, ui, nameOf) {
   const st = v.step;
   if (v.me.status !== 'alive') return `<h1>La notte</h1><p class="muted">Il castello dorme.</p>`;
+  // Offerta di Seduzione ricevuta (anonima): accettare o rifiutare in segreto
+  if (st.offer && st.offer.incoming) {
+    if (st.offer.answer === true) {
+      const allies = v.allies && v.allies.length ? ` Il tuo complice: <strong>${v.allies.map((a) => esc(a.name)).join(', ')}</strong>.` : '';
+      return `<h1>La notte</h1><p class="turned">Hai accettato: <strong>ora sei un Traditore</strong>.${allies} Ucciderete insieme dalla prossima notte. Non dirlo a nessuno.</p>`;
+    }
+    if (st.offer.answer === false) return '<h1>La notte</h1><p class="big">Hai rifiutato l\'offerta. Resti Leale.</p><p class="muted">Torna a dormire.</p>';
+    const label = ui.pending && (ui.pending.value === 'yes' ? '<strong>Accettare</strong> e diventare Traditore?' : '<strong>Rifiutare</strong> e restare Leale?');
+    return `<h1>La notte</h1>
+      <div class="offer"><p class="big">I Traditori ti offrono di unirti a loro.</p>
+      <p class="muted">Se accetti diventi Traditore. Se rifiuti resti Leale, e nessuno saprà dell'offerta.</p></div>
+      <div class="final-choices">
+        <button class="btn btn-primary btn-block" data-pick="yes" data-kind="offer">Accetto</button>
+        <button class="btn btn-secondary btn-block" data-pick="no" data-kind="offer">Rifiuto</button>
+      </div>
+      ${ui.pending ? confirmHtml(ui, label) : ''}`;
+  }
   const turned = v.me.justTurned
     ? '<p class="turned">Il castello ti ha scelto: <strong>ora sei un Traditore</strong>. Agirai dalla prossima notte. Non dirlo a nessuno.</p>'
     : '';
+  const seducing = st.killer && st.plan === 'seduce';
   // Stessa forma per tutti: titolo, griglia con lo stesso numero di nomi, conferma.
   // I Traditori scelgono chi colpire; gli altri indicano un sospetto (annunciato alla Colazione).
   const allyMarks = (id) => {
@@ -293,16 +332,28 @@ function nightHtml(v, ui, nameOf) {
     return who.length ? `<small>${who.join(', ')}</small>` : '';
   };
   let mine = '';
-  if (st.myChoice) {
+  if (seducing && st.offer) {
+    mine = `<p class="big">Offerta inviata a ${esc(nameOf(st.offer.targetId))}.</p><p class="muted">Alla colazione saprai se ha accettato.</p>`;
+  } else if (st.myChoice) {
     mine = st.killer
       ? `<p class="muted">La tua scelta: ${esc(nameOf(st.myChoice))} (puoi cambiarla)</p>`
       : `<p class="big">Hai indicato ${esc(nameOf(st.myChoice))}.</p><p class="muted">Torna a dormire: alla colazione il castello svelerà il più sospettato.</p>`;
   }
-  const question = st.killer
+  const planBox = st.canSeduce
+    ? `<div class="plan-toggle">
+        <button class="btn ${st.plan === 'murder' ? 'btn-primary' : 'btn-ghost'}" data-plan="murder">Assassinare</button>
+        <button class="btn ${st.plan === 'seduce' ? 'btn-primary' : 'btn-ghost'}" data-plan="seduce">Sedurre</button>
+      </div>
+      <p class="muted small">Sei l'unico Traditore: stanotte puoi uccidere oppure offrire a un Leale di unirsi a te.</p>`
+    : '';
+  const question = seducing
+    ? '<p>Chi vuoi sedurre?</p>'
+    : st.killer
     ? '<p>Chi colpire stanotte?</p>'
     : '<p>Di chi sospetti?</p><p class="muted small">Nessuno saprà che l\'hai indicato tu.</p>';
   let killerBox = '';
-  if (st.killer) {
+  // Chat e accordo servono solo a chi uccide insieme ad altri (non a chi seduce, non a chi è solo)
+  if (st.killer && !seducing && st.allyPicks.length > 1) {
     const consensus = st.consensus
       ? `<p class="consensus">Accordo raggiunto: <strong>${esc(nameOf(st.consensus))}</strong></p>`
       : '<p class="muted small">Dovete indicare tutti lo stesso nome.</p>';
@@ -317,11 +368,13 @@ function nightHtml(v, ui, nameOf) {
         </form>
       </div>`;
   }
-  const canPick = !st.myChoice || st.killer;
-  const confirmLabel = ui.pending && (st.killer
+  const canPick = seducing ? !st.offer : !st.myChoice || st.killer;
+  const confirmLabel = ui.pending && (seducing
+    ? `Sedurre <strong>${esc(nameOf(ui.pending.value))}</strong>? Non potrai cambiare.`
+    : st.killer
     ? `Colpire <strong>${esc(nameOf(ui.pending.value))}</strong>?`
     : `Sospettare di <strong>${esc(nameOf(ui.pending.value))}</strong>?`);
-  return `<h1>La notte</h1>${turned}${canPick ? question : ''}
+  return `<h1>La notte</h1>${turned}${planBox}${canPick ? question : ''}
     ${canPick ? pickGrid(st.options, 'night', ui, nameOf, allyMarks, st.disabled) : ''}
     ${mine}
     ${ui.pending ? confirmHtml(ui, confirmLabel) : ''}
@@ -381,7 +434,11 @@ function mainHtml(v, ui, nameOf) {
       if (st.victimId === v.me.id) {
         return `<h1>Colazione</h1><p class="big">Stanotte sei stato assassinato.</p>${spectator()}`;
       }
-      return `<h1>Colazione</h1><p class="big">Guarda lo schermo principale.</p>${suspectsText(st.suspects, nameOf)}`;
+      return `<h1>Colazione</h1><p class="big">Guarda lo schermo principale.</p>${seductionText(v, nameOf)}${suspectsText(st.suspects, nameOf)}`;
+    case 'presentations':
+      return st.mine
+        ? `<p class="kicker">Presentazioni</p><h1>Tocca a te!</h1><div class="trial-card"><h2>${esc(st.theme)}</h2></div><p class="muted">Hai il tempo della clessidra.</p>`
+        : `<p class="kicker">Presentazioni</p><h1>${esc(nameOf(st.playerId))}</h1><p class="big">${esc(st.theme)}</p>${st.next === v.me.id ? '<p class="turned">Dopo tocca a te: preparati!</p>' : ''}`;
     case 'mission':
       return missionHtml(v, ui, nameOf, confirmHtml);
     case 'roundtable':
@@ -412,4 +469,13 @@ function prizeText(v) {
     return pr.pot ? `<p class="coins-won">+${coins(pr.share)} <span>monete</span></p>` : '<p class="muted">Montepremi vuoto: vinci per la gloria.</p>';
   }
   return `<p class="muted">Montepremi: ${coins(pr.pot)} monete ai vincitori sopravvissuti.</p>`;
+}
+
+// Esito della Seduzione: solo a chi ha sedotto (il sedotto lo sa già)
+function seductionText(v, nameOf) {
+  const sd = v.step.seduction;
+  if (!sd || sd.targetId === v.me.id) return '';
+  return sd.accepted
+    ? `<p class="turned">${esc(nameOf(sd.targetId))} ha accettato: ora siete in due.</p>`
+    : `<p class="turned">${esc(nameOf(sd.targetId))} ha rifiutato la tua offerta.</p>`;
 }

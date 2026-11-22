@@ -150,3 +150,16 @@
 
 .trial-card p { font-size: 1rem; }
 .game-main .coins-won { font-size: 2.6rem; }
+
+/* ---------- Fase 2b ---------- */
+.plan-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+.offer { border: 2px solid var(--velvet-hi); border-radius: var(--radius); padding: 0.9rem; background: #2a0a10; }
+.banned { color: var(--warn); }
+.estimate-form { display: flex; gap: 0.5rem; }
+.estimate-form input { width: 100%; font: inherit; font-size: 1.5rem; padding: 0.6em 0.8em; border-radius: var(--radius); border: 1px solid var(--stone-600); background: var(--stone-800); color: var(--text); text-align: center; }
+.symbol-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.6rem; }
+.symbol-btn { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; padding: 0.7em 0.3em; }
+.symbol-btn .symbol { width: 3.4rem; height: 3.4rem; }
+.symbol-btn span { font-size: 0.85rem; }
+.pos-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
+.pos-grid .pick { font-size: 1.3rem; padding: 0.8em 0; }

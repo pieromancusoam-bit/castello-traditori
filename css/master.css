@@ -322,7 +322,7 @@
 
 .torch-scene { font-size: 1.8em; }
 
-.mission-result { display: flex; flex-direction: column; align-items: center; }
+.mission-result { display: flex; flex-direction: column; align-items: center; width: 100%; }
 .mission-result .coins-won { font-size: 6em; }
 .mission-result .coins-lost { font-size: 3.4em; }
 
@@ -351,3 +351,58 @@
   .board-cols { grid-template-columns: 1fr 1fr; }
   .options { grid-template-columns: 1fr; }
 }
+
+/* ---------- Fase 2b: presentazioni, discussione, tracce, missioni nuove ---------- */
+.presenter { display: flex; align-items: center; gap: 2.5em; text-align: left; margin: 0.6em 0; }
+.presenter-portrait { width: 12em; flex: none; }
+.presenter h1 { font-size: 3.6em; }
+.presenter-theme { font-family: var(--font-serif); font-size: 2.2em; color: var(--text); max-width: 18em; margin: 0; }
+
+/* Discussione: la clessidra diventa grande al centro */
+.master-game.phase-roundtable .master-countdown:not([hidden]) { position: relative; top: auto; right: auto; align-self: center; font-size: 2.6em; order: 2; margin: 0.4em 0; }
+.master-game .debug-panel { order: 9; }
+.master-game.phase-roundtable .stage { order: 1; flex: none; }
+.master-game.phase-roundtable .game-footer { order: 3; margin-top: auto; }
+.discussion-clock { display: none; }
+
+/* Enigma: chi ha risposto cosa */
+.opt-text { display: flex; flex-direction: column; }
+.opt-who { font-size: 0.7em; color: var(--muted); margin-top: 0.2em; }
+.options li.is-right .opt-who { color: var(--ok); }
+
+/* Tracce del sabotaggio */
+.trace { width: 100%; max-width: 60em; margin-top: 0.6em; }
+.trace-line { font-size: 1.3em; margin: 0.3em 0; }
+.trace-list { list-style: none; margin: 0 auto; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(14em, 1fr)); gap: 0.4em 1.4em; text-align: left; font-size: 1.1em; }
+.trace-list li { display: flex; align-items: baseline; gap: 0.5em; padding: 0.3em 0.6em; border-bottom: 1px solid var(--stone-700); }
+.trace-list li span { flex: 1; }
+.trace-list li strong { color: var(--gold); font-variant-numeric: tabular-nums; }
+.trace-list li small { flex-basis: 100%; color: var(--warn); font-size: 0.75em; }
+.trace-list li { flex-wrap: wrap; }
+.trace-list .is-flag { background: rgba(140, 28, 44, 0.25); border-radius: 8px; }
+
+/* Stima: il disegno */
+.estimate-frame { width: min(92vw, 150vh); }
+.estimate-art { width: 100%; height: auto; display: block; border-radius: var(--radius); box-shadow: 0 0 0 3px var(--gold-dim); }
+
+/* Catena della Memoria: un simbolo alla volta, al centro */
+.chain-stage { position: relative; width: 100%; height: 55vh; }
+.chain-item, .chain-ready { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; animation-name: chain-show; animation-fill-mode: both; animation-timing-function: linear; }
+.chain-item .symbol { width: 34vh; height: 34vh; filter: drop-shadow(0 0 30px rgba(255, 255, 255, 0.15)); }
+.chain-name { font-family: var(--font-title); font-size: 3em; color: var(--gold); margin: 0.2em 0 0; }
+@keyframes chain-show { 0% { opacity: 0; transform: scale(0.85); } 10% { opacity: 1; transform: none; } 85% { opacity: 1; } 100% { opacity: 0; } }
+.memory-rows { display: grid; grid-template-columns: repeat(auto-fill, minmax(13em, 1fr)); gap: 0.6em; }
+.memory-row { display: flex; align-items: center; gap: 0.6em; padding: 0.4em 0.6em; border-radius: 10px; background: rgba(0, 0, 0, 0.3); text-align: left; flex-wrap: wrap; }
+.memory-row .symbol { width: 2.2em; height: 2.2em; }
+.memory-row span { flex: 1; font-size: 1.1em; }
+.memory-row small { flex-basis: 100%; color: var(--muted); }
+.memory-row.is-flag { background: rgba(140, 28, 44, 0.3); }
+.memory-row.is-flag small { color: var(--warn); }
+
+/* Cronologia: la fila giusta */
+.chrono-list { list-style: none; margin: 0 auto; padding: 0; max-width: 60em; text-align: left; counter-reset: chrono; }
+.chrono-list li { display: grid; grid-template-columns: 6em 1fr auto; gap: 1em; align-items: baseline; padding: 0.35em 0.8em; border-bottom: 1px solid var(--stone-700); font-size: 1.05em; }
+.chrono-year { color: var(--gold); font-weight: 700; font-variant-numeric: tabular-nums; }
+.chrono-who { color: var(--muted); font-size: 0.9em; }
+.chrono-list .is-flag { background: rgba(140, 28, 44, 0.25); }
+.chrono-list .is-flag .chrono-who { color: var(--warn); }

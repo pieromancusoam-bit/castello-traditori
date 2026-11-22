@@ -5,7 +5,7 @@ import { A } from '../engine/actions.js';
 import { esc, on } from '../ui/dom.js';
 import { portraitWallHtml, portraitFrameHtml } from './portrait-wall.js';
 import { GAME } from '../config/game-config.js';
-import { missionStageHtml, missionAdvanceLabel, boardHtml, prizeHtml } from './mission.js';
+import { missionStageHtml, missionAdvanceLabel, boardHtml, prizeHtml, presentationHtml, presentationAdvanceLabel } from './mission.js';
 import { countdownHtml, runCountdown } from '../ui/countdown.js';
 import { coins } from '../ui/format.js';
 
@@ -35,7 +35,12 @@ export function mountGame(root, host, { debug, onClose }) {
   const timers = [];
 
   let boardOpen = false;
-  on(root, '[data-act="advance"]', 'click', () => host.dispatch({ type: A.ADVANCE }));
+  on(root, '[data-act="advance"]', 'click', () => {
+    // Solo per le prove (?debug=1): salta la discussione minima della Tavola Rotonda
+    const v = host.masterView();
+    const skip = debug && v && v.phase === 'roundtable' && v.step.stage === 'discussion';
+    host.dispatch(skip ? { type: A.ADVANCE, payload: { force: true } } : { type: A.ADVANCE });
+  });
   on(root, '[data-act="board"]', 'click', () => {
     boardOpen = !boardOpen;
     update();
@@ -89,7 +94,8 @@ export function mountGame(root, host, { debug, onClose }) {
       }
     }
 
-    const label = advanceLabel(v);
+    let label = advanceLabel(v);
+    if (!label && debug && v.phase === 'roundtable' && v.step.stage === 'discussion') label = 'Salta la discussione (prova)';
     el('[data-act="advance"]').hidden = !label || busy;
     el('[data-act="advance"]').textContent = label || '';
     el('[data-act="lobby"]').hidden = v.phase !== 'ended';
@@ -113,7 +119,9 @@ function advanceLabel(v) {
     case 'roles': return 'Inizia la giornata';
     case 'breakfast': return 'Prosegui';
     case 'mission': return missionAdvanceLabel(st);
+    case 'presentations': return presentationAdvanceLabel(st);
     case 'roundtable':
+      if (st.stage === 'discussion') return null; // la discussione minima non si salta
       return st.stage === 'voting' ? 'Chiudi la votazione' : st.outcome.kind === 'runoff' ? 'Al ballottaggio' : st.outcome.kind === 'banish' ? 'Rivela la fazione' : 'Prosegui';
     case 'reveal': return 'Prosegui';
     case 'night': return 'Fai sorgere il sole';
@@ -191,7 +199,14 @@ function stageHtml(v, nameOf, host) {
     }
     case 'mission':
       return missionStageHtml(v, nameOf);
+    case 'presentations':
+      return presentationHtml(v, nameOf, (id) => portraitFrameHtml(v.players.find((p) => p.id === id), host.photoOf(id)));
     case 'roundtable':
+      if (st.stage === 'discussion') {
+        return `<h1>Tavola Rotonda</h1>
+          <p class="lead">Discutete: chi sono i Traditori? Il voto si apre quando la clessidra è vuota.</p>
+          <div class="discussion-clock" aria-hidden="true"></div>`;
+      }
       return voteStageHtml(st, nameOf, 'Tavola Rotonda');
     case 'reveal':
       return revealStageHtml(st, nameOf);
