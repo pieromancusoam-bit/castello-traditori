@@ -139,3 +139,15 @@ test('OBBLIGATORIO: ogni telefono vibra negli stessi momenti, qualunque sia il r
   }
   assert.ok(buzzes > 500, `solo ${buzzes} vibrazioni`);
 });
+
+// ---------------- Numeri detti a voce ----------------
+import { numberToWords, spokenText } from '../js/show/spoken.js';
+
+test('i numeri si leggono per esteso, anche con il punto delle migliaia', () => {
+  const cases = { 0: 'zero', 1: 'uno', 21: 'ventuno', 23: 'ventitré', 28: 'ventotto', 100: 'cento', 108: 'centotto',
+    180: 'centottanta', 250: 'duecentocinquanta', 1000: 'mille', 1250: 'milleduecentocinquanta', 2000: 'duemila',
+    10500: 'diecimilacinquecento', 1000000: 'un milione', 2300000: 'due milioni trecentomila' };
+  for (const [n, w] of Object.entries(cases)) assert.equal(numberToWords(Number(n)), w);
+  assert.equal(spokenText('In palio ci sono 1.250 monete, gioco 2 di 3.'), 'In palio ci sono milleduecentocinquanta monete, gioco due di tre.');
+  assert.equal(spokenText('Il montepremi è di 12.000 monete.'), 'Il montepremi è di dodicimila monete.');
+});
