@@ -221,7 +221,7 @@ function resultHtml(st, def, v, nameOf) {
     torches: () => `Media del gruppo: ${seconds(d.avgMs)}.`,
     trial: () => `${d.yes} riuscita, ${d.no} fallita.`,
     estimate: () => `Erano ${d.count} ${d.object}; media del gruppo ${d.avg}.`,
-    memory: () => `${d.correct} simboli ricordati su ${d.total}.`,
+    memory: () => `${d.correct} ${d.correct === 1 ? "simbolo ricordato" : "simboli ricordati"} su ${d.total}.`,
     chronology: () => `${d.correct} eventi al posto giusto su ${d.total}.`,
     messenger: () => `${d.correct} su ${d.total} hanno riconosciuto «${d.options[d.correctIndex]}».`,
     crypt: () => `Il codice era ${d.solution}: ${d.correct} cifre giuste su ${d.total}.`,
@@ -242,5 +242,5 @@ function resultHtml(st, def, v, nameOf) {
   if (r.coins < 0) won = `<p class="coins-lost">−${coins(-r.coins)} monete</p>`;
   return `${won}<p class="big">${esc(lines[st.id] ? lines[st.id]() : '')}</p>
     ${mine ? `<p>${esc(mine)}</p>` : ''}
-    <p class="muted">Sullo schermo principale si vede chi ha fatto cosa.</p>`;
+    ${st.id === 'chest' || st.id === 'auction' ? '' : '<p class="muted">Sullo schermo principale si vede chi ha fatto cosa.</p>'}`;
 }

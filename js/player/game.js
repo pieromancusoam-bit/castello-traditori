@@ -242,6 +242,8 @@ export function createGameScreen(root, client) {
       ui.stepKey = key;
       ui.pending = null;
       ui.error = '';
+      ui.inventory = false; // fase nuova: si torna alla schermata di gioco
+      ui.vision = false;
       if (v.phase === 'roles') ui.roleSeenOnce = false; // partita nuova: si guarda di nuovo il ruolo
     }
     syncTimer(v);
@@ -284,7 +286,7 @@ export function createGameScreen(root, client) {
 // Oggetti nelle schermate di gioco: avviso se ce n'è uno da usare adesso, oggetto vinto
 function withItems(v, ui, html) {
   if (v.phase === 'night' || v.phase === 'roles' || v.me.status !== 'alive') return html;
-  const gift = v.phase === 'mission' ? giftHtml(v.step.myGift) : '';
+  const gift = v.phase === 'mission' && v.step.stage === 'result' ? giftHtml(v.step.myGift) : '';
   const p = ui.pending;
   const confirm = p && p.kind === 'item'
     ? confirmHtml(ui, `Usare <strong>${p.value === 'dagger' ? 'il Pugnale' : p.value === 'seal' ? 'il Sigillo' : 'lo Specchio'}</strong>? Non tornerà indietro.`)
@@ -306,7 +308,7 @@ function roleCardHtml(v, ui, small = false) {
   if (ui.holding) {
     const allies = traitor && v.allies && v.allies.length
       ? `<span class="role-allies">Complici: ${v.allies.map((a) => esc(a.name) + (a.status !== 'alive' ? ' (fuori)' : '')).join(', ')}</span>`
-      : traitor ? '<span class="role-allies">Nessun complice in gioco</span>' : '';
+      : traitor ? '<span class="role-allies">Non conosci complici in gioco</span>' : '';
     const special = ROLE_TEXT[v.me.role];
     const vision = v.me.vision
       ? `<span class="role-allies">La tua visione: ${esc((v.players.find((p) => p.id === v.me.vision.targetId) || {}).name || '?')} è ${FACTION_A[v.me.vision.faction]}</span>`
@@ -400,7 +402,7 @@ function nightHtml(v, ui, nameOf) {
   };
   let mine = '';
   if (offering && st.offer) {
-    mine = `<p class="big">${st.offer.kind === 'ultimatum' ? 'Ultimatum' : 'Offerta'} inviata a ${esc(nameOf(st.offer.targetId))}.</p><p class="muted">Alla colazione saprai cosa ha risposto.</p>`;
+    mine = `<p class="big">${st.offer.kind === 'ultimatum' ? 'Ultimatum inviato' : 'Offerta inviata'} a ${esc(nameOf(st.offer.targetId))}.</p><p class="muted">Alla colazione saprai cosa ha risposto.</p>`;
   } else if (st.myChoice) {
     mine = st.killer
       ? `<p class="muted">La tua scelta: ${esc(nameOf(st.myChoice))} (puoi cambiarla)</p>`
@@ -437,7 +439,10 @@ function nightHtml(v, ui, nameOf) {
   const grid = ui.vision ? '' : `${canPick ? question : ''}
     ${canPick ? pickGrid(st.options, 'night', ui, nameOf, allyMarks, st.disabled) : ''}
     ${mine}`;
-  return `<h1>La notte</h1>${turned}${rest}${planBox}
+  const vision = v.me.vision
+    ? `<p class="muted small">La tua visione: ${esc(nameOf(v.me.vision.targetId))} è ${FACTION_A[v.me.vision.faction]}.</p>`
+    : '';
+  return `<h1>La notte</h1>${turned}${rest}${planBox}${vision}
     ${seerHtml(v, ui, nameOf)}
     ${grid}
     ${confirm}
@@ -449,7 +454,8 @@ function offerHtml(v, ui) {
   const st = v.step;
   const ultimatum = st.offer.kind === 'ultimatum';
   if (st.offer.answer === true) {
-    const allies = v.allies && v.allies.length ? ` I tuoi complici: <strong>${v.allies.map((a) => esc(a.name)).join(', ')}</strong>.` : '';
+    const inGame = (v.allies || []).filter((a) => a.status === 'alive');
+    const allies = inGame.length ? ` I tuoi complici: <strong>${inGame.map((a) => esc(a.name)).join(', ')}</strong>.` : '';
     return `<h1>La notte</h1><p class="turned">Hai accettato: <strong>ora sei un Traditore</strong>.${allies} Ucciderete insieme dalla prossima notte. Non dirlo a nessuno.</p>`;
   }
   if (st.offer.answer === false) {

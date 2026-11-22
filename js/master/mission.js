@@ -200,7 +200,7 @@ function resultHtml(st, nameOf) {
     torches: () => `Media del gruppo: ${seconds(d.avgMs)}.`,
     trial: () => `${d.yes} dicono riuscita, ${d.no} fallita.`,
     estimate: () => `Erano ${d.count} ${d.object}; la media del gruppo è ${d.avg}.`,
-    memory: () => `${d.correct} simboli ricordati su ${d.total}.`,
+    memory: () => `${d.correct} ${d.correct === 1 ? "simbolo ricordato" : "simboli ricordati"} su ${d.total}.`,
     chronology: () => `${d.correct} eventi al posto giusto su ${d.total}.`,
     messenger: () => `${d.correct} su ${d.total} hanno riconosciuto la scena.`,
     crypt: () => `Il codice era ${d.solution}. ${d.groupAnswer === null ? 'Il gruppo non si è messo d\'accordo.' : `Il gruppo ha scritto ${d.groupAnswer}: ${d.correct} ${d.correct === 1 ? 'cifra giusta' : 'cifre giuste'} su ${d.total}.`}`,

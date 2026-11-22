@@ -126,10 +126,12 @@ export function finishMission(s, rng) {
   s.phaseData.result = result;
   // Doppia posta fallita: il montepremi perde il valore normale del gioco
   if (s.phaseData.double && result.coins <= 0) {
-    result.coins = -Math.min(s.pot, s.phaseData.value / 2);
+    result.coins = -s.phaseData.value / 2;
     result.doubleLoss = true;
   }
-  s.pot = Math.max(0, s.pot + result.coins);
+  // Il montepremi non scende sotto zero: la perdita mostrata è quella vera
+  result.coins = Math.max(result.coins, -s.pot);
+  s.pot += result.coins;
   s.missionLog.push({ day: s.day, slot: s.phaseData.slot, id: s.phaseData.id, coins: result.coins });
   if (result.gift) {
     // Oggetto della missione stessa (Ponte, Asta, Lettera): { playerId, item }

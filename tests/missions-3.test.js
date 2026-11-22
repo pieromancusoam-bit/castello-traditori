@@ -162,3 +162,11 @@ test('Lettera: senza scelta si rinuncia; Doppia posta passa al gioco dopo', () =
   assert.equal(s.phaseData.result.detail.opened, false);
   assert.equal(s.phaseData.double, false);
 });
+
+test('montepremi mai sotto zero: la perdita mostrata è quella vera', () => {
+  let s = play('letter', { pot: 300 });
+  s = input(s, s.phaseData.data.keeperId, { open: true });
+  assert.equal(s.pot, 0);
+  assert.equal(s.phaseData.result.coins, -300);
+  assert.equal(s.missionLog.at(-1).coins, -300);
+});

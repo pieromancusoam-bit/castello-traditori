@@ -72,7 +72,10 @@ export function mountGame(root, host, { debug, onClose }) {
   on(root, '[data-act="lobby"]', 'click', () => host.backToLobby());
   root.addEventListener('change', (e) => {
     const sel = e.target.closest('[data-debug]');
-    if (sel && sel.value) host.dispatch({ type: A.DEBUG_NEXT, payload: { [sel.dataset.debug]: sel.value } });
+    if (sel && sel.value) {
+      host.dispatch({ type: A.DEBUG_NEXT, payload: { [sel.dataset.debug]: sel.value } });
+      sel.value = '';
+    }
     // Dai un oggetto: scelti oggetto e giocatore
     if (e.target.closest('[data-debug-give]')) {
       const item = root.querySelector('[data-debug-give="item"]');
@@ -216,7 +219,7 @@ function voteStageHtml(st, nameOf, title) {
   }
   const counts = {};
   for (const v of st.votes) counts[v.targetId] = (counts[v.targetId] || 0) + (v.double ? 2 : 1);
-  const rows = st.votes.map((v) => `<li class="${v.double ? 'is-double' : ''}"><span>${esc(nameOf(v.voterId))}</span><span class="arrow">➜</span><span>${esc(nameOf(v.targetId))}</span>${v.double ? '<span class="dagger-mark" title="Pugnale">×2</span>' : ''}</li>`).join('');
+  const rows = st.votes.map((v) => `<li class="${v.double ? 'is-double' : ''}"><span>${esc(nameOf(v.voterId))}</span><span class="arrow">➜</span><span>${esc(nameOf(v.targetId))}${v.double ? ' <span class="dagger-mark" title="Pugnale">×2</span>' : ''}</span></li>`).join('');
   const tally = Object.entries(counts).sort((a, b) => b[1] - a[1])
     .map(([id, n]) => `<li><strong>${esc(nameOf(id))}</strong> ${n} ${n === 1 ? 'voto' : 'voti'}</li>`).join('');
   return `<h1>I voti</h1>

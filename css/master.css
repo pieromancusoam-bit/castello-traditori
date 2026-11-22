@@ -439,3 +439,5 @@
 .crypt-door { display: flex; gap: 0.4em; justify-content: center; margin: 0.5em 0; }
 .crypt-door span { width: 1.6em; height: 2.2em; display: grid; place-items: center; font-family: var(--font-title); font-size: 2.6em; color: var(--gold); border: 3px solid var(--gold-dim); border-radius: 10px; background: var(--stone-800); }
 .letter-seal { width: 5em; height: 5em; margin: 0.4em auto; border-radius: 50%; background: radial-gradient(circle at 35% 35%, var(--velvet-hi), var(--velvet) 60%, #4a0d18); box-shadow: 0 0 0 6px rgba(140, 28, 44, 0.35); }
+.phase-dusk .stage { justify-content: flex-start; }
+.phase-dusk .portrait-wall { width: 100%; max-width: 96em; margin-top: 0.6em; }

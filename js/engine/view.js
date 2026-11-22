@@ -313,7 +313,7 @@ function playerNight(s, p) {
       swap: pd.swap,
       plan: killerIds.length ? pd.plan : null,
       // Nuova vittima possibile: chi non è Traditore (lui li conosce tutti)
-      swapOptions: live.filter((id) => id !== p.id && !isTraitorRole(s.players[id].role)),
+      swapOptions: live.filter((id) => id !== p.id && id !== nightConsensus(s) && !isTraitorRole(s.players[id].role)),
     };
   }
   return step;
